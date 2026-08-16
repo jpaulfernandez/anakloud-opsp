@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 9
+**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 10
 
 ---
 
@@ -77,7 +77,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 |---|---|---|---|
 | F02-T01 | Invite token issue and revocation | Done | |
 | F02-T02 | Session claim | Done | |
-| F02-T03 | Resume code | Not started | |
+| F02-T03 | Resume code | Done | |
 | F02-T04 | Welcome and name entry | Not started | |
 | F02-T05 | Ground rules gate | Not started | |
 | F02-T06 | Session middleware and role resolution | Not started | |

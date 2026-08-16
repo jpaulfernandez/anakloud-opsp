@@ -33,6 +33,21 @@ export const MIGRATIONS: Migration[] = [
     up: `alter table respondents add column if not exists invite_revoked_at timestamptz;`,
     down: `alter table respondents drop column if exists invite_revoked_at;`,
   },
+  {
+    version: "0004_resume_code_attempts",
+    // The rate-limit ledger for resume-code claim attempts (F02-T03). One row
+    // per attempt, keyed by IP; the rolling-hour check reads recent rows off
+    // the (ip, attempted_at) index and inserts the current attempt. This table
+    // is operational state, not part of the §3 data model, so it ships as a
+    // hand-written migration like 0002 and 0003 rather than living in SCHEMA.
+    up: `create table if not exists resume_code_attempts (
+           ip           text not null,
+           attempted_at timestamptz not null default now()
+         );
+         create index if not exists resume_code_attempts_ip_time_idx
+           on resume_code_attempts (ip, attempted_at);`,
+    down: `drop table if exists resume_code_attempts;`,
+  },
 ];
 
 async function withTransaction<T>(
@@ -53,28 +68,40 @@ async function withTransaction<T>(
 /**
  * Apply every migration whose version is not yet recorded in
  * `schema_migrations`. Idempotent: a second run is a no-op.
+ *
+ * Multiple concurrent callers (parallel Playwright workers) may target the same
+ * schema at once, and Postgres's `create table if not exists schema_migrations`
+ * is not atomic against a simultaneous fire, so this serializes them with a
+ * session-scoped advisory lock. The lock survives the inner per-migration
+ * transactions because advisory locks are held by the session, not the
+ * transaction.
  */
 export async function migrate(db: Client): Promise<void> {
-  await db.query(`
-    create table if not exists schema_migrations (
-      version    text primary key,
-      applied_at timestamptz not null default now()
-    )
-  `);
+  await db.query("select pg_advisory_lock(hashtext('align_migrations'))");
+  try {
+    await db.query(`
+      create table if not exists schema_migrations (
+        version    text primary key,
+        applied_at timestamptz not null default now()
+      )
+    `);
 
-  for (const migration of MIGRATIONS) {
-    const existing = await db.query(
-      "select 1 from schema_migrations where version = $1",
-      [migration.version],
-    );
-    if (existing.rowCount && existing.rowCount > 0) continue;
+    for (const migration of MIGRATIONS) {
+      const existing = await db.query(
+        "select 1 from schema_migrations where version = $1",
+        [migration.version],
+      );
+      if (existing.rowCount && existing.rowCount > 0) continue;
 
-    await withTransaction(db, async () => {
-      await db.query(migration.up);
-      await db.query("insert into schema_migrations (version) values ($1)", [
-        migration.version,
-      ]);
-    });
+      await withTransaction(db, async () => {
+        await db.query(migration.up);
+        await db.query("insert into schema_migrations (version) values ($1)", [
+          migration.version,
+        ]);
+      });
+    }
+  } finally {
+    await db.query("select pg_advisory_unlock(hashtext('align_migrations'))");
   }
 }
 
