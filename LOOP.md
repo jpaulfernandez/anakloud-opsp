@@ -108,8 +108,16 @@ The loop also sets the ticket to `Blocked` in `spec/TRACKER.md` with a pointer t
 
 ## Running it
 
+Always smoke-test one ticket first:
+
 ```bash
-./loop.sh
+MAX_TICKETS=1 AGENT_CMD=./agents/claude.sh ./loop.sh
+```
+
+Then let it run:
+
+```bash
+AGENT_CMD=./agents/claude.sh ./loop.sh
 ```
 
 Options, all environment variables:
@@ -117,25 +125,58 @@ Options, all environment variables:
 | Variable | Default | Purpose |
 |---|---|---|
 | `AGENT_CMD` | `claude -p` | The agent invocation |
+| `LOOP_MODEL` | per wrapper | Model, read by the wrappers in `agents/` |
 | `MAX_ATTEMPTS` | `3` | Attempts per ticket before halting |
 | `MAX_TICKETS` | `0` | Stop after N tickets; `0` means run until blocked or done |
 | `NO_COMMIT` | unset | Set to `1` to skip the per-ticket commit |
 
-Run a single ticket to see how it behaves before letting it run unattended:
+### Harnesses
+
+The loop writes the prompt to the agent's **stdin**. Anything that reads a prompt from stdin and can write files will work. `agents/` holds a wrapper per harness; use wrappers rather than inlining flags into `AGENT_CMD`, because that variable is word-split and anything containing parentheses, quotes or globs will not survive.
+
+| Harness | Command |
+|---|---|
+| Claude Code | `AGENT_CMD=./agents/claude.sh ./loop.sh` |
+| opencode | `AGENT_CMD=./agents/opencode.sh ./loop.sh` |
+| Qwen Code | `AGENT_CMD=./agents/qwen.sh ./loop.sh` |
+| aider | `AGENT_CMD=./agents/aider.sh ./loop.sh` |
+
+Override the model without editing a wrapper:
 
 ```bash
-MAX_TICKETS=1 ./loop.sh
+LOOP_MODEL=sonnet AGENT_CMD=./agents/claude.sh ./loop.sh
 ```
 
-### Unattended runs need a permission flag
+Model ids are harness-specific and provider-prefixed. `opencode models` lists them; on a machine authenticated through OpenCode Zen the prefix is `opencode/`, not `anthropic/`.
 
-`claude -p` will stop and ask before editing files. For an unattended run you have to grant that up front — with Claude Code that means adding `--permission-mode acceptEdits` (or a broader flag) to `AGENT_CMD`. That is a real decision, not a formality: you are letting a model write to this repository without a human approving each change.
+**Check the harness answers before starting a run.** A loop whose agent cannot authenticate burns three attempts and halts on a ticket that was never the problem:
 
 ```bash
-AGENT_CMD="claude -p --permission-mode acceptEdits" ./loop.sh
+printf 'Reply with exactly the word PLUMBING and nothing else.\n' | ./agents/opencode.sh
 ```
 
-Decide it deliberately rather than reaching for the widest flag that makes the prompt go away.
+Writing a wrapper for something else is three lines — read stdin, pass it to the tool, grant permissions up front:
+
+```bash
+#!/usr/bin/env bash
+exec your-agent --non-interactive --auto-approve "$(cat)"
+```
+
+### Unattended runs need permissions granted up front
+
+In print mode there is no human to answer a permission prompt. Every wrapper in `agents/` therefore grants what the loop needs before it starts. That is a real decision, not a formality: you are letting a model write to this repository without approving each change.
+
+`agents/claude.sh` takes the narrow path — `--permission-mode acceptEdits` plus an allowlist covering `npm`, `npx`, `./verify.sh` and `git`. If a ticket needs a command outside that list the agent is denied, the attempt fails, and you see it in the log. That is the intended behaviour: widen the allowlist deliberately rather than reaching for `--dangerously-skip-permissions`, which grants everything including commands no ticket in this plan calls for.
+
+`agents/aider.sh` passes `--no-auto-commits` because aider commits by default and `loop.sh` owns committing — one commit per passing ticket. Leaving both on produces two commits per ticket and a confusing history.
+
+`agents/qwen.sh` uses `--approval-mode yolo`, which is the widest posture of any wrapper here — Qwen Code exposes no allowlist equivalent to Claude Code's, so it is that or an interactive prompt nothing can answer. Qwen prints a warning to this effect on every run; leave it visible rather than setting `QWEN_CODE_SUPPRESS_YOLO_WARNING`. If that is too broad for an unattended run, add `--sandbox` (or `QWEN_SANDBOX=1`) so tool calls execute in a container rather than at your shell's privilege level.
+
+### What verify.sh does and does not protect against
+
+`loop.sh` sets the ticket to `Done` itself, and only after `./verify.sh` exits zero, so no agent can mark a ticket complete while tests fail. That holds regardless of which model is behind `AGENT_CMD`.
+
+What it does not catch is a design-principle violation that compiles and passes tests: a placeholder added to a textarea, a dropdown on Q3's unit field, a default on the hours slider. Those are exactly the anchoring failures `AGENTS.md` exists to prevent, and they are invisible to typecheck and lint. The defence is that the tickets specify tests for them — F03-T04 asserts no unit suggestions appear, F03-T02 asserts no placeholder attribute — so the coverage only exists if the agent actually writes those tests. Weaker models skip them more often. Review the diffs on F03 and F05 rather than trusting the green tick.
 
 ---
 
