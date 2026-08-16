@@ -25,10 +25,17 @@ export const metadata: Metadata = {
 
 export default async function QuestionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
+  const { from } = await searchParams;
+  // "?from=review" is how the review screen's edit links mark a visit (F06-T01):
+  // navigation then loops back to /review instead of advancing to the next
+  // question.
+  const returnToReview = from === "review";
 
   // The URL segment is the plain number ("/q/3" → "3"); the registry key is
   // "q3". Map one to the other so an out-of-range URL 404s before any DB work.
@@ -71,6 +78,7 @@ export default async function QuestionPage({
       poolSeed={respondentId}
       roster={roster}
       level={aiLevel}
+      returnToReview={returnToReview}
     />
   );
 }

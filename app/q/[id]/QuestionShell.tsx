@@ -175,6 +175,7 @@ export function QuestionShell({
   poolSeed,
   roster = [],
   level,
+  returnToReview = false,
 }: {
   question: QuestionDefinition;
   neighbors: QuestionNeighbors;
@@ -187,6 +188,12 @@ export function QuestionShell({
       Resolved server-side by the pin; this prop is the whole of the
       respondent's exposure to it. */
   level: ResolvedLevel;
+  /** True when the respondent reached this screen by editing from the review
+      screen (F06-T01). Navigation then loops back to /review instead of
+      advancing to the next question, and Back returns to review too — the
+      requirement is "returns to that question and back to the review screen",
+      never onwards through the form. */
+  returnToReview?: boolean;
 }) {
   const router = useRouter();
   const [longTextAnswers, setLongTextAnswers] = useState<LongTextAnswers>({});
@@ -353,6 +360,13 @@ export function QuestionShell({
         : null;
   const prev = neighbors.prev;
   const next = neighbors.next;
+  // F06-T01: navigation is review-bound when the respondent arrived by editing
+  // from /review. The normal Continue+coach path runs only for genuine forward
+  // movement; any review-bound screen (including the natural end of the form)
+  // routes to /review instead, so Back also points there.
+  const showNormalContinue = !!next && !returnToReview;
+  const backHref = returnToReview ? "/review" : prev ? `/q/${questionRouteSegment(prev)}` : null;
+  const reviewButtonLabel = next ? "Continue" : returnToReview ? "Back to review" : "Review your answers";
 
   // ───────────────────────────────────────────────────────────────────────────
   // F05-T04 coach shell. The coach nudges, it never gates (PR4); no verdict can
@@ -369,6 +383,15 @@ export function QuestionShell({
     // must never hold up navigation.
     flush();
     router.push(`/q/${questionRouteSegment(next!)}`);
+  }
+
+  function handleReview() {
+    // The review entry point (F06-T01): flushes the current draft the same way
+    // advance does, then goes to /review. This is what the last question's
+    // "Review your answers" button and every return-from-review Continue use,
+    // because the review must show the freshly-typed answer.
+    flush();
+    router.push("/review");
   }
 
   function focusAnswerField() {
@@ -721,9 +744,9 @@ export function QuestionShell({
       </section>
 
       <nav className="mt-10 flex items-center justify-between gap-3">
-        {prev ? (
+        {backHref ? (
           <a
-            href={`/q/${questionRouteSegment(prev)}`}
+            href={backHref}
             className="text-base font-medium text-neutral-700 underline decoration-neutral-300 underline-offset-4 hover:decoration-neutral-500"
           >
             ← Back
@@ -732,7 +755,7 @@ export function QuestionShell({
           <span />
         )}
 
-        {next && (
+        {showNormalContinue ? (
           <div className="flex flex-col items-end gap-1">
             <button
               type="button"
@@ -751,6 +774,14 @@ export function QuestionShell({
               <p className="text-sm text-neutral-600">{blockedReason}</p>
             )}
           </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleReview}
+            className="rounded-md bg-neutral-900 px-4 py-2 text-base font-semibold text-white hover:bg-neutral-700"
+          >
+            {reviewButtonLabel}
+          </button>
         )}
       </nav>
     </main>
