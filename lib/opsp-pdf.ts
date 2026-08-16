@@ -1,5 +1,41 @@
 import { chromium } from "@playwright/test";
+import type { ClientBase } from "pg";
 import { SESSION_COOKIE } from "./session";
+import { listPublicAnswers } from "./answers";
+import { buildOpspCells, type OpspCell, type OpspCellId } from "./opsp";
+
+// F08-T04 — the PDF data path (FR-12, FR-27, spec.md §8,
+// tech_infrastructure.md §7, §9). The one loader every print/PDF request — a
+// respondent's own /opsp/print, the server PDF that renders it, and a
+// facilitator exporting another respondent's plan — runs the sheet through.
+// It reads the respondent's answers through listPublicAnswers, the
+// private-filtering query helper, and builds the sixteen cells from those
+// public answers alone. Enforcing exclusion in the query is what keeps Q14(d)
+// off every PDF unconditionally: no template or view ever has to remember to
+// omit the private note, because the note is not in the data it receives. The
+// loader must run inside the caller's RLS context, which is exactly what
+// allows the facilitator role (who can read cohort-wide answers) to load
+// another respondent's plan while listPublicAnswers still filters private rows
+// in the SQL.
+
+/**
+ * Build the printable OPSP sheet for a respondent from their public answers.
+ * `respondentId` may be the caller's own id or a cohort mate's when the caller
+ * acts as the facilitator; in either case listPublicAnswers filters
+ * `is_private = false`, so Q14(d) is structurally absent. Call inside
+ * withRespondentContext.
+ */
+export async function loadOpspPrintSheet(
+  db: ClientBase,
+  respondentId: string,
+): Promise<Record<OpspCellId, OpspCell>> {
+  const answers = await listPublicAnswers(db, respondentId);
+  const snapshot: Record<string, { value: unknown; confidence: number | null }> = {};
+  for (const a of answers) {
+    snapshot[a.question_id] = { value: a.value, confidence: a.confidence };
+  }
+  return buildOpspCells(snapshot);
+}
 
 // F08-T03 — server-side PDF rendering (GET /api/opsp/:id/pdf,
 // tech_infrastructure.md §4, §7).

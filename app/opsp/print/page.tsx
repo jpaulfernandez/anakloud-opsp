@@ -4,7 +4,8 @@ import { createDbClient } from "@/lib/db";
 import { requirePageSession } from "@/lib/auth";
 import { groundRulesAcknowledged } from "@/lib/respondent";
 import { withRespondentContext } from "@/lib/access";
-import { latestIndividualDraft, type IndividualDraft } from "@/lib/opsp-draft";
+import { loadOpspPrintSheet } from "@/lib/opsp-pdf";
+import type { OpspCell, OpspCellId } from "@/lib/opsp";
 import { listCohortTeammates } from "@/lib/cohort";
 import { OPSPView } from "../OPSPView";
 
@@ -13,8 +14,16 @@ import { OPSPView } from "../OPSPView";
 // the same OPSP grid as the view, served read-only in print mode, with the
 // export header (name, timestamp, draft label) always present. Requiring a
 // valid session is the same gate as every other respondent screen, and the
-// draft is read inside the respondent's RLS context so a respondent can only
+// sheet data is read as the session's respondent so a respondent can only
 // ever render their own plan.
+//
+// F08-T04 — private exclusion in export paths (FR-12, FR-27, spec.md §8,
+// tech_infrastructure §7, §9). The route loads its sheet through
+// loadOpspPrintSheet (lib/opsp-pdf.ts), the PDF data path that reads answers
+// via the private-filtering query helper listPublicAnswers and never the
+// stored note. The print route and the server PDF (which renders this same
+// route) therefore exclude Q14(d) unconditionally, enforced in the query
+// rather than by omitting the field in a template.
 //
 // The timestamp is generated server-side at render so the sheet carries when
 // it was produced, and the sheet shares the very component the interactive
@@ -31,7 +40,7 @@ export default async function OpspPrintPage() {
 
   let name = "";
   let rosterNames: Record<string, string> = {};
-  let draft: IndividualDraft | null = null;
+  let cells: Record<OpspCellId, OpspCell> | null = null;
   let timestamp = new Date();
   try {
     const session = await requirePageSession(db);
@@ -48,21 +57,21 @@ export default async function OpspPrintPage() {
     name = rows[0]?.display_name ?? "";
     const roster = await listCohortTeammates(db, session.cohortId, session.respondentId);
     rosterNames = Object.fromEntries(roster.map((m) => [m.id, m.displayName]));
-    draft = await withRespondentContext(db, session.respondentId, (tx) =>
-      latestIndividualDraft(tx),
+    cells = await withRespondentContext(db, session.respondentId, (tx) =>
+      loadOpspPrintSheet(tx, session.respondentId),
     );
     timestamp = new Date();
   } finally {
     await db.end();
   }
 
-  if (!draft) redirect("/");
+  if (!cells) redirect("/");
 
   return (
     <OPSPView
-      cells={draft.cells}
+      cells={cells}
       rosterNames={rosterNames}
-      draftId={draft.id}
+      draftId={""}
       name={name}
       printMode
       printedAt={timestamp}

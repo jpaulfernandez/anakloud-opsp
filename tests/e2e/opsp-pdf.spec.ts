@@ -46,6 +46,11 @@ const run = randomBytes(4).toString("hex");
 const COHORT = randomUUID();
 const RESPONDENT = randomUUID();
 
+// F08-T04 — a distinctive substring of SEED_RESPONDENTS[0]'s Q14(d) note. The
+// seed's Ana Reyes carries a populated private note; this phrase must never
+// surface on a printed sheet or PDF.
+const PRIVATE_NOTE_PHRASE = "still unpaid by March I will need to take a job";
+
 let db: Client | null = null;
 let draftId = "";
 
@@ -163,4 +168,31 @@ test("the OPSP view stays usable after the server renders a PDF", async ({ page 
   // disturb the respondent's OPSP view.
   await page.goto("/opsp");
   await expect(page.getByTestId("opsp-grid")).toBeVisible();
+});
+
+// F08-T04 — private exclusion in export paths (FR-12, FR-27, spec.md §8,
+// tech_infrastructure.md §7, §9). The seeded respondent (SEED_RESPONDENTS[0],
+// Ana Reyes) carries a populated Q14(d) private note. Its text must not appear
+// anywhere on the printed sheet — which is exactly the page the server PDF
+// renders — so both the browser/print path and the server PDF exclude it. The
+// exclusion holds because the sheet is built from listPublicAnswers in
+// loadOpspPrintSheet (unit-covered in opsp-pdf-data.*.test.ts); this test pins
+// the rendered output.
+test("the print route and the server PDF exclude the respondent's Q14(d) private note", async ({
+  page,
+}) => {
+  await setSession(page);
+
+  // The /opsp/print sheet (the page the server PDF renders) carries none of
+  // the note text.
+  await page.goto("/opsp/print");
+  await expect(page.getByTestId("opsp-grid")).toBeVisible();
+  await expect(page.getByText(PRIVATE_NOTE_PHRASE, { exact: false })).toHaveCount(0);
+
+  // And the server PDF for the same draft — a genuine render of that sheet —
+  // omits it too.
+  const pdf = await page.request.get(`/api/opsp/${draftId}/pdf`);
+  expect(pdf.status()).toBe(200);
+  const body = await pdf.body();
+  expect(body.toString("latin1").includes(PRIVATE_NOTE_PHRASE)).toBe(false);
 });
