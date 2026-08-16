@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { ClientBase } from "pg";
 import { withRespondentContext } from "./access";
 import { listOwnAnswers, type OwnAnswerRow } from "./answers";
+import { buildOpspCells, type OpspSourceAnswers } from "./opsp";
 
 // Submit, snapshot and OPSP generation (F06-T03, FR-14, FR-22,
 // tech_infrastructure.md §3, §4). POST /api/submit does, in one transaction:
@@ -37,13 +38,18 @@ export type SnapshotPayload = Record<string, SnapshotEntry>;
 
 /**
  * An individual OPSP draft's `cells` map at submit time. The deterministic
- * mapping of answers into cells is F07-T01; F06-T03 ships the draft scaffold
- * at version 1 with an empty map, which F07 populates.
+ * mapping of answers into cells is F07-T01 (lib/opsp.ts); F06-T03 ships the
+ * draft scaffold at version 1, and the default builder below populates it with
+ * the respondent's real cells.
  */
 export type OpspCells = Record<string, unknown>;
 
-/** The deterministic answer→OPSP-cell mapping, supplied later by F07-T01. */
-export type OpspCellsBuilder = () => OpspCells;
+/**
+ * The deterministic answer→OPSP-cell mapping. F07-T01's buildOpspCells is the
+ * default; the argument is the frozen snapshot payload so the mapping can
+ * derive each cell only from the answers of the respondent who owns it.
+ */
+export type OpspCellsBuilder = (payload: OpspSourceAnswers) => OpspCells;
 
 export interface SubmitResult {
   /** True when the respondent was already submitted; no rows were touched. */
@@ -95,7 +101,7 @@ export async function performSubmit(
   db: ClientBase,
   respondentId: string,
   cohortId: string,
-  buildOPSPCells: OpspCellsBuilder = () => ({}),
+  buildOPSPCells: OpspCellsBuilder = buildOpspCells,
 ): Promise<SubmitResult> {
   return withRespondentContext(db, respondentId, async (tx) => {
     const existing = await tx.query(
@@ -127,7 +133,7 @@ export async function performSubmit(
       `insert into opsp_drafts
          (id, cohort_id, owner_type, owner_id, version, cells)
        values ($1, $2, 'individual', $3, $4, $5::jsonb)`,
-      [draftId, cohortId, respondentId, OPSP_VERSION, JSON.stringify(buildOPSPCells())],
+      [draftId, cohortId, respondentId, OPSP_VERSION, JSON.stringify(buildOPSPCells(payload))],
     );
 
     return { alreadySubmitted: false, snapshotId, draftId, submittedAt };

@@ -1,0 +1,1785 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across runs (golden file) 1`] = `
+{
+  "Ana Reyes": {
+    "accountability_face": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "others": {
+            "20000000-0000-0000-0000-000000000001": "backend",
+            "20000000-0000-0000-0000-000000000002": "mobile_web",
+            "20000000-0000-0000-0000-000000000003": "data_privacy_security",
+            "20000000-0000-0000-0000-000000000004": "sales_partner",
+            "20000000-0000-0000-0000-000000000005": "design_ux",
+            "20000000-0000-0000-0000-000000000006": "finance",
+          },
+          "wants": [
+            "product",
+            "backend",
+            "data_privacy_security",
+          ],
+        },
+      },
+    },
+    "bhag": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q4",
+      ],
+      "value": {
+        "q4": {
+          "text": "Every child in the Philippines with a developmental delay is identified before age five.",
+        },
+      },
+    },
+    "brand_promise": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q7",
+      ],
+      "value": {
+        "q7": {
+          "text": "show the parent, the therapist and the referring doctor the same live progress record.",
+        },
+      },
+    },
+    "capacity": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "hours": 30,
+        },
+      },
+    },
+    "core_values": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q15",
+      ],
+      "value": {
+        "q15": {
+          "text": "When the demo crashed in front of the panel, J didn't explain it away. Said 'that's a real bug, we'll fix it,' and had it fixed that night.",
+        },
+      },
+    },
+    "key_initiatives": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q8",
+      ],
+      "value": {
+        "q8": {
+          "rank": [
+            "pedconnect",
+            "teachday",
+            "parentup",
+            "fourth_app",
+          ],
+        },
+      },
+    },
+    "number1_priority": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": {
+        "q11": {
+          "done_when": "8 centers each logged 20+ real sessions",
+          "what": "Onboard beta centers",
+        },
+      },
+    },
+    "profit_per_x": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+      ],
+      "value": {
+        "q10": {
+          "amount": 2500,
+          "first_peso": "2027-01",
+          "model": "monthly_subscription",
+          "payer": "center",
+          "unit": "per_center",
+        },
+      },
+    },
+    "purpose": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q1",
+        "q2",
+      ],
+      "value": {
+        "q1": {
+          "text": "Children with developmental delay in the Philippines wait months for assessment and travel hours for therapy, and most give up. We exist so that waiting stops being the reason a child misses care.",
+        },
+        "q2": {
+          "because": "they would go back to rebuilding schedules and tracking progress by hand every morning.",
+          "who": "Therapy center admins",
+        },
+      },
+    },
+    "quarterly_rocks": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": {
+        "q11": {
+          "rocks": [
+            {
+              "done_when": "8 centers each logged 20+ real sessions",
+              "what": "Onboard beta centers",
+            },
+            {
+              "done_when": "15 referrals complete end to end",
+              "what": "Prove the referral loop",
+            },
+            {
+              "done_when": "NPC registration filed, DPO named",
+              "what": "Data privacy baseline",
+            },
+          ],
+        },
+      },
+    },
+    "quarterly_theme": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q12",
+      ],
+      "value": {
+        "q12": {
+          "text": "Make the referral loop real",
+        },
+      },
+    },
+    "sandbox_boundaries": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q9",
+      ],
+      "value": {
+        "q9": {
+          "items": [
+            "no teletherapy",
+            "adult rehab",
+            "hospitals",
+          ],
+        },
+      },
+    },
+    "sandbox_core_customer": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q5",
+        "q6",
+      ],
+      "value": {
+        "q5": {
+          "benefits": [
+            "child",
+          ],
+          "decides": [
+            "center_owner",
+          ],
+          "pays": [
+            "center_owner",
+          ],
+          "uses": [
+            "occupational_therapist",
+            "speech_pathologist",
+          ],
+        },
+        "q6": {
+          "choice": "center",
+          "why": "They pay, and if they churn there is no data for the parent to look at anyway.",
+        },
+      },
+    },
+    "swt_threats": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q13",
+      ],
+      "value": null,
+    },
+    "three_year_targets": {
+      "marking": {
+        "parts": [
+          {
+            "key": "metric",
+            "mark": "ink",
+          },
+          {
+            "key": "number",
+            "mark": "pencil",
+          },
+        ],
+        "type": "parts",
+      },
+      "sources": [
+        "q3",
+      ],
+      "value": {
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 300,
+        },
+      },
+    },
+    "year1_critical_number": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+        "q3",
+      ],
+      "value": {
+        "q10": {
+          "first_peso": "2027-01",
+        },
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 300,
+        },
+      },
+    },
+  },
+  "Benito Cruz": {
+    "accountability_face": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "others": {
+            "20000000-0000-0000-0000-000000000001": "backend",
+            "20000000-0000-0000-0000-000000000002": "mobile_web",
+            "20000000-0000-0000-0000-000000000003": "data_privacy_security",
+            "20000000-0000-0000-0000-000000000004": "sales_partner",
+            "20000000-0000-0000-0000-000000000005": "design_ux",
+            "20000000-0000-0000-0000-000000000006": "finance",
+          },
+          "wants": [
+            "product",
+            "mobile_web",
+            "design_ux",
+          ],
+        },
+      },
+    },
+    "bhag": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q4",
+      ],
+      "value": {
+        "q4": {
+          "text": "The default operating system for pediatric therapy in Southeast Asia.",
+        },
+      },
+    },
+    "brand_promise": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q7",
+      ],
+      "value": {
+        "q7": {
+          "text": "cut two hours of admin per therapist per week.",
+        },
+      },
+    },
+    "capacity": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "hours": 40,
+        },
+      },
+    },
+    "core_values": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q15",
+      ],
+      "value": {
+        "q15": {
+          "text": "R spent a whole Saturday sitting in a therapy center watching, and came back and told us half our screens were wrong.",
+        },
+      },
+    },
+    "key_initiatives": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q8",
+      ],
+      "value": {
+        "q8": {
+          "rank": [
+            "pedconnect",
+            "teachday",
+            "parentup",
+            "fourth_app",
+          ],
+        },
+      },
+    },
+    "number1_priority": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": {
+        "q11": {
+          "done_when": "15 referrals complete doctor → center → parent",
+          "what": "Prove the referral loop",
+        },
+      },
+    },
+    "profit_per_x": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+      ],
+      "value": {
+        "q10": {
+          "amount": 2800,
+          "first_peso": "2027-03",
+          "model": "monthly_subscription",
+          "payer": "center",
+          "unit": "per_center",
+        },
+      },
+    },
+    "purpose": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q1",
+        "q2",
+      ],
+      "value": {
+        "q1": {
+          "text": "Parents pay months for therapy and never see if it works. We make progress visible so families know what they are buying.",
+        },
+        "q2": {
+          "because": "they would go back to rebuilding schedules and tracking progress by hand every morning.",
+          "who": "Therapy center admins",
+        },
+      },
+    },
+    "quarterly_rocks": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": {
+        "q11": {
+          "rocks": [
+            {
+              "done_when": "15 referrals complete doctor → center → parent",
+              "what": "Prove the referral loop",
+            },
+            {
+              "done_when": "written evidence of which app gets a yes fastest",
+              "what": "Decide the wedge",
+            },
+          ],
+        },
+      },
+    },
+    "quarterly_theme": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q12",
+      ],
+      "value": {
+        "q12": {
+          "text": "Eight centers, zero drop-offs",
+        },
+      },
+    },
+    "sandbox_boundaries": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q9",
+      ],
+      "value": {
+        "q9": {
+          "items": [
+            "no adult rehab",
+            "no teletherapy",
+            "no hospitals",
+          ],
+        },
+      },
+    },
+    "sandbox_core_customer": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q5",
+        "q6",
+      ],
+      "value": {
+        "q5": {
+          "benefits": [
+            "child",
+          ],
+          "decides": [
+            "center_owner",
+          ],
+          "pays": [
+            "center_owner",
+          ],
+          "uses": [
+            "occupational_therapist",
+            "speech_pathologist",
+          ],
+        },
+        "q6": {
+          "choice": "center",
+          "why": "Centers gate every therapist in the country; win them and the parents follow.",
+        },
+      },
+    },
+    "swt_threats": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q13",
+      ],
+      "value": null,
+    },
+    "three_year_targets": {
+      "marking": {
+        "parts": [
+          {
+            "key": "metric",
+            "mark": "ink",
+          },
+          {
+            "key": "number",
+            "mark": "pencil",
+          },
+        ],
+        "type": "parts",
+      },
+      "sources": [
+        "q3",
+      ],
+      "value": {
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 350,
+        },
+      },
+    },
+    "year1_critical_number": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+        "q3",
+      ],
+      "value": {
+        "q10": {
+          "first_peso": "2027-03",
+        },
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 350,
+        },
+      },
+    },
+  },
+  "Carla Santos": {
+    "accountability_face": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "others": {
+            "20000000-0000-0000-0000-000000000001": "backend",
+            "20000000-0000-0000-0000-000000000002": "mobile_web",
+            "20000000-0000-0000-0000-000000000003": "data_privacy_security",
+            "20000000-0000-0000-0000-000000000004": "sales_partner",
+            "20000000-0000-0000-0000-000000000005": "design_ux",
+            "20000000-0000-0000-0000-000000000006": "finance",
+          },
+          "wants": [
+            "backend",
+            "qa",
+            "data_privacy_security",
+          ],
+        },
+      },
+    },
+    "bhag": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q4",
+      ],
+      "value": {
+        "q4": {
+          "text": "The operating system the whole sector runs on before ten years are out.",
+        },
+      },
+    },
+    "brand_promise": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q7",
+      ],
+      "value": {
+        "q7": {
+          "text": "connect the referral, the sessions and the progress report in one thread.",
+        },
+      },
+    },
+    "capacity": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "hours": 35,
+        },
+      },
+    },
+    "core_values": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q15",
+      ],
+      "value": {
+        "q15": {
+          "text": "When I said our consent copy read like legalese, L rewrote it in one evening in words a parent would say. No fuss, just fixed.",
+        },
+      },
+    },
+    "key_initiatives": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q8",
+      ],
+      "value": {
+        "q8": {
+          "rank": [
+            "pedconnect",
+            "teachday",
+            "parentup",
+            "fourth_app",
+          ],
+        },
+      },
+    },
+    "number1_priority": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": null,
+    },
+    "profit_per_x": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+      ],
+      "value": {
+        "q10": {
+          "amount": 3000,
+          "first_peso": "2026-12",
+          "model": "monthly_subscription",
+          "payer": "center",
+          "unit": "per_center",
+        },
+      },
+    },
+    "purpose": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q1",
+        "q2",
+      ],
+      "value": {
+        "q1": {
+          "text": "Therapy centers run on notebooks and Viber groups, so nobody can answer how many active clients they have. We give them the system they would have if software were built for this market.",
+        },
+        "q2": {
+          "because": "they would go back to rebuilding schedules and tracking progress by hand every morning.",
+          "who": "Therapy center admins",
+        },
+      },
+    },
+    "quarterly_rocks": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": {
+        "q11": {
+          "rocks": [
+            {
+              "done_when": "NPC registration filed, consent flow shipped",
+              "what": "Data privacy baseline",
+            },
+            {
+              "done_when": "an OT or SLP on retainer",
+              "what": "Hire a clinical adviser",
+            },
+          ],
+        },
+      },
+    },
+    "quarterly_theme": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q12",
+      ],
+      "value": {
+        "q12": {
+          "text": "Prove someone will pay",
+        },
+      },
+    },
+    "sandbox_boundaries": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q9",
+      ],
+      "value": {
+        "q9": {
+          "items": [
+            "no funds management",
+            "no adult market",
+            "no overseas expansion yet",
+          ],
+        },
+      },
+    },
+    "sandbox_core_customer": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q5",
+        "q6",
+      ],
+      "value": {
+        "q5": {
+          "benefits": [
+            "child",
+          ],
+          "decides": [
+            "center_owner",
+          ],
+          "pays": [
+            "center_owner",
+          ],
+          "uses": [
+            "occupational_therapist",
+            "speech_pathologist",
+          ],
+        },
+        "q6": {
+          "choice": "center",
+          "why": "The parent picks whoever the center already trusts; we have to earn the center's adoption first.",
+        },
+      },
+    },
+    "swt_threats": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q13",
+      ],
+      "value": null,
+    },
+    "three_year_targets": {
+      "marking": {
+        "parts": [
+          {
+            "key": "metric",
+            "mark": "ink",
+          },
+          {
+            "key": "number",
+            "mark": "pencil",
+          },
+        ],
+        "type": "parts",
+      },
+      "sources": [
+        "q3",
+      ],
+      "value": {
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 250,
+        },
+      },
+    },
+    "year1_critical_number": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+        "q3",
+      ],
+      "value": {
+        "q10": {
+          "first_peso": "2026-12",
+        },
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 250,
+        },
+      },
+    },
+  },
+  "Diego Tan": {
+    "accountability_face": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "others": {
+            "20000000-0000-0000-0000-000000000001": "backend",
+            "20000000-0000-0000-0000-000000000002": "mobile_web",
+            "20000000-0000-0000-0000-000000000003": "data_privacy_security",
+            "20000000-0000-0000-0000-000000000004": "sales_partner",
+            "20000000-0000-0000-0000-000000000005": "design_ux",
+            "20000000-0000-0000-0000-000000000006": "finance",
+          },
+          "wants": [
+            "product",
+            "sales_partner",
+            "doctor_relations",
+          ],
+        },
+      },
+    },
+    "bhag": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q4",
+      ],
+      "value": {
+        "q4": {
+          "text": "Every child in the country referred for developmental therapy is seen, tracked and supported by us.",
+        },
+      },
+    },
+    "brand_promise": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q7",
+      ],
+      "value": {
+        "q7": {
+          "text": "are built specifically for Filipino pediatric therapy, not adapted from a US EMR.",
+        },
+      },
+    },
+    "capacity": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "hours": 40,
+        },
+      },
+    },
+    "core_values": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q15",
+      ],
+      "value": {
+        "q15": {
+          "text": "M walked a skeptical center owner through the product for an hour and left having learned our biggest onboarding blocker, not having sold anything.",
+        },
+      },
+    },
+    "key_initiatives": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q8",
+      ],
+      "value": {
+        "q8": {
+          "rank": [
+            "teachday",
+            "pedconnect",
+            "parentup",
+            "fourth_app",
+          ],
+        },
+      },
+    },
+    "number1_priority": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": {
+        "q11": {
+          "done_when": "written evidence of which app gets a yes fastest",
+          "what": "Decide the wedge",
+        },
+      },
+    },
+    "profit_per_x": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+      ],
+      "value": {
+        "q10": {
+          "amount": 200,
+          "first_peso": "2026-11",
+          "model": "per_active_child",
+          "payer": "center",
+          "unit": "per_child",
+        },
+      },
+    },
+    "purpose": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q1",
+        "q2",
+      ],
+      "value": {
+        "q1": {
+          "text": "A parent in Cavite waits four to six months for a developmental assessment, then travels two hours each way for weekly sessions. We exist so distance stops deciding who gets care.",
+        },
+        "q2": {
+          "because": "they would go back to rebuilding schedules and tracking progress by hand every morning.",
+          "who": "Therapy center admins",
+        },
+      },
+    },
+    "quarterly_rocks": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": {
+        "q11": {
+          "rocks": [
+            {
+              "done_when": "15 referrals complete end to end",
+              "what": "Prove the referral loop",
+            },
+            {
+              "done_when": "8 centers each logged 20+ real sessions",
+              "what": "Onboard beta centers",
+            },
+            {
+              "done_when": "written evidence of which app gets a yes fastest",
+              "what": "Decide the wedge",
+            },
+          ],
+        },
+      },
+    },
+    "quarterly_theme": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q12",
+      ],
+      "value": {
+        "q12": {
+          "text": "From school project to company",
+        },
+      },
+    },
+    "sandbox_boundaries": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q9",
+      ],
+      "value": {
+        "q9": {
+          "items": [
+            "no teletherapy",
+            "no adult rehab",
+            "no billing we build ourselves",
+          ],
+        },
+      },
+    },
+    "sandbox_core_customer": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q5",
+        "q6",
+      ],
+      "value": {
+        "q5": {
+          "benefits": [
+            "child",
+          ],
+          "decides": [
+            "pediatrician",
+          ],
+          "pays": [
+            "center_owner",
+          ],
+          "uses": [
+            "occupational_therapist",
+            "speech_pathologist",
+          ],
+        },
+        "q6": {
+          "choice": "parent",
+          "why": "Demand comes from parents; centers will adopt whatever parents are already asking for.",
+        },
+      },
+    },
+    "swt_threats": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q13",
+      ],
+      "value": null,
+    },
+    "three_year_targets": {
+      "marking": {
+        "parts": [
+          {
+            "key": "metric",
+            "mark": "ink",
+          },
+          {
+            "key": "number",
+            "mark": "pencil",
+          },
+        ],
+        "type": "parts",
+      },
+      "sources": [
+        "q3",
+      ],
+      "value": {
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 400,
+        },
+      },
+    },
+    "year1_critical_number": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+        "q3",
+      ],
+      "value": {
+        "q10": {
+          "first_peso": "2026-11",
+        },
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 400,
+        },
+      },
+    },
+  },
+  "Elena Villanueva": {
+    "accountability_face": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "others": {
+            "20000000-0000-0000-0000-000000000001": "backend",
+            "20000000-0000-0000-0000-000000000002": "mobile_web",
+            "20000000-0000-0000-0000-000000000003": "data_privacy_security",
+            "20000000-0000-0000-0000-000000000004": "sales_partner",
+            "20000000-0000-0000-0000-000000000005": "design_ux",
+            "20000000-0000-0000-0000-000000000006": "finance",
+          },
+          "wants": [
+            "design_ux",
+            "marketing",
+            "onboarding_success",
+          ],
+        },
+      },
+    },
+    "bhag": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q4",
+      ],
+      "value": {
+        "q4": {
+          "text": "The record every pediatric therapist in the Philippines reaches for by default.",
+        },
+      },
+    },
+    "brand_promise": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q7",
+      ],
+      "value": {
+        "q7": {
+          "text": "make the parent, the school and the clinic finally see the same progress story.",
+        },
+      },
+    },
+    "capacity": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "hours": 8,
+        },
+      },
+    },
+    "core_values": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q15",
+      ],
+      "value": {
+        "q15": {
+          "text": "When I flagged a privacy gap late on a Friday, D owned it, drafted the fix and asked for review rather than parking it till Monday.",
+        },
+      },
+    },
+    "key_initiatives": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q8",
+      ],
+      "value": {
+        "q8": {
+          "rank": [
+            "teachday",
+            "pedconnect",
+            "parentup",
+            "fourth_app",
+          ],
+        },
+      },
+    },
+    "number1_priority": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": {
+        "q11": {
+          "done_when": "8 centers each logged 20+ real sessions",
+          "what": "Onboard beta centers",
+        },
+      },
+    },
+    "profit_per_x": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+      ],
+      "value": {
+        "q10": {
+          "amount": 250,
+          "first_peso": "2027-01",
+          "model": "per_active_child",
+          "payer": "center",
+          "unit": "per_child",
+        },
+      },
+    },
+    "purpose": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q1",
+        "q2",
+      ],
+      "value": {
+        "q1": {
+          "text": "Nobody can tell a clinician, a parent or a school the truth about a child's progress because the record lives in six places. We make the progress record one connected thing.",
+        },
+        "q2": {
+          "because": "they would go back to rebuilding schedules and tracking progress by hand every morning.",
+          "who": "Therapy center admins",
+        },
+      },
+    },
+    "quarterly_rocks": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": {
+        "q11": {
+          "rocks": [
+            {
+              "done_when": "written evidence of which app gets a yes fastest",
+              "what": "Decide the wedge",
+            },
+            {
+              "done_when": "8 centers each logged 20+ real sessions",
+              "what": "Onboard beta centers",
+            },
+          ],
+        },
+      },
+    },
+    "quarterly_theme": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q12",
+      ],
+      "value": {
+        "q12": {
+          "text": "Prove someone will pay",
+        },
+      },
+    },
+    "sandbox_boundaries": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q9",
+      ],
+      "value": {
+        "q9": {
+          "items": [
+            "no own billing",
+            "no adult rehab",
+            "no hospitals",
+          ],
+        },
+      },
+    },
+    "sandbox_core_customer": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q5",
+        "q6",
+      ],
+      "value": {
+        "q5": {
+          "benefits": [
+            "child",
+          ],
+          "decides": [
+            "pediatrician",
+          ],
+          "pays": [
+            "center_owner",
+          ],
+          "uses": [
+            "occupational_therapist",
+            "speech_pathologist",
+          ],
+        },
+        "q6": {
+          "choice": "parent",
+          "why": "The parent is the human we are actually here for; everything else is infrastructure.",
+        },
+      },
+    },
+    "swt_threats": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q13",
+      ],
+      "value": null,
+    },
+    "three_year_targets": {
+      "marking": {
+        "parts": [
+          {
+            "key": "metric",
+            "mark": "ink",
+          },
+          {
+            "key": "number",
+            "mark": "pencil",
+          },
+        ],
+        "type": "parts",
+      },
+      "sources": [
+        "q3",
+      ],
+      "value": {
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 275,
+        },
+      },
+    },
+    "year1_critical_number": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+        "q3",
+      ],
+      "value": {
+        "q10": {
+          "first_peso": "2027-01",
+        },
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 275,
+        },
+      },
+    },
+  },
+  "Lia Mendoza": {
+    "accountability_face": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "others": {
+            "20000000-0000-0000-0000-000000000001": "backend",
+            "20000000-0000-0000-0000-000000000002": "mobile_web",
+            "20000000-0000-0000-0000-000000000003": "data_privacy_security",
+            "20000000-0000-0000-0000-000000000004": "sales_partner",
+            "20000000-0000-0000-0000-000000000005": "design_ux",
+            "20000000-0000-0000-0000-000000000006": "finance",
+          },
+          "wants": [
+            "backend",
+            "finance",
+            "fundraising",
+          ],
+        },
+      },
+    },
+    "bhag": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q4",
+      ],
+      "value": {
+        "q4": {
+          "text": "The default way pediatric developmental care is delivered in the Philippines.",
+        },
+      },
+    },
+    "brand_promise": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q7",
+      ],
+      "value": {
+        "q7": {
+          "text": "give every parent a therapist-backed progress record they actually understand.",
+        },
+      },
+    },
+    "capacity": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q14",
+      ],
+      "value": {
+        "q14": {
+          "hours": 20,
+        },
+      },
+    },
+    "core_values": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q15",
+      ],
+      "value": {
+        "q15": {
+          "text": "At the review C said plainly that our pricing was a guess, and insisted we go ask real centers before we touch a change request. Best ten minutes of the year.",
+        },
+      },
+    },
+    "key_initiatives": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q8",
+      ],
+      "value": {
+        "q8": {
+          "rank": [
+            "teachday",
+            "pedconnect",
+            "parentup",
+            "fourth_app",
+          ],
+        },
+      },
+    },
+    "number1_priority": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": {
+        "q11": {
+          "done_when": "an OT or SLP on retainer reviewing our framework",
+          "what": "Hire a clinical adviser",
+        },
+      },
+    },
+    "profit_per_x": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+      ],
+      "value": {
+        "q10": {
+          "amount": 150,
+          "first_peso": "2026-12",
+          "model": "per_active_child",
+          "payer": "center",
+          "unit": "per_child",
+        },
+      },
+    },
+    "purpose": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q1",
+        "q2",
+      ],
+      "value": {
+        "q1": {
+          "text": "Children with delays are lost because assessment and therapy sit on opposite sides of a commute most families cannot afford. We collapse that distance.",
+        },
+        "q2": {
+          "because": "they would go back to rebuilding schedules and tracking progress by hand every morning.",
+          "who": "Therapy center admins",
+        },
+      },
+    },
+    "quarterly_rocks": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q11",
+      ],
+      "value": {
+        "q11": {
+          "rocks": [
+            {
+              "done_when": "an OT or SLP on retainer reviewing our framework",
+              "what": "Hire a clinical adviser",
+            },
+            {
+              "done_when": "15 referrals complete end to end",
+              "what": "Prove the referral loop",
+            },
+          ],
+        },
+      },
+    },
+    "quarterly_theme": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q12",
+      ],
+      "value": {
+        "q12": {
+          "text": "From school project to company",
+        },
+      },
+    },
+    "sandbox_boundaries": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q9",
+      ],
+      "value": {
+        "q9": {
+          "items": [
+            "no teletherapy",
+            "no adult market",
+            "no own payments",
+          ],
+        },
+      },
+    },
+    "sandbox_core_customer": {
+      "marking": {
+        "mark": "ink",
+        "type": "single",
+      },
+      "sources": [
+        "q5",
+        "q6",
+      ],
+      "value": {
+        "q5": {
+          "benefits": [
+            "child",
+          ],
+          "decides": [
+            "pediatrician",
+          ],
+          "pays": [
+            "center_owner",
+          ],
+          "uses": [
+            "occupational_therapist",
+            "speech_pathologist",
+          ],
+        },
+        "q6": {
+          "choice": "parent",
+          "why": "We cannot be about the parent and then abandon them the moment money is mentioned.",
+        },
+      },
+    },
+    "swt_threats": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q13",
+      ],
+      "value": null,
+    },
+    "three_year_targets": {
+      "marking": {
+        "parts": [
+          {
+            "key": "metric",
+            "mark": "ink",
+          },
+          {
+            "key": "number",
+            "mark": "pencil",
+          },
+        ],
+        "type": "parts",
+      },
+      "sources": [
+        "q3",
+      ],
+      "value": {
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 250,
+        },
+      },
+    },
+    "year1_critical_number": {
+      "marking": {
+        "mark": "pencil",
+        "type": "single",
+      },
+      "sources": [
+        "q10",
+        "q3",
+      ],
+      "value": {
+        "q10": {
+          "first_peso": "2026-12",
+        },
+        "q3": {
+          "metric": "paying therapy centers",
+          "unit": "paying_centers",
+          "value": 250,
+        },
+      },
+    },
+  },
+}
+`;

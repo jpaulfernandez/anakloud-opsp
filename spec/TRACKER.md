@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 42
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 43
 
 ---
 
@@ -47,7 +47,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F04 | Autosave, resume & offline | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F05 | Validators & coach shell | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F06 | Review, submit & lock | P1 | Done | 2026-08-17 | 2026-08-17 | |
-| F07 | Individual OPSP | P1 | Not started | — | — | Unblocked — Part B mapping now available |
+| F07 | Individual OPSP | P1 | In progress | 2026-08-17 | — | Unblocked — Part B mapping now available |
 | F08 | Print & PDF export | P1 | Not started | — | — | |
 | F09 | Admin gate & dashboard | P1 | Not started | — | — | |
 | F10 | Comparison & divergence | P1 | Not started | — | — | |
@@ -135,7 +135,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F07-T01 | Deterministic OPSP mapping | Not started | 16 cells per Part B; 3-Year Targets needs a split mark |
+| F07-T01 | Deterministic OPSP mapping | Done | 16 cells per Part B; 3-Year Targets needs a split mark |
 | F07-T02 | OPSP view and draft labelling | Not started | |
 | F07-T03 | Ink, pencil and empty cells | Not started | |
 | F07-T04 | "How to read this" panel | Not started | |
