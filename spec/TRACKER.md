@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 43
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 44
 
 ---
 
@@ -136,7 +136,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
 | F07-T01 | Deterministic OPSP mapping | Done | 16 cells per Part B; 3-Year Targets needs a split mark |
-| F07-T02 | OPSP view and draft labelling | Not started | |
+| F07-T02 | OPSP view and draft labelling | Done | |
 | F07-T03 | Ink, pencil and empty cells | Not started | |
 | F07-T04 | "How to read this" panel | Not started | |
 | F07-T05 | OPSP editing and versioning | Not started | |

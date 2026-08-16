@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { QUESTION_MAP } from "@/lib/questions";
 import { isConfidenceQuestion } from "@/lib/confidence";
 import {
@@ -17,11 +18,12 @@ import {
 // between client pieces: there is no client state for this screen to produce
 // a control from.
 //
-// The OPSP view (F07) and the PDF export (F08) are not built yet; they are
-// referenced here as forward references rather than as dead links to routes
-// that would 404. Once those routes land, the real links wire in here. The
-// whole view is served to a submitted respondent regardless of cohort status —
-// readOnly admits, never refuses — so a closing cohort never takes it away.
+// The OPSP view (F07) is built and linked here as real route; the PDF export
+// (F08) is not, so it stays as forward-reference prose rather than a dead link
+// to a route that would 404. Once that route lands, the real link wires in
+// here. The whole view is served to a submitted respondent regardless of
+// cohort status — readOnly admits, never refuses — so a closing cohort never
+// takes it away.
 
 export function SubmittedView({
   name,
@@ -57,9 +59,17 @@ export function SubmittedView({
       </ol>
 
       <section className="mt-10 border-t border-neutral-200 pt-6">
-        <p className="text-sm leading-relaxed text-neutral-600">
-          Your One-Page Strategic Plan and a printable PDF version will be
-          here to view whenever you come back.
+        <h2 className="text-base font-semibold text-neutral-900">
+          Your One-Page Strategic Plan
+        </h2>
+        <Link
+          href="/opsp"
+          className="mt-2 inline-block text-base text-neutral-700 underline"
+        >
+          View your One-Page Strategic Plan
+        </Link>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+          A printable PDF version will be here to view whenever you come back.
         </p>
       </section>
     </main>
