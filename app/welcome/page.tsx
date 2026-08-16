@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { createDbClient } from "@/lib/db";
-import { resolveSession, SESSION_COOKIE } from "@/lib/session";
+import { requirePageSession } from "@/lib/auth";
 import { WelcomeForm } from "./WelcomeForm";
 
 // Welcome / name entry (F02-T04, FR-2, ui_ux.md §4.1).
@@ -12,7 +10,8 @@ import { WelcomeForm } from "./WelcomeForm";
 // people to be candid, and copy that sounds like a corporate survey gets
 // corporate answers. The form itself is a client component so the continue
 // button can be gated on a non-blank name without a round trip. Reaching this
-// route requires a valid session; anyone without one is bounced home, and a
+// route requires a valid session: requirePageSession (F02-T06) resolves the
+// identity or redirects an unauthenticated visitor to the claim screen, and a
 // returning respondent with a name on file is sent straight past by the claim
 // redirect rather than being asked a second time.
 
@@ -21,16 +20,12 @@ export const metadata: Metadata = {
 };
 
 export default async function WelcomePage() {
-  const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-
   let initialName = "";
   let initialEmail = "";
   const db = createDbClient();
   await db.connect();
   try {
-    const session = await resolveSession(db, token);
-    if (!session) redirect("/");
+    const session = await requirePageSession(db);
     const { rows } = await db.query<{
       display_name: string | null;
       email: string | null;

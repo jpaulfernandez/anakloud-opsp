@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 12
+**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 13
 
 ---
 
@@ -42,7 +42,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | # | Feature | Phase | Status | Started | Done | Notes |
 |---|---|---|---|---|---|---|
 | F01 | Foundation & data model | P1 | Done | 2026-08-16 | 2026-08-16 | |
-| F02 | Invite, session & onboarding | P1 | In progress | 2026-08-16 | — | |
+| F02 | Invite, session & onboarding | P1 | Done | 2026-08-16 | 2026-08-16 | |
 | F03 | Question engine & input types | P1 | Not started | — | — | Q8 content blocked on 4th app name |
 | F04 | Autosave, resume & offline | P1 | Not started | — | — | |
 | F05 | Validators & coach shell | P1 | Not started | — | — | |
@@ -80,7 +80,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F02-T03 | Resume code | Done | |
 | F02-T04 | Welcome and name entry | Done | |
 | F02-T05 | Ground rules gate | Done | |
-| F02-T06 | Session middleware and role resolution | Not started | |
+| F02-T06 | Session middleware and role resolution | Done | |
 
 ## F03 — Question engine & input types
 

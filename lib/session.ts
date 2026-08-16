@@ -40,6 +40,13 @@ export interface ResolvedSession {
   cohortId: string;
   isFacilitator: boolean;
   /**
+   * The respondent's submission lock state, read live at resolution time.
+   * Non-null means the answers are immutable (PR5) — the value the admin gate
+   * keys on later (F09). `submitted_at` is null until submit, and a facilitator
+   * unlock does not clear it (tech_infrastructure.md §3).
+   */
+  submittedAt: Date | null;
+  /**
    * True when the respondent's cohort is not open. The session is admitted,
    * never refused — read-only only. Set at resolution time, not claim time, so
    * a cohort that closes after the cookie was issued is reflected correctly.
@@ -129,7 +136,7 @@ export async function resolveSession(
   if (!payload) return null;
 
   const { rows } = await db.query(
-    `select r.is_facilitator, c.status
+    `select r.is_facilitator, r.submitted_at, c.status
        from respondents r
        join cohorts c on c.id = r.cohort_id
       where r.id = $1`,
@@ -142,6 +149,7 @@ export async function resolveSession(
     respondentId: payload.respondentId,
     cohortId: payload.cohortId,
     isFacilitator: row.is_facilitator,
+    submittedAt: row.submitted_at,
     readOnly: row.status !== "open",
   };
 }

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { createDbClient } from "@/lib/db";
-import { resolveSession, SESSION_COOKIE } from "@/lib/session";
+import { requirePageSession } from "@/lib/auth";
 import { groundRulesAcknowledged } from "@/lib/respondent";
 import { GroundRulesForm } from "./GroundRulesForm";
 
@@ -24,14 +23,10 @@ export const metadata: Metadata = {
 };
 
 export default async function GroundRulesPage() {
-  const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-
   const db = createDbClient();
   await db.connect();
   try {
-    const session = await resolveSession(db, token);
-    if (!session) redirect("/");
+    const session = await requirePageSession(db);
     if (await groundRulesAcknowledged(db, session.respondentId)) redirect("/");
   } finally {
     await db.end();

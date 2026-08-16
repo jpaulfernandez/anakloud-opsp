@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { createDbClient } from "@/lib/db";
-import { resolveSession, SESSION_COOKIE } from "@/lib/session";
+import { requirePageSession } from "@/lib/auth";
 import { groundRulesAcknowledged } from "@/lib/respondent";
 
 // Question route gate (F02-T05, FR-5, ui_ux.md §4.2).
@@ -9,9 +8,10 @@ import { groundRulesAcknowledged } from "@/lib/respondent";
 // The ground-rules acknowledgement is a hard gate in front of every question:
 // "IF a respondent navigates directly to a question URL without having
 // acknowledged the ground rules, THEN the system SHALL redirect to the
-// ground-rules screen" (FR-5). That whole gate lives here: an unauthenticated
-// session bounces to "/" and an unacknowledged respondent bounces to
-// /ground-rules, and only an acknowledged respondent proceeds.
+// ground-rules screen" (FR-5). That whole gate lives here: requirePageSession
+// (F02-T06) bounces an unauthenticated visitor to the claim screen and an
+// unacknowledged respondent bounces to /ground-rules, and only an acknowledged
+// respondent proceeds.
 //
 // F03-T01 replaces this page's body with the real question shell. The route
 // gate — resolve the session, then acknowledged? proceed or bounce — is what
@@ -27,14 +27,10 @@ export default async function QuestionPage({
 }) {
   const { id } = await params;
 
-  const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-
   const db = createDbClient();
   await db.connect();
   try {
-    const session = await resolveSession(db, token);
-    if (!session) redirect("/");
+    const session = await requirePageSession(db);
     if (!(await groundRulesAcknowledged(db, session.respondentId))) {
       redirect("/ground-rules");
     }

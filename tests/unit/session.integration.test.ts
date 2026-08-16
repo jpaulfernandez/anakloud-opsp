@@ -55,8 +55,26 @@ describe.skipIf(!enabled)("session resolution against a real Postgres", () => {
       respondentId: RO,
       cohortId: COHORT,
       isFacilitator: false,
+      submittedAt: null,
       readOnly: false,
     });
+  });
+
+  it("resolves submitted_at — null before submit, a timestamp after (F02-T06)", async () => {
+    // Before submit the lock state is unresolved (null).
+    let token = createSessionToken({ respondentId: RO, cohortId: COHORT });
+    let resolved = await resolveSession(db!, token);
+    expect(resolved!.submittedAt).toBeNull();
+
+    // Submitting stamps submitted_at; resolution now sees the lock.
+    await db!.query(
+      "update respondents set submitted_at = now() where id = $1",
+      [RO],
+    );
+    token = createSessionToken({ respondentId: RO, cohortId: COHORT });
+    resolved = await resolveSession(db!, token);
+    expect(resolved!.submittedAt).not.toBeNull();
+    expect(resolved!.submittedAt).toBeInstanceOf(Date);
   });
 
   it("a signed session survives a cohort closing — admitted read-only, not refused", async () => {
