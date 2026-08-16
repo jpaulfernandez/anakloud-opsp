@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 76
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 77
 
 ---
 
@@ -199,7 +199,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
 | F13-T01 | Coach prompt and structured output | Done | |
-| F13-T02 | Payload minimisation | Not started | |
+| F13-T02 | Payload minimisation | Done | |
 | F13-T03 | Output guard | Not started | |
 | F13-T04 | Coach endpoint resilience | Not started | |
 | F13-T05 | Examples on request only | Not started | |
