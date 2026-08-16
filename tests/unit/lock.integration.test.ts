@@ -6,6 +6,7 @@ import { createDbClient } from "../../lib/db";
 import { AnswerLockedError, rejectIfSubmitted } from "../../lib/lock";
 import { migrate } from "../../lib/migrate";
 import { performSubmit } from "../../lib/submit";
+import { performUnlock } from "../../lib/unlock";
 
 // F06-T04 lock enforcement against a real Postgres — the property test at the
 // heart of the ticket (tech_infrastructure.md §8 T3). Runs only when opted in
@@ -23,10 +24,14 @@ import { performSubmit } from "../../lib/submit";
 //     (rejectIfSubmitted, which every mutation route returns);
 //   - the route's real write is refused (AnswerLockedError) before any row is
 //     touched;
-//   - the answers stay byte-identical after every attempted mutation.
+//   - the answers stay byte-identical after every attempted mutation, and so
+//     does the frozen answer_snapshots record.
 //
 // And as the control, the same routes succeed for an unlocked respondent — so
-// a refusal is attributable to the lock, not to a broken route.
+// a refusal is attributable to the lock, not to a broken route. F11-T03 also
+// requires the post-unlock, pre-resubmit state: after a facilitator unlock the
+// respondent can edit answers again, but the original frozen snapshot must
+// survive both the unlock and the edits until a re-submit, never rewritten.
 
 const enabled =
   process.env.DATABASE_URL !== undefined && process.env.RUN_DB_TESTS === "1";
@@ -35,6 +40,7 @@ const COHORT = "aaaa1111-aaaa-1111-aaaa-111111111261";
 const FACILITATOR = "aaaa1111-aaaa-1111-aaaa-111111111262";
 const RESPONDENT_LOCKED = "aaaa1111-aaaa-1111-aaaa-111111111263";
 const RESPONDENT_UNLOCKED = "aaaa1111-aaaa-1111-aaaa-111111111264";
+const RESPONDENT_POST_UNLOCK = "aaaa1111-aaaa-1111-aaaa-111111111265";
 
 let db = null as ReturnType<typeof createDbClient> | null;
 let schemaName = "";
@@ -81,6 +87,7 @@ describe.skipIf(!enabled)("lock enforcement over every mutation route (T3)", () 
     await insertRespondent(FACILITATOR, "token-lock-fac", "FACLK", true);
     await insertRespondent(RESPONDENT_LOCKED, "token-lock-a", "LKA01");
     await insertRespondent(RESPONDENT_UNLOCKED, "token-lock-b", "LKB02");
+    await insertRespondent(RESPONDENT_POST_UNLOCK, "token-lock-c", "LKC03");
 
     // Seed the locked respondent (including a private q14d row so the frozen
     // payload carries private content) and then lock them via the real submit
@@ -111,6 +118,19 @@ describe.skipIf(!enabled)("lock enforcement over every mutation route (T3)", () 
         value: { text: "unlocked baseline" },
       }),
     );
+
+    // Seed a respondent who is submitted (freezing a snapshot) and will be
+    // reopened by the unlock test: the post-unlock, pre-resubmit state
+    // F11-T03 covers. The lock is cleared inside the test itself.
+    await withRespondentContext(db!, RESPONDENT_POST_UNLOCK, (tx) =>
+      upsertAnswer(tx, {
+        respondent_id: RESPONDENT_POST_UNLOCK,
+        question_id: "q1",
+        value: { text: "baseline before unlock" },
+        confidence: 2,
+      }),
+    );
+    await performSubmit(db!, RESPONDENT_POST_UNLOCK, COHORT);
   });
 
   afterAll(async () => {
@@ -121,8 +141,9 @@ describe.skipIf(!enabled)("lock enforcement over every mutation route (T3)", () 
     }
   });
 
-  it("every mutation route refuses a locked respondent: 409 and untouched answers", async () => {
-    const before = await tableFingerprint(RESPONDENT_LOCKED, "answers");
+  it("every mutation route refuses a locked respondent: 409 and untouched answers and snapshot", async () => {
+    const beforeAnswers = await tableFingerprint(RESPONDENT_LOCKED, "answers");
+    const beforeSnapshot = await tableFingerprint(RESPONDENT_LOCKED, "answer_snapshots");
 
     for (const route of ANSWER_MUTATION_ROUTES) {
       // Route-layer: the shared 409 every mutation route returns once locked.
@@ -140,8 +161,13 @@ describe.skipIf(!enabled)("lock enforcement over every mutation route (T3)", () 
       ).rejects.toBeInstanceOf(AnswerLockedError);
     }
 
-    // After every route's attempted mutation the answers are byte-identical.
-    expect(await tableFingerprint(RESPONDENT_LOCKED, "answers")).toBe(before);
+    // After every route's attempted mutation the answers are byte-identical,
+    // and so is the frozen snapshot (F11-T03: snapshot bytes unchanged after
+    // all attempted mutations).
+    expect(await tableFingerprint(RESPONDENT_LOCKED, "answers")).toBe(beforeAnswers);
+    expect(await tableFingerprint(RESPONDENT_LOCKED, "answer_snapshots")).toBe(
+      beforeSnapshot,
+    );
   });
 
   it("the same mutation routes succeed for an unlocked respondent — the lock refuses, not the route", async () => {
@@ -163,6 +189,45 @@ describe.skipIf(!enabled)("lock enforcement over every mutation route (T3)", () 
 
     // The unlocked respondent's answers changed — the route really can write.
     expect(await tableFingerprint(RESPONDENT_UNLOCKED, "answers")).not.toBe(before);
+  });
+
+  it("post-unlock, pre-resubmit: mutations succeed but the frozen snapshot is unchanged", async () => {
+    // Reopen the respondent through the real facilitator unlock path (F06-T05,
+    // FR-14). This clears the lock and stamps the audit but must never touch
+    // the baseline — the original snapshot survives into the re-edit window.
+    const unlocked = await performUnlock(db!, FACILITATOR, COHORT, RESPONDENT_POST_UNLOCK);
+    expect(unlocked.unlocked).toBe(true);
+
+    // Route-layer: the reopened session is no longer submitted, so no 409 is
+    // returned — the respondent is back to editing, not refused.
+    expect(rejectIfSubmitted({ submittedAt: null })).toBeNull();
+
+    const answersBefore = await tableFingerprint(RESPONDENT_POST_UNLOCK, "answers");
+    const snapshotBefore = await tableFingerprint(RESPONDENT_POST_UNLOCK, "answer_snapshots");
+
+    // Every mutation route can write again before the re-submit, and each one
+    // succeeds — the unlock genuinely reopened answers for editing.
+    for (const route of ANSWER_MUTATION_ROUTES) {
+      let lockedRefusal = false;
+      try {
+        await withRespondentContext(db!, RESPONDENT_POST_UNLOCK, (tx) =>
+          route.write(tx, RESPONDENT_POST_UNLOCK),
+        );
+      } catch (err) {
+        lockedRefusal = err instanceof AnswerLockedError;
+      }
+      expect(lockedRefusal, `${route.id}: write must succeed post-unlock`).toBe(false);
+    }
+
+    // The edits changed the live answers — the route really did write again...
+    expect(await tableFingerprint(RESPONDENT_POST_UNLOCK, "answers")).not.toBe(answersBefore);
+
+    // ...but the snapshot from the original submit is byte-identical: the
+    // unlock and the pre-resubmit edits never rewrite history (F06-T05), and a
+    // re-submit would add an additional snapshot rather than replace this one.
+    expect(await tableFingerprint(RESPONDENT_POST_UNLOCK, "answer_snapshots")).toBe(
+      snapshotBefore,
+    );
   });
 
   it("editing an OPSP cell leaves the underlying answers and snapshot byte-identical", async () => {
