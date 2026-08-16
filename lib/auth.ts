@@ -56,6 +56,43 @@ export async function requirePageSession(db: ClientBase): Promise<ResolvedSessio
   return session;
 }
 
+/**
+ * The F09-T01 admin gate. `admitsAdmin` is the pure admission decision; it is
+ * split out so the gate is unit-testable without a request, the same pattern as
+ * the pure functions in lib/validators.ts.
+ *
+ * The gate admits only a session whose respondent is the cohort's facilitator
+ * (`isFacilitator`) AND has submitted (`submittedAt` set). FR-28: the admin
+ * view stays locked until the facilitator's own answers are locked, or
+ * reading the cohort before writing their own contaminates the baseline.
+ *
+ * `submittedAt` is resolved live from the respondents row at request time (see
+ * resolveSession), so this never depends on client state — there is no
+ * environment flag, header, or query parameter that can turn the gate off.
+ */
+export type AdminAdmission = "unauthenticated" | "forbidden" | "allowed";
+
+export function admitsAdmin(session: ResolvedSession | null): AdminAdmission {
+  if (!session) return "unauthenticated";
+  if (!session.isFacilitator || session.submittedAt === null) return "forbidden";
+  return "allowed";
+}
+
+/**
+ * Admin-route gate. Every `/api/admin/*` route calls this in place of
+ * requireApiSession. An absent/forged session is refused with 401 (via the
+ * shared requireApiSession); a valid session that fails the gate is refused
+ * with 403. Both are server-side and independent of any client state.
+ */
+export async function requireAdminSession(db: ClientBase): Promise<ApiAuth> {
+  const auth = await requireApiSession(db);
+  if (!auth.ok) return auth;
+  if (admitsAdmin(auth.session) !== "allowed") {
+    return { ok: false, response: NextResponse.json({ ok: false }, { status: 403 }) };
+  }
+  return auth;
+}
+
 /** The signed session cookie value for this request, if one was sent. */
 async function requestToken(): Promise<string | undefined> {
   const store = await cookies();

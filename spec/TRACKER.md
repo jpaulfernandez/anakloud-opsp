@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 51
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 52
 
 ---
 
@@ -49,7 +49,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F06 | Review, submit & lock | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F07 | Individual OPSP | P1 | Done | 2026-08-17 | 2026-08-17 | Unblocked — Part B mapping now available |
 | F08 | Print & PDF export | P1 | Done | 2026-08-17 | 2026-08-17 | |
-| F09 | Admin gate & dashboard | P1 | Not started | — | — | |
+| F09 | Admin gate & dashboard | P1 | In progress | 2026-08-17 | — | |
 | F10 | Comparison & divergence | P1 | Not started | — | — | |
 | F11 | Release gates & test harness | P1 | Not started | — | — | **P1 gate** |
 | F12 | AI gateway & degradation | P2 | Not started | — | — | Do not start before F11 green |
@@ -154,7 +154,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F09-T01 | Admin gate | Not started | |
+| F09-T01 | Admin gate | Done | |
 | F09-T02 | Admin-locked UI state | Not started | |
 | F09-T03 | Roster dashboard | Not started | |
 | F09-T04 | Level and budget header strip | Not started | Shell in P1, data in P2 |

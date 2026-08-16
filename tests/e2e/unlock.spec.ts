@@ -23,6 +23,9 @@ const run = randomBytes(4).toString("hex");
 const COHORT = randomUUID();
 const OTHER_COHORT = randomUUID();
 const FACILITATOR = randomUUID();
+// A facilitator who has NOT submitted yet — the F09-T01 gate must keep the
+// whole admin area closed to them (FR-28), so they cannot unlock anyone.
+const UNSUB_FACILITATOR = randomUUID();
 const NON_FACILITATOR = randomUUID();
 const SUBMITTED = randomUUID();
 const OUTSIDER = randomUUID();
@@ -43,17 +46,29 @@ test.beforeAll(async () => {
   await insertCohort(COHORT);
   await insertCohort(OTHER_COHORT);
 
+  // FACILITATOR is a submitted facilitator: F09-T01's gate admits only a
+  // submitted facilitator, so the unlock scenarios below run with the gate
+  // open. NON_FACILITATOR is submitted too, so the refusal is provably about
+  // role, not about an incomplete submission.
   await db.query(
     `insert into respondents
-       (id, cohort_id, display_name, invite_token, resume_code, is_facilitator)
-     values ($1, $2, 'Facilitator', $3, 'UNLFA1', true)`,
+       (id, cohort_id, display_name, invite_token, resume_code, is_facilitator, submitted_at)
+     values ($1, $2, 'Facilitator', $3, 'UNLFA1', true, now())`,
     [FACILITATOR, COHORT, `unlock-fac-${run}`],
   );
+  // Submitted in every way except the facilitator flag itself.
+  await db.query(
+    `insert into respondents
+       (id, cohort_id, display_name, invite_token, resume_code, is_facilitator, submitted_at)
+     values ($1, $2, 'Non Facilitator', $3, 'UNLNF1', false, now())`,
+    [NON_FACILITATOR, COHORT, `unlock-nf-${run}`],
+  );
+  // Unsubmitted facilitator: must be refused by the gate with 403.
   await db.query(
     `insert into respondents
        (id, cohort_id, display_name, invite_token, resume_code, is_facilitator)
-     values ($1, $2, 'Non Facilitator', $3, 'UNLNF1', false)`,
-    [NON_FACILITATOR, COHORT, `unlock-nf-${run}`],
+     values ($1, $2, 'Unsubmitted Facilitator', $3, 'UNLUF1', true)`,
+    [UNSUB_FACILITATOR, COHORT, `unlock-uf-${run}`],
   );
   // Submitted respondent; the posted answer is irrelevant to the route, which
   // only clears the lock, but submitted_at must be set for the unlock to act.
@@ -117,13 +132,27 @@ test("a facilitator can unlock a submitted respondent and the audit names them",
   expect(state.unlockedBy).toBe(FACILITATOR);
 });
 
-test("a non-facilitator cannot reach the unlock route", async ({ request }) => {
+test("a submitted non-facilitator cannot reach the unlock route", async ({ request }) => {
   const before = await lockState(SUBMITTED);
 
   const res = await unlockAs(request, NON_FACILITATOR, COHORT, SUBMITTED);
   expect(res.status()).toBe(403);
 
   // Nothing changed — the non-facilitator was refused at the gate, before any write.
+  const after = await lockState(SUBMITTED);
+  expect(after.submittedAt).toBe(before.submittedAt);
+  expect(after.unlockedBy).toBe(before.unlockedBy);
+});
+
+test("an unsubmitted facilitator is refused by the admin gate", async ({ request }) => {
+  // F09-T01 acceptance: an unsubmitted facilitator receives a refusal from
+  // every admin route, regardless of client state. UNSUB_FACILITATOR is a
+  // facilitator in every way except submitted_at.
+  const before = await lockState(SUBMITTED);
+
+  const res = await unlockAs(request, UNSUB_FACILITATOR, COHORT, SUBMITTED);
+  expect(res.status()).toBe(403);
+
   const after = await lockState(SUBMITTED);
   expect(after.submittedAt).toBe(before.submittedAt);
   expect(after.unlockedBy).toBe(before.unlockedBy);
