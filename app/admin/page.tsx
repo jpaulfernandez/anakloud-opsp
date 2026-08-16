@@ -13,8 +13,10 @@ import {
 import { loadConfig } from "@/lib/config";
 import { guardTripAlert, type AdminStripData } from "@/lib/level-strip";
 import { QUESTION_IDS, QUESTION_MAP } from "@/lib/questions";
+import { fetchContaminationAudit, type ContaminationAudit } from "@/lib/contamination";
 import LevelStrip from "./LevelStrip";
 import CohortLifecycle from "./CohortLifecycle";
+import ContaminationSection from "./ContaminationAudit";
 
 // F09-T02 — the admin-locked UI state (ui_ux.md §6 "Admin locked", FR-28).
 //
@@ -85,7 +87,17 @@ export default async function AdminPage() {
           : await advanceAndPersistBudgetAlerts(db, session.cohortId, budget),
       guardAlert: guardTripAlert(guardTrips),
     };
-    return <AdminDashboard roster={roster} strip={strip} cohort={cohort} />;
+    // F13-T06 — the contamination audit, computed deterministically over the
+    // interaction log and the divergence scorer. No AI call; a read-only figure
+    // for the facilitator once the cohort's answers are in (FR-20).
+    const audit = await fetchContaminationAudit(
+      db,
+      session.respondentId,
+      session.cohortId,
+    );
+    return (
+      <AdminDashboard roster={roster} strip={strip} cohort={cohort} audit={audit} />
+    );
   } finally {
     await db.end();
   }
@@ -128,10 +140,12 @@ function AdminDashboard({
   roster,
   strip,
   cohort,
+  audit,
 }: {
   roster: RosterEntry[];
   strip: AdminStripData;
   cohort: CohortLifecycleState | null;
+  audit: ContaminationAudit;
 }) {
   return (
     <main className="mx-auto w-full max-w-4xl px-4 pb-10 pt-6 text-base">
@@ -142,6 +156,7 @@ function AdminDashboard({
       <ExportNav />
       <ComparisonNav />
       <RosterTable roster={roster} />
+      <ContaminationSection audit={audit} />
       {cohort !== null ? <CohortLifecycle initial={cohort} /> : null}
     </main>
   );
