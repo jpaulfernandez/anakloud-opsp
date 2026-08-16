@@ -1,0 +1,8 @@
+.DS_Store
+node_modules/
+.next/
+.env
+.env.local
+.loop-logs/
+test-results/
+playwright-report/

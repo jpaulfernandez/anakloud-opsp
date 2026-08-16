@@ -1,0 +1,248 @@
+# Align — Delivery Tracker
+
+**Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
+
+**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 0
+
+---
+
+## Update protocol
+
+Follow this exactly. It is the contract between whoever is building and whoever is reading.
+
+| When | Do this |
+|---|---|
+| **Starting a feature** | Set the feature row to `In progress` and fill in the **Started** date |
+| **Starting a ticket** | Set the ticket row to `In progress` |
+| **Ticket's acceptance criteria all pass and `./verify.sh` is green** | Set the ticket to `Done` |
+| **Ticket blocked** | Set to `Blocked` and write the blocker in the **Notes** column — never leave a blocked ticket sitting at `In progress` |
+| **All tickets in a feature are `Done`** | Set the feature row to `Done` and fill in the **Done** date |
+| **Ticket abandoned** | Set to `Dropped` with a reason. Never delete the row and never reuse the ID |
+| **Every update** | Update the **Last updated** date and the **Done** count at the top of this file |
+
+Status values: `Not started` · `In progress` · `Blocked` · `In review` · `Done` · `Dropped`
+
+A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` without a replacement.
+
+---
+
+## Phase rollup
+
+| Phase | Features | Gate to leave the phase |
+|---|---|---|
+| **P1 — Baseline** | F01 – F11 | F11-T02 (key-removal E2E) green, plus `spec.md` §10 criteria 1–6 |
+| **P2 — Coach** | F12, F13 | F11-T04 (coach containment) green, plus criteria 7–10 |
+| **P3 — Analysis** | F14 | Criteria 11–12 |
+| **P4 — Official OPSP** | F15 | FR-39 conflict guard verified with no override path |
+
+---
+
+## Features
+
+| # | Feature | Phase | Status | Started | Done | Notes |
+|---|---|---|---|---|---|---|
+| F01 | Foundation & data model | P1 | Not started | — | — | |
+| F02 | Invite, session & onboarding | P1 | Not started | — | — | |
+| F03 | Question engine & input types | P1 | Not started | — | — | Q8 content blocked on 4th app name |
+| F04 | Autosave, resume & offline | P1 | Not started | — | — | |
+| F05 | Validators & coach shell | P1 | Not started | — | — | |
+| F06 | Review, submit & lock | P1 | Not started | — | — | |
+| F07 | Individual OPSP | P1 | Not started | — | — | Unblocked — Part B mapping now available |
+| F08 | Print & PDF export | P1 | Not started | — | — | |
+| F09 | Admin gate & dashboard | P1 | Not started | — | — | |
+| F10 | Comparison & divergence | P1 | Not started | — | — | |
+| F11 | Release gates & test harness | P1 | Not started | — | — | **P1 gate** |
+| F12 | AI gateway & degradation | P2 | Not started | — | — | Do not start before F11 green |
+| F13 | AI coach | P2 | Not started | — | — | |
+| F14 | Facilitator analysis | P3 | Not started | — | — | |
+| F15 | Official OPSP canvas | P4 | Not started | — | — | |
+
+---
+
+## F01 — Foundation & data model
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F01-T01 | Project scaffold and verification pipeline | Not started | |
+| F01-T02 | Core schema migration | Not started | |
+| F01-T03 | Private-row separation for Q14(d) | Not started | |
+| F01-T04 | Access policy and row-level security | Not started | |
+| F01-T05 | Seed script | Not started | |
+| F01-T06 | Environment config and level pinning | Not started | |
+| F01-T07 | Question registry | Not started | |
+
+## F02 — Invite, session & onboarding
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F02-T01 | Invite token issue and revocation | Not started | |
+| F02-T02 | Session claim | Not started | |
+| F02-T03 | Resume code | Not started | |
+| F02-T04 | Welcome and name entry | Not started | |
+| F02-T05 | Ground rules gate | Not started | |
+| F02-T06 | Session middleware and role resolution | Not started | |
+
+## F03 — Question engine & input types
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F03-T01 | Question shell and navigation | Not started | |
+| F03-T02 | Long text (Q1, Q13, Q15) | Not started | |
+| F03-T03 | Sentence completion (Q2) | Not started | |
+| F03-T04 | Metric triple (Q3) | Not started | |
+| F03-T05 | Matrix grid with mobile pivot (Q5) | Not started | |
+| F03-T06 | Single choice with required reason (Q6) | Not started | |
+| F03-T07 | Tap-to-assign ranking (Q8) | Not started | Blocked on 4th app name |
+| F03-T08 | Paired rows with a star (Q11) | Not started | |
+| F03-T09 | Capped multi-select, hours, private field (Q14) | Not started | |
+| F03-T10 | Remaining input types (Q4, Q7, Q9, Q10, Q12) | Not started | |
+| F03-T11 | Confidence slider | Not started | |
+| F03-T12 | Accessibility conformance | Not started | |
+
+## F04 — Autosave, resume & offline
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F04-T01 | Answer persistence API | Not started | |
+| F04-T02 | Debounced autosave and persistent save state | Not started | |
+| F04-T03 | Local mirror and offline mode | Not started | |
+| F04-T04 | Sync conflict resolution | Not started | |
+| F04-T05 | Resume landing | Not started | |
+
+## F05 — Validators & coach shell
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F05-T01 | Deterministic validators | Not started | |
+| F05-T02 | Static hints and examples | Not started | |
+| F05-T03 | Validation endpoint | Not started | |
+| F05-T04 | Coach card and nudge state machine | Not started | |
+| F05-T05 | Interaction logging | Not started | |
+| F05-T06 | L3 plain-form mode | Not started | |
+
+## F06 — Review, submit & lock
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F06-T01 | Review screen | Not started | |
+| F06-T02 | Submit confirmation | Not started | |
+| F06-T03 | Submit, snapshot and OPSP generation | Not started | |
+| F06-T04 | Lock enforcement | Not started | |
+| F06-T05 | Facilitator unlock with audit | Not started | |
+| F06-T06 | Submitted read-only view | Not started | |
+
+## F07 — Individual OPSP
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F07-T01 | Deterministic OPSP mapping | Not started | 16 cells per Part B; 3-Year Targets needs a split mark |
+| F07-T02 | OPSP view and draft labelling | Not started | |
+| F07-T03 | Ink, pencil and empty cells | Not started | |
+| F07-T04 | "How to read this" panel | Not started | |
+| F07-T05 | OPSP editing and versioning | Not started | |
+
+## F08 — Print & PDF export
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F08-T01 | Print stylesheet | Not started | |
+| F08-T02 | Print route and client save-as-PDF | Not started | |
+| F08-T03 | Server-side PDF rendering | Not started | |
+| F08-T04 | Private exclusion in export paths | Not started | |
+
+## F09 — Admin gate & dashboard
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F09-T01 | Admin gate | Not started | |
+| F09-T02 | Admin-locked UI state | Not started | |
+| F09-T03 | Roster dashboard | Not started | |
+| F09-T04 | Level and budget header strip | Not started | Shell in P1, data in P2 |
+| F09-T05 | Cohort lifecycle | Not started | |
+
+## F10 — Comparison & divergence
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F10-T01 | Divergence scoring library | Not started | |
+| F10-T02 | Comparison data endpoint | Not started | |
+| F10-T03 | Comparison screen | Not started | |
+| F10-T04 | Anonymised and attributed modes | Not started | |
+| F10-T05 | CSV export | Not started | |
+| F10-T06 | Projection sheet export | Not started | |
+
+## F11 — Release gates & test harness
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F11-T01 | Verification script and npm scripts | Not started | |
+| F11-T02 | T2 key-removal E2E | Not started | **P1 gate** |
+| F11-T03 | T3 lock integrity property test | Not started | |
+| F11-T04 | T1 coach containment harness | Not started | Gates P2 release |
+| F11-T05 | Client bundle key check | Not started | |
+| F11-T06 | Log redaction test | Not started | |
+
+## F12 — AI gateway & degradation
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F12-T01 | Gateway module | Not started | |
+| F12-T02 | Level selection | Not started | |
+| F12-T03 | Circuit breaker | Not started | |
+| F12-T04 | Budget accounting | Not started | |
+| F12-T05 | Timeout and retry policy | Not started | |
+| F12-T06 | Interaction logging and token capture | Not started | |
+| F12-T07 | Facilitator budget and guard-trip surfacing | Not started | |
+
+## F13 — AI coach
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F13-T01 | Coach prompt and structured output | Not started | |
+| F13-T02 | Payload minimisation | Not started | |
+| F13-T03 | Output guard | Not started | |
+| F13-T04 | Coach endpoint resilience | Not started | |
+| F13-T05 | Examples on request only | Not started | |
+| F13-T06 | Contamination audit | Not started | |
+
+## F14 — Facilitator analysis
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F14-T01 | Analysis prompt and payload | Not started | |
+| F14-T02 | Analysis endpoint with degradation | Not started | |
+| F14-T03 | Analysis side panel | Not started | |
+| F14-T04 | Individual OPSP strengths and gaps | Not started | |
+| F14-T05 | Anonymised projection hardening | Not started | |
+| F14-T06 | Output labelling and re-run | Not started | |
+
+## F15 — Official OPSP canvas
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F15-T01 | Official OPSP canvas | Not started | |
+| F15-T02 | Source cards | Not started | |
+| F15-T03 | Compatibility classification | Not started | |
+| F15-T04 | Synthesis with the conflict guard | Not started | |
+| F15-T05 | Conflict result state | Not started | |
+| F15-T06 | Cell provenance | Not started | |
+| F15-T07 | Versioning and export | Not started | |
+
+---
+
+## Open blockers
+
+| # | Blocker | Blocks | Owner | Status |
+|---|---|---|---|---|
+| 1 | Part B OPSP mapping table | F07-T01 | Facilitator | **Resolved** 2026-08-16 |
+| 2 | Fourth app has no name | F03-T07 content, F10 fixtures | Facilitator | Open |
+| 3 | Confirm multi-cohort scope before F01-T02 lands | F01-T02 | Facilitator | Open |
+| 4 | Confirm the facilitator answers as a respondent | F09-T01 | Facilitator | Open |
+| 5 | Divergence thresholds have no numeric defaults | F10-T01 | Facilitator | Open — pick defaults, tune after real data |
+| 6 | Product name — keep "Align" out of identifiers | Naming only | Facilitator | Open |
+
+None of the open blockers stops work starting. Blocker 2 affects Q8 content only, so F03-T07 can be built against a placeholder identifier in the registry. Blocker 5 is resolved by choosing defaults in config and saying so.
+
+## Runtime failure log
+
+Autonomous runs write halt reasons to [`BLOCKED.md`](../BLOCKED.md) at the repository root. That file is the loop's output; this file remains the plan of record. When a `BLOCKED.md` entry is resolved, set the ticket back to `Not started` here and clear the entry there.
