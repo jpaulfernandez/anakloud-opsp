@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 60
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 61
 
 ---
 
@@ -168,7 +168,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F10-T02 | Comparison data endpoint | Done | |
 | F10-T03 | Comparison screen | Done | |
 | F10-T04 | Anonymised and attributed modes | Done | |
-| F10-T05 | CSV export | Not started | |
+| F10-T05 | CSV export | Done | |
 | F10-T06 | Projection sheet export | Not started | |
 
 ## F11 — Release gates & test harness

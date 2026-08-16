@@ -99,6 +99,26 @@ export const MIGRATIONS: Migration[] = [
     up: COHORT_LIFECYCLE_UP_SQL,
     down: COHORT_LIFECYCLE_DOWN_SQL,
   },
+  {
+    version: "0008_export_audit",
+    // F10-T05 — the re-confirmed private export must "record that the export
+    // occurred" (spec.md FR-34 / tech_infrastructure.md §4). This is an audit
+    // of the one export that releases Q14(d) private rows to anyone, so it is
+    // operational state rather than part of the §3 data model, exactly like
+    // the resume-code rate-limit ledger (0004). One row per confirmed
+    // private-inclusive export, stamped with the acting facilitator. Default
+    // (public-only) exports are not private releases and are not logged.
+    up: `create table if not exists export_events (
+           id               uuid primary key,
+           cohort_id        uuid not null references cohorts (id),
+           acted_by         uuid not null references respondents (id),
+           included_private boolean not null default true,
+           created_at       timestamptz not null default now()
+         );
+         create index if not exists export_events_cohort_id_idx
+           on export_events (cohort_id);`,
+    down: `drop table if exists export_events;`,
+  },
 ];
 
 async function withTransaction<T>(

@@ -245,6 +245,48 @@ export async function listPublicAnswersForQuestion(
   return rows as AnswerRow[];
 }
 
+/** One cohort answer row as the CSV export (F10-T05) needs it. */
+export interface CohortAnswerRow {
+  respondent_id: string;
+  respondent_name: string;
+  respondent_email: string | null;
+  question_id: string;
+  value: unknown;
+  confidence: number | null;
+}
+
+/**
+ * The single answer read path behind the CSV export (F10-T05, FR-34). Returns
+ * every answer in the cohort, ordered by respondent for a stable spreadsheet.
+ * The privacy decision is compiled into the SQL: the default call (`includePrivate`
+ * false) carries `is_private = false`, so the Q14(d) note is excluded at the
+ * query layer exactly like every export path (F01-T03). Only the explicit
+ * re-confirmed private export passes `true`, dropping the predicate to serve
+ * the private note to the facilitator — the sole cohort-wide private read
+ * beyond listFacilitatorAnswers, reachable only after the route reconciled
+ * includePrivate AND confirmPrivate. Must run inside the facilitator's RLS
+ * context (withRespondentContext) for cohort-wide answers to be visible.
+ */
+export async function listAnswersForExport(
+  db: ClientBase,
+  cohortId: string,
+  includePrivate: boolean,
+): Promise<CohortAnswerRow[]> {
+  const { rows } = await db.query(
+    `select a.respondent_id,
+            r.display_name as respondent_name,
+            r.email as respondent_email,
+            a.question_id, a.value, a.confidence
+       from answers a
+       join respondents r on r.id = a.respondent_id
+      where r.cohort_id = $1
+        ${includePrivate ? "" : "and a.is_private = false"}
+      order by r.display_name asc, r.id asc, a.question_id asc`,
+    [cohortId],
+  );
+  return rows as CohortAnswerRow[];
+}
+
 /** One of a respondent's own answer rows, as GET /api/answers returns it. */
 export interface OwnAnswerRow {
   question_id: string;
