@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 2
+**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 3
 
 ---
 
@@ -65,7 +65,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 |---|---|---|---|
 | F01-T01 | Project scaffold and verification pipeline | Done | |
 | F01-T02 | Core schema migration | Done | |
-| F01-T03 | Private-row separation for Q14(d) | Not started | |
+| F01-T03 | Private-row separation for Q14(d) | Done | |
 | F01-T04 | Access policy and row-level security | Not started | |
 | F01-T05 | Seed script | Not started | |
 | F01-T06 | Environment config and level pinning | Not started | |
