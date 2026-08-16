@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest"
+    "test": "vitest",
+    "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "next": "^15.3.4",
@@ -28,6 +29,7 @@
     "eslint-config-next": "^15.3.4",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.23.12",
     "typescript": "^5.8.2",
     "vitest": "^3.1.1"
   }
