@@ -4,6 +4,10 @@ import { createDbClient } from "@/lib/db";
 import { requirePageSession } from "@/lib/auth";
 import { adminPageView } from "@/lib/admin";
 import { fetchRoster, type RosterEntry } from "@/lib/roster";
+import { fetchBudget, fetchGuardTrips } from "@/lib/admin-strip";
+import { loadConfig } from "@/lib/config";
+import type { AdminStripData } from "@/lib/level-strip";
+import LevelStrip from "./LevelStrip";
 
 // F09-T02 — the admin-locked UI state (ui_ux.md §6 "Admin locked", FR-28).
 //
@@ -48,7 +52,17 @@ export default async function AdminPage() {
     // Only a submitted facilitator reaches the roster fetch, so FR-28 holds:
     // nobody reads their team's answers before their own are locked.
     const roster = await fetchRoster(db, session.respondentId, session.cohortId);
-    return <AdminDashboard roster={roster} />;
+    // F09-T04 — the header strip. The level is the deterministic boot pin;
+    // budget, circuit and guard-trip counts come from the row the cohort
+    // either does or does not have yet (F12 writes them). Assembled server-side
+    // so the strip is honest and never renders to a respondent.
+    const { aiLevel } = loadConfig();
+    const strip: AdminStripData = {
+      level: aiLevel,
+      budget: await fetchBudget(db, session.cohortId),
+      guardTrips: await fetchGuardTrips(db, session.cohortId),
+    };
+    return <AdminDashboard roster={roster} strip={strip} />;
   } finally {
     await db.end();
   }
@@ -87,12 +101,19 @@ function AdminLocked() {
  * smaller type, closer padding, a thin bordered table instead of the wide-open
  * question layout. No answer content appears anywhere (FR-29).
  */
-function AdminDashboard({ roster }: { roster: RosterEntry[] }) {
+function AdminDashboard({
+  roster,
+  strip,
+}: {
+  roster: RosterEntry[];
+  strip: AdminStripData;
+}) {
   return (
     <main className="mx-auto w-full max-w-4xl px-4 pb-10 pt-6 text-base">
       <h1 className="mt-1 text-[21px] leading-snug font-semibold text-neutral-900 md:text-[28px]">
         Admin
       </h1>
+      <LevelStrip data={strip} />
       <RosterTable roster={roster} />
     </main>
   );
