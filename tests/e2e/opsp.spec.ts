@@ -8,20 +8,22 @@ import { withRespondentContext } from "../../lib/access";
 import { performSubmit } from "../../lib/submit";
 import { OPSP_CELL_IDS, buildOpspCells, type OpspSourceAnswers } from "../../lib/opsp";
 import { isOpspCellEmpty } from "../../lib/opsp-view";
+import {
+  OPSP_EMPTY_NOTE,
+  OPSP_LOW_CONFIDENCE_NOTE,
+  OPSP_REVISIT_TAG,
+} from "../../lib/opsp-state";
 import { SEED_RESPONDENTS } from "../../lib/seed";
 
 // F07-T02 end to end: the individual OPSP view and its draft label, against a
-// real Postgres (ui_ux.md §4.14). Covering the ticket's three acceptance
-// criteria:
+// real Postgres (ui_ux.md §4.14). Covering two tickets' acceptance criteria:
 //
-//   1. The draft label is the first thing rendered and is present on every
-//      load — the "Your draft. Not the company's plan." header renders with
-//      its supporting line and survives a reload.
-//   2. Grid at desktop, stacked cards at 360px, same content — a wide viewport
-//      renders a multi-column OPSP grid, a 360px viewport renders a single
-//      column, and both show the same cell data.
-//   3. Provenance line renders for every non-empty cell — every derived cell
-//      carries its "from Q3, Q4" line.
+//   F07-T02 — the draft label is the first thing rendered and present on every
+//     load; grid at desktop and stacked cards at 360px with identical content;
+//     a provenance line for every non-empty cell.
+//   F07-T03 — ink/pencil/empty treatment survives greyscale (weight, dashed
+//     left border and text tag, never colour); low-confidence and empty cells
+//     carry their notes; no cell is auto-filled.
 //
 // This spec seeds a respondent with the full seeded answer set (SEED_RESPONDENTS
 // [0]), runs real submit (F06-T03) so every one of the sixteen cells derives to
@@ -212,4 +214,80 @@ test("every non-empty cell shows a provenance line naming its sources", async ({
       await expect(page.getByTestId(`opsp-content-${id}`)).not.toBeEmpty();
     }
   }
+});
+
+// F07-T03 — ink, pencil and empty cells (FR-24, ui_ux.md §2, §4.14, §7). These
+// reuse the seeded respondent above, whose derived cells give us every state at
+// once: the seed's low-confidence sources (Q4, Q10) make BHAG / profit_per_x /
+// year1_critical_number pencil, its full-confidence Part B defaults (Q7) stay
+// pencil at full confidence, and its SWT — Threats cell is empty because the
+// seed's Q13 carries no `cause` fragment. Purpose is a confident ink cell.
+
+test("greyscale preserves the ink/pencil distinction by weight, border and tag", async ({
+  page,
+}) => {
+  await setSession(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/opsp");
+  await expect(page.getByTestId("opsp-grid")).toBeVisible();
+
+  // Force every pixel to black and white; the distinction must hold on the
+  // non-colour signals alone — font weight, a dashed left border and the text
+  // tag — so it survives printing (ui_ux §2, §7).
+  await page.addStyleTag({ content: "html { filter: grayscale(1) }" });
+
+  const inkStyle = await page
+    .getByTestId("opsp-content-purpose")
+    .evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { fontWeight: s.fontWeight, borderLeftStyle: s.borderLeftStyle };
+    });
+  const pencilStyle = await page
+    .getByTestId("opsp-content-bhag")
+    .evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { fontWeight: s.fontWeight, borderLeftStyle: s.borderLeftStyle };
+    });
+
+  // Ink: solid, no dashed left border. Pencil: lighter weight and dashed.
+  expect(inkStyle.borderLeftStyle).toBe("none");
+  expect(pencilStyle.borderLeftStyle).toBe("dashed");
+  expect(pencilStyle.fontWeight).not.toBe(inkStyle.fontWeight);
+
+  // The text tag is the third non-colour signal and appears only on pencil.
+  await expect(page.getByTestId("opsp-revisit-bhag")).toHaveText(OPSP_REVISIT_TAG);
+  await expect(page.getByTestId("opsp-revisit-purpose")).toHaveCount(0);
+});
+
+test("low-confidence and empty cells carry their respective notes", async ({
+  page,
+}) => {
+  await setSession(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/opsp");
+  await expect(page.getByTestId("opsp-grid")).toBeVisible();
+
+  // A pencil cell whose cause is a low-confidence feeding answer shows the
+  // low-confidence note (the seed's Q4 is low-confidence → BHAG).
+  await expect(page.getByTestId("opsp-note-bhag")).toHaveText(
+    OPSP_LOW_CONFIDENCE_NOTE,
+  );
+
+  // An empty cell shows the empty note and is never auto-filled (the seed's
+  // SWT — Threats cell is empty, as Q13 has no `cause` fragment).
+  await expect(page.getByTestId("opsp-note-swt_threats")).toHaveText(
+    OPSP_EMPTY_NOTE,
+  );
+  await expect(page.getByTestId("opsp-content-swt_threats")).toBeEmpty();
+
+  // A confident ink cell (Purpose) carries neither a note nor a revisit tag.
+  await expect(page.getByTestId("opsp-note-purpose")).toHaveCount(0);
+  await expect(page.getByTestId("opsp-revisit-purpose")).toHaveCount(0);
+
+  // A Part B pencil at full confidence (the seed's Q7 → Brand Promise) keeps
+  // the revisit tag but shows no low-confidence note.
+  await expect(page.getByTestId("opsp-revisit-brand_promise")).toHaveText(
+    OPSP_REVISIT_TAG,
+  );
+  await expect(page.getByTestId("opsp-note-brand_promise")).toHaveCount(0);
 });

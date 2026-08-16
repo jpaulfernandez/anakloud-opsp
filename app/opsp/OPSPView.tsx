@@ -4,8 +4,13 @@ import {
   OPSP_CELL_LABELS,
   formatOpspCellValue,
   formatOpspProvenance,
-  isOpspCellEmpty,
 } from "@/lib/opsp-view";
+import {
+  OPSP_REVISIT_TAG,
+  opspCellNote,
+  resolveOpspCellState,
+  showsRevisitTag,
+} from "@/lib/opsp-state";
 
 // F07-T02 — the individual OPSP view and draft labelling (FR-23,
 // ui_ux.md §4.14). This is the plan a respondent gets back after submit: the
@@ -23,9 +28,16 @@ import {
 // Layout follows §4.14: a single-column stack of cards on a phone (360px is
 // one column), fanning out into the classic OPSP columns once the viewport is
 // wide. The same DOM renders both, so grid and stacked show identical content.
-// Ink/pencil treatment and empty-cell notes are F07-T03; this screen renders
-// content and the per-cell provenance line only.
-
+//
+// The ink/pencil and empty-cell treatment (F07-T03, FR-24, §2, §7) is this
+// screen's second job: content derived from confident, complete answers
+// renders as ink (solid text at full contrast); content whose source was blank
+// or low-confidence renders as pencil — lighter weight, a dashed left border
+// and a "revisit" tag, never colour — so the distinction survives printing in
+// greyscale. Pencil cells that are pencil because the respondent was unsure
+// carry the low-confidence note; empty cells carry the empty note and are never
+// auto-filled. The state and note decisions are resolved in lib/opsp-state.ts;
+// this component only turns that deterministic state into classes and text.
 export function OPSPView({
   cells,
   rosterNames,
@@ -56,11 +68,16 @@ export function OPSPView({
         {OPSP_CELL_IDS.map((id) => {
           const cell = cells[id];
           if (!cell) return null;
-          const empty = isOpspCellEmpty(cell);
-          const content = empty
-            ? ""
-            : formatOpspCellValue(cell.value, nameOf);
-          const provenance = empty ? null : formatOpspProvenance(cell.sources);
+          const state = resolveOpspCellState(cell);
+          const ink = state.kind === "ink";
+          const content =
+            state.kind === "empty"
+              ? ""
+              : formatOpspCellValue(cell.value, nameOf);
+          const provenance =
+            state.kind === "empty" ? null : formatOpspProvenance(cell.sources);
+          const note = opspCellNote(state);
+          const revisit = showsRevisitTag(state);
           return (
             <article
               key={id}
@@ -72,10 +89,30 @@ export function OPSPView({
               </h2>
               <div
                 data-testid={`opsp-content-${id}`}
-                className="mt-2 whitespace-pre-wrap font-sans text-[15px] leading-relaxed text-neutral-900"
+                className={`mt-2 whitespace-pre-wrap text-[15px] leading-relaxed ${
+                  ink
+                    ? "font-normal text-neutral-900"
+                    : "border-l-4 border-dashed border-neutral-400 pl-3 font-light text-neutral-700"
+                }`}
               >
                 {content || ""}
               </div>
+              {revisit ? (
+                <span
+                  data-testid={`opsp-revisit-${id}`}
+                  className="mt-3 inline-block rounded-full border border-neutral-300 px-2 py-0.5 text-[11px] font-medium tracking-wide text-neutral-500 uppercase"
+                >
+                  {OPSP_REVISIT_TAG}
+                </span>
+              ) : null}
+              {note !== null ? (
+                <p
+                  data-testid={`opsp-note-${id}`}
+                  className="mt-3 text-xs italic text-neutral-500"
+                >
+                  {note}
+                </p>
+              ) : null}
               {provenance !== null ? (
                 <p
                   data-testid={`opsp-provenance-${id}`}

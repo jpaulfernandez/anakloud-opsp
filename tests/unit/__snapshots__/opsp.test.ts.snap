@@ -4,6 +4,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
 {
   "Ana Reyes": {
     "accountability_face": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -30,6 +31,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "bhag": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -44,6 +46,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "brand_promise": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -58,6 +61,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "capacity": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -72,6 +76,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "core_values": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -86,6 +91,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "key_initiatives": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -105,6 +111,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "number1_priority": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -120,6 +127,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "profit_per_x": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -138,6 +146,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "purpose": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -157,6 +166,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_rocks": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -184,6 +194,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_theme": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -198,6 +209,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_boundaries": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -216,6 +228,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_core_customer": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -247,6 +260,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "swt_threats": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -257,6 +271,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       "value": null,
     },
     "three_year_targets": {
+      "lowConfidence": false,
       "marking": {
         "parts": [
           {
@@ -282,6 +297,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "year1_critical_number": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -304,6 +320,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
   },
   "Benito Cruz": {
     "accountability_face": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -330,6 +347,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "bhag": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -344,6 +362,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "brand_promise": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -358,6 +377,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "capacity": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -372,6 +392,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "core_values": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -386,6 +407,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "key_initiatives": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -405,6 +427,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "number1_priority": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -420,6 +443,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "profit_per_x": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -438,6 +462,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "purpose": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -457,6 +482,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_rocks": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -480,6 +506,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_theme": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -494,6 +521,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_boundaries": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -512,6 +540,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_core_customer": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -543,6 +572,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "swt_threats": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -553,6 +583,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       "value": null,
     },
     "three_year_targets": {
+      "lowConfidence": false,
       "marking": {
         "parts": [
           {
@@ -578,6 +609,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "year1_critical_number": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -600,6 +632,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
   },
   "Carla Santos": {
     "accountability_face": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -626,6 +659,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "bhag": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -640,6 +674,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "brand_promise": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -654,6 +689,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "capacity": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -668,6 +704,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "core_values": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -682,6 +719,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "key_initiatives": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -701,6 +739,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "number1_priority": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -711,6 +750,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       "value": null,
     },
     "profit_per_x": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -729,6 +769,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "purpose": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -748,6 +789,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_rocks": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -771,6 +813,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_theme": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -785,6 +828,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_boundaries": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -803,6 +847,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_core_customer": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -834,6 +879,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "swt_threats": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -844,6 +890,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       "value": null,
     },
     "three_year_targets": {
+      "lowConfidence": false,
       "marking": {
         "parts": [
           {
@@ -869,6 +916,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "year1_critical_number": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -891,6 +939,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
   },
   "Diego Tan": {
     "accountability_face": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -917,6 +966,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "bhag": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -931,6 +981,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "brand_promise": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -945,6 +996,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "capacity": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -959,6 +1011,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "core_values": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -973,6 +1026,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "key_initiatives": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -992,6 +1046,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "number1_priority": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1007,6 +1062,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "profit_per_x": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1025,6 +1081,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "purpose": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1044,6 +1101,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_rocks": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1071,6 +1129,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_theme": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1085,6 +1144,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_boundaries": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1103,6 +1163,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_core_customer": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1134,6 +1195,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "swt_threats": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1144,6 +1206,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       "value": null,
     },
     "three_year_targets": {
+      "lowConfidence": false,
       "marking": {
         "parts": [
           {
@@ -1169,6 +1232,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "year1_critical_number": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1191,6 +1255,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
   },
   "Elena Villanueva": {
     "accountability_face": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1217,6 +1282,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "bhag": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1231,6 +1297,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "brand_promise": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1245,6 +1312,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "capacity": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1259,6 +1327,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "core_values": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1273,6 +1342,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "key_initiatives": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1292,6 +1362,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "number1_priority": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1307,6 +1378,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "profit_per_x": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1325,6 +1397,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "purpose": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1344,6 +1417,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_rocks": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1367,6 +1441,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_theme": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1381,6 +1456,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_boundaries": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1399,6 +1475,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_core_customer": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1430,6 +1507,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "swt_threats": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1440,6 +1518,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       "value": null,
     },
     "three_year_targets": {
+      "lowConfidence": false,
       "marking": {
         "parts": [
           {
@@ -1465,6 +1544,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "year1_critical_number": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1487,6 +1567,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
   },
   "Lia Mendoza": {
     "accountability_face": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1513,6 +1594,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "bhag": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1527,6 +1609,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "brand_promise": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1541,6 +1624,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "capacity": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1555,6 +1639,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "core_values": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1569,6 +1654,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "key_initiatives": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1588,6 +1674,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "number1_priority": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1603,6 +1690,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "profit_per_x": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1621,6 +1709,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "purpose": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1640,6 +1729,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_rocks": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1663,6 +1753,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "quarterly_theme": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1677,6 +1768,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_boundaries": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1695,6 +1787,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "sandbox_core_customer": {
+      "lowConfidence": false,
       "marking": {
         "mark": "ink",
         "type": "single",
@@ -1726,6 +1819,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "swt_threats": {
+      "lowConfidence": false,
       "marking": {
         "mark": "pencil",
         "type": "single",
@@ -1736,6 +1830,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       "value": null,
     },
     "three_year_targets": {
+      "lowConfidence": false,
       "marking": {
         "parts": [
           {
@@ -1761,6 +1856,7 @@ exports[`F07-T01 OPSP mapping > maps the seeded six deterministically across run
       },
     },
     "year1_critical_number": {
+      "lowConfidence": true,
       "marking": {
         "mark": "pencil",
         "type": "single",

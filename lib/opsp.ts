@@ -49,6 +49,13 @@ export interface OpspCell {
   marking: OpspMarking;
   /** The question ids that fed this cell (provenance, F07-T02). */
   sources: QuestionId[];
+  /**
+   * True when a confidence-bearing feeding answer recorded low confidence.
+   * Stored rather than recomputed so the renderer (F07-T03) can tell a
+   * low-confidence pencil cell from Part B's editorial pencil defaults, and
+   * later OPSP edits (F07-T05) keep the distinction across versions.
+   */
+  lowConfidence: boolean;
 }
 
 /**
@@ -331,6 +338,7 @@ function deriveCell(id: OpspCellId, snapshot: OpspSourceAnswers): OpspCell {
     value,
     marking: resolveMarking(spec.defaultMark, empty, lowConfidence),
     sources: [...spec.sources],
+    lowConfidence,
   };
 }
 
