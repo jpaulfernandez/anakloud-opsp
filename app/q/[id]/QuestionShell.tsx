@@ -4,12 +4,15 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   LONG_TEXT_QUESTION_IDS,
+  METRIC_TRIPLE_QUESTION_IDS,
   QUESTION_IDS,
   SENTENCE_COMPLETION_QUESTION_IDS,
   isLongTextQuestion,
+  isMetricTripleQuestion,
   isSentenceCompletionQuestion,
   type LongTextQuestionId,
   type LongTextValue,
+  type MetricTripleQuestionId,
   type QuestionDefinition,
   type QuestionId,
   type SentenceCompletionQuestionId,
@@ -22,8 +25,13 @@ import {
 } from "@/lib/navigation";
 import { longTextIsAnswered } from "@/lib/long-text";
 import { sentenceCompletionIsAnswered } from "@/lib/sentence-completion";
+import {
+  metricTripleIsAnswered,
+  type MetricTripleDraft,
+} from "@/lib/metric-triple";
 import { LongTextInput } from "./LongTextInput";
 import { SentenceCompletionInput } from "./SentenceCompletionInput";
+import { MetricTripleInput } from "./MetricTripleInput";
 
 // The question shell (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
 //
@@ -54,6 +62,7 @@ type LongTextAnswers = Partial<Record<LongTextQuestionId, LongTextValue>>;
 type SentenceCompletionAnswers = Partial<
   Record<SentenceCompletionQuestionId, SentenceCompletionValue>
 >;
+type MetricTripleDrafts = Partial<Record<MetricTripleQuestionId, MetricTripleDraft>>;
 
 export function QuestionShell({
   question,
@@ -66,6 +75,8 @@ export function QuestionShell({
   const [longTextAnswers, setLongTextAnswers] = useState<LongTextAnswers>({});
   const [sentenceAnswers, setSentenceAnswers] =
     useState<SentenceCompletionAnswers>({});
+  const [metricTripleDrafts, setMetricTripleDrafts] =
+    useState<MetricTripleDrafts>({});
 
   const answered: ReadonlySet<QuestionId> = useMemo(() => {
     const set = new Set<QuestionId>();
@@ -77,8 +88,12 @@ export function QuestionShell({
       const value = sentenceAnswers[id];
       if (value && sentenceCompletionIsAnswered(value)) set.add(id);
     }
+    for (const id of METRIC_TRIPLE_QUESTION_IDS) {
+      const draft = metricTripleDrafts[id];
+      if (draft && metricTripleIsAnswered(draft)) set.add(id);
+    }
     return set;
-  }, [longTextAnswers, sentenceAnswers]);
+  }, [longTextAnswers, sentenceAnswers, metricTripleDrafts]);
 
   const blocked = canAdvance(question.id, answered);
   const prev = neighbors.prev;
@@ -117,6 +132,17 @@ export function QuestionShell({
             value={sentenceAnswers[question.id]}
             onChange={(next) =>
               setSentenceAnswers((current) => ({
+                ...current,
+                [question.id]: next,
+              }))
+            }
+          />
+        )}
+        {isMetricTripleQuestion(question.id) && (
+          <MetricTripleInput
+            value={metricTripleDrafts[question.id]}
+            onChange={(next) =>
+              setMetricTripleDrafts((current) => ({
                 ...current,
                 [question.id]: next,
               }))

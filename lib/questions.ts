@@ -84,6 +84,19 @@ export function isSentenceCompletionQuestion(
   return (SENTENCE_COMPLETION_QUESTION_IDS as readonly QuestionId[]).includes(id);
 }
 
+/**
+ * The question rendered with the metric-triple input (Q3, F03-T04). A type
+ * guard so the F03 shell can narrow a QuestionId before mounting the
+ * component, exactly like the long-text and sentence-completion guards above.
+ */
+export const METRIC_TRIPLE_QUESTION_IDS = ["q3"] as const;
+export type MetricTripleQuestionId = (typeof METRIC_TRIPLE_QUESTION_IDS)[number];
+export function isMetricTripleQuestion(
+  id: QuestionId,
+): id is MetricTripleQuestionId {
+  return (METRIC_TRIPLE_QUESTION_IDS as readonly QuestionId[]).includes(id);
+}
+
 export const Q5_ROLE_IDS = [
   "pediatrician", "center_owner", "occupational_therapist",
   "speech_pathologist", "parent", "school_sped", "child", "lgu_doh",
@@ -220,6 +233,11 @@ export type LongTextValue = QuestionAnswerValues[LongTextQuestionId];
  * shape `{ who, because }` — exactly the two blanks the sentence carries.
  */
 export type SentenceCompletionValue = QuestionAnswerValues[SentenceCompletionQuestionId];
+/**
+ * The stored answer value for the metric-triple question (q3). The §3.1 shape
+ * `{ metric, value, unit, why }` — the four fields F03-T04 renders.
+ */
+export type MetricTripleValue = QuestionAnswerValues[MetricTripleQuestionId];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The fifteen records. Section, text and helper are written verbatim from the
