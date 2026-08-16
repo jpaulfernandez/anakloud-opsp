@@ -99,7 +99,7 @@ test("all three Q9 fields are required before Continue unblocks", async ({
   await expect(page.getByText("Answer this before moving on.")).toBeVisible();
   await expect(page).toHaveURL(/\/q\/9$/);
 
-  await page.getByLabel("Not doing 2").fill("Not adult rehab.");
+  await page.getByLabel("Not doing 2").fill("Not adult therapy clinics.");
   await continueButton.click();
   await expect(page.getByText("Answer this before moving on.")).toBeVisible();
 

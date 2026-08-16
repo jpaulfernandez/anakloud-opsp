@@ -234,7 +234,7 @@ test("a respondent completes all fifteen questions with the keyboard alone", asy
   await advance(page, 9);
 
   // Q9 — three short fields.
-  await typeText(page, page.getByLabel("Not doing 1"), "no hardware distribution");
+  await typeText(page, page.getByLabel("Not doing 1"), "no hardware distribution channels");
   await typeText(page, page.getByLabel("Not doing 2"), "no consumer marketing spend");
   await typeText(page, page.getByLabel("Not doing 3"), "no hiring a big operations team");
   await advance(page, 10);

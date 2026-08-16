@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CAPPED_SHORT_TEXT_QUESTION_IDS,
@@ -53,6 +53,8 @@ import {
 } from "@/lib/navigation";
 import { useAutosave, type SaveState } from "@/lib/use-autosave";
 import { storableAnswerValue } from "@/lib/to-stored-value";
+import { validators } from "@/lib/validators";
+import { STATIC_HINTS, type ValidatedQuestionId } from "@/lib/static-hints";
 import { longTextIsAnswered } from "@/lib/long-text";
 import { sentenceCompletionIsAnswered } from "@/lib/sentence-completion";
 import {
@@ -95,6 +97,7 @@ import { ShortTextInput } from "./ShortTextInput";
 import { Q9Input } from "./Q9Input";
 import { Q10Input } from "./Q10Input";
 import { ConfidenceSlider } from "./ConfidenceSlider";
+import { CoachCard } from "./CoachCard";
 
 // The question shell (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
 //
@@ -140,6 +143,28 @@ type Q9Drafts = Partial<Record<Q9QuestionId, Q9ValueType>>;
 type Q10Drafts = Partial<Record<Q10QuestionId, Q10Draft>>;
 type ConfidenceAnswers = Partial<Record<ConfidenceQuestionId, number>>;
 
+// F05-T04 coach state, held per question mount. `nudge` is the honest attempt
+// counter ("nudge 2 of 3", FR-17); `closed` is the state after the third nudge
+// is dismissed, when the card collapses to the closing line and the coach never
+// returns (ui_ux §5.2).
+type CoachUI =
+  | { kind: "nudge"; nudge: number; hint: string; example?: string }
+  | { kind: "closed" };
+
+// The "the coach gave up on this question" flag (FR-17: "then it steps aside
+// permanently for that question"), kept at module scope for the life of the
+// client session. Component state would be lost on navigation, and navigating
+// away and back must not resurrect a coach that already retired.
+const retiredCoach = new Set<QuestionId>();
+
+/** Deep equality for the storable answer values the coach compares, so an
+    unchanged answer on one screen is recognised as a keep-it-as-is (the second
+    tap advances, ui_ux §5.2). */
+function valuesEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 export function QuestionShell({
   question,
   neighbors,
@@ -177,6 +202,17 @@ export function QuestionShell({
   const [confidenceAnswers, setConfidenceAnswers] = useState<ConfidenceAnswers>(
     {},
   );
+
+  // F05-T04 nudge state machine. `coachUI` is what sits in the §4.3 coach slot
+  // right now; `shownNudges` counts the needs_work cards shown so far this
+  // question (capped at 3); `lastEvaluated` is the value the last evaluation
+  // ran on so an unchanged answer advances instead of being re-nudged
+  // (ui_ux §5.2); `inputSlotRef` lets the shell hand focus back to the field
+  // when the card appears, because the card must never take focus away (D2).
+  const [coachUI, setCoachUI] = useState<CoachUI | null>(null);
+  const [shownNudges, setShownNudges] = useState(0);
+  const lastEvaluatedRef = useRef<unknown>(undefined);
+  const inputSlotRef = useRef<HTMLElement | null>(null);
 
   // F04-T02 autosave. One question per screen, so the only answer that can
   // change is the current one; this reads that one draft out of whichever slice
@@ -308,6 +344,119 @@ export function QuestionShell({
   const prev = neighbors.prev;
   const next = neighbors.next;
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // F05-T04 coach shell. The coach nudges, it never gates (PR4); no verdict can
+  // leave Continue unavailable, because the Continue handler always ends in a
+  // navigation or a rendered refusal, never a disabled button. The card lives
+  // in the §4.3 coach slot directly below the field (D2) and the whole
+  // evaluation is synchronous local computation (the deterministic sibling,
+  // PR3) — there is no AI and no network in this path.
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function advance() {
+    // F04-T02: flush any pending save so a keystroke typed within the debounce
+    // window is on the wire before the transition. Not awaited — a failing save
+    // must never hold up navigation.
+    flush();
+    router.push(`/q/${questionRouteSegment(next!)}`);
+  }
+
+  function focusAnswerField() {
+    const slot = inputSlotRef.current;
+    if (!slot) return;
+    const control = slot.querySelector<HTMLElement>(
+      // Prefer the field that carries the answer text; radios/checkboxes in the
+      // same slot are not where typing resumes.
+      "textarea:not([disabled]), input:not([disabled]):not([type='hidden']):not([type='radio']):not([type='checkbox'])",
+    );
+    control?.focus();
+  }
+
+  function handleContinue() {
+    // Always keep the button live: a refusal is the line rendered from
+    // `blockedReason` below, never a disabled control (F03-T01).
+    if (!canContinue) return;
+    if (!next) return;
+
+    // Non-coachable questions and questions the coach already retired on
+    // advance straight through with no evaluation (FR-21, FR-17).
+    if (!question.coachable || retiredCoach.has(question.id)) {
+      advance();
+      return;
+    }
+
+    const value = storableAnswerValue(question.id, currentDraft);
+    // An answered coachable draft that cannot yet form a stored shape is Q10
+    // "not sure yet" — the one case where an answer is complete but has nothing
+    // to number or date. That is a full, honest answer and must not be nudged
+    // (F05-T01 note), so it advances silently like any passing answer.
+    if (value === null || value === undefined) {
+      advance();
+      return;
+    }
+
+    // The coach never re-evaluates an unchanged answer (ui_ux §5.2): Continue
+    // on the exact text it just judged is the respondent keeping it as is, so
+    // the second tap advances. On the ceiling this also retires the coach.
+    if (valuesEqual(lastEvaluatedRef.current, value)) {
+      if (shownNudges >= 3) retiredCoach.add(question.id);
+      advance();
+      return;
+    }
+
+    const verdict = validators[question.id](value);
+    if (verdict.ok) {
+      // A passing answer produces no visible coach output at all (FR-16 note,
+      // ui_ux §5.3) — silence on success is what keeps the nudges meaningful.
+      setCoachUI(null);
+      advance();
+      return;
+    }
+
+    // Every coachable question carries a §7.1 validator and therefore a static
+    // hint (F05-T02); the coachable set is a subset of the validated set.
+    const staticHint = STATIC_HINTS[question.id as ValidatedQuestionId];
+    const hint = staticHint.hint;
+    const example = staticHint.example;
+    lastEvaluatedRef.current = value;
+
+    if (shownNudges >= 3) {
+      // The ceiling was reached and the answer still fails. The coach gives up
+      // rather than showing a fourth nudge: the card collapses to the closing
+      // line and it never reopens for this question (FR-17, ui_ux §5.2).
+      retiredCoach.add(question.id);
+      setCoachUI({ kind: "closed" });
+      focusAnswerField();
+      return;
+    }
+
+    const nudge = shownNudges + 1;
+    setShownNudges(nudge);
+    setCoachUI({ kind: "nudge", nudge, hint, example });
+    // The card must not take focus from the field (D2); return focus to the
+    // answer so the respondent can revise in place (acceptance criterion).
+    focusAnswerField();
+  }
+
+  function handleRevise() {
+    if (shownNudges >= 3) {
+      // Dismissing the third nudge retires the coach permanently for this
+      // question: the card is replaced by the closing line (ui_ux §5.2).
+      retiredCoach.add(question.id);
+      setCoachUI({ kind: "closed" });
+    } else {
+      setCoachUI(null);
+    }
+    focusAnswerField();
+  }
+
+  function handleKeepAsIs() {
+    // Keeping it as is on the ceiling counts as dismissing the third nudge —
+    // retire so Back cannot resurrect the coach for this question.
+    if (shownNudges >= 3) retiredCoach.add(question.id);
+    advance();
+  }
+
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pb-10 pt-6 text-base">
       <ProgressHeader absolute={neighbors.absolute} current={neighbors.index} />
@@ -323,7 +472,14 @@ export function QuestionShell({
       </p>
 
       {/* The four §4.3 slots, in order: input, coach, confidence, save. */}
-      <section aria-label="Answer" data-slot="input" className="mt-6">
+      {/* The input slot carries a ref so the coach can return focus to the field
+          when its card appears (D2: the card never takes focus away). */}
+      <section
+        ref={inputSlotRef}
+        aria-label="Answer"
+        data-slot="input"
+        className="mt-6"
+      >
         {isLongTextQuestion(question.id) && (
           <LongTextInput
             questionId={question.id}
@@ -457,7 +613,25 @@ export function QuestionShell({
         aria-live="polite"
         data-slot="coach"
         className="mt-6"
-      />
+      >
+        {coachUI?.kind === "nudge" && (
+          <CoachCard
+            // Re-mount per nudge so an example that was opened on a previous
+            // nudge collapses when the card re-appears for the new one.
+            key={coachUI.nudge}
+            hint={coachUI.hint}
+            example={coachUI.example}
+            nudge={coachUI.nudge}
+            onRevise={handleRevise}
+            onKeepAsIs={handleKeepAsIs}
+          />
+        )}
+        {coachUI?.kind === "closed" && (
+          <p data-testid="coach-closed" className="text-sm text-neutral-600">
+            Fair enough — going with yours.
+          </p>
+        )}
+      </section>
 
       {question.confidence && (
         <section
@@ -504,14 +678,10 @@ export function QuestionShell({
               type="button"
               onClick={() => {
                 // Always keep the button live: a refusal is the line rendered
-                // from `blockedReason` below, never a disabled control (F03-T01).
-                if (canContinue) {
-                  // F04-T02: flush any pending save so a keystroke typed within
-                  // the debounce window is on the wire before the transition.
-                  // Not awaited — a failing save must never hold up navigation.
-                  flush();
-                  router.push(`/q/${questionRouteSegment(next)}`);
-                }
+                // from `blockedReason`, never a disabled control (F03-T01), and
+                // no coach verdict can make Continue unavailable (PR4) — the
+                // coach logic runs entirely inside handleContinue.
+                handleContinue();
               }}
               className="rounded-md bg-neutral-900 px-4 py-2 text-base font-semibold text-white hover:bg-neutral-700"
             >

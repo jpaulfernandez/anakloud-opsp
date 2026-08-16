@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 33
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 34
 
 ---
 
@@ -116,7 +116,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F05-T01 | Deterministic validators | Done | |
 | F05-T02 | Static hints and examples | Done | |
 | F05-T03 | Validation endpoint | Done | |
-| F05-T04 | Coach card and nudge state machine | Not started | |
+| F05-T04 | Coach card and nudge state machine | Done | |
 | F05-T05 | Interaction logging | Not started | |
 | F05-T06 | L3 plain-form mode | Not started | |
 
