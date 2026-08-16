@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 40
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 41
 
 ---
 
@@ -128,7 +128,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F06-T02 | Submit confirmation | Done | |
 | F06-T03 | Submit, snapshot and OPSP generation | Done | |
 | F06-T04 | Lock enforcement | Done | |
-| F06-T05 | Facilitator unlock with audit | Not started | |
+| F06-T05 | Facilitator unlock with audit | Done | |
 | F06-T06 | Submitted read-only view | Not started | |
 
 ## F07 — Individual OPSP
