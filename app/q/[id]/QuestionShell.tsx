@@ -212,7 +212,7 @@ export function QuestionShell({
     q9Drafts,
     q10Drafts,
   ]);
-  const { saveState, flush } = useAutosave({
+  const { saveState, flush, offline } = useAutosave({
     questionId: question.id,
     value: storableAnswerValue(question.id, currentDraft),
     confidence: isConfidenceQuestion(question.id)
@@ -480,7 +480,7 @@ export function QuestionShell({
       )}
 
       <section aria-label="Save status" data-slot="save" className="mt-6">
-        <SaveStatus state={saveState} />
+        <SaveStatus state={saveState} offline={offline} />
       </section>
 
       <nav className="mt-10 flex items-center justify-between gap-3">
@@ -566,8 +566,21 @@ function ProgressHeader({
     flight, "✓ Saved" once settled, nothing until the first save is needed. It
     sits in the fixed §4.3 slot between the confidence control and the nav — it
     is never a toast or anything that fades, and "✓ Saved" stays for as long as
-    the state is settled. */
-function SaveStatus({ state }: { state: SaveState | null }) {
+    the state is settled. While the browser is offline the slot says the
+    verbatim §6 reassurance line instead of a save verdict — a positive promise
+    that answers are held on the device and will sync, not an error (F04-T03). */
+function SaveStatus({ state, offline }: { state: SaveState | null; offline: boolean }) {
+  if (offline) {
+    return (
+      <p
+        data-testid="save-status"
+        aria-live="polite"
+        className="text-sm text-neutral-500"
+      >
+        Saved on this device — will sync when you&#39;re back online.
+      </p>
+    );
+  }
   if (state === null) return null;
   return (
     <p

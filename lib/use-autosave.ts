@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isValidAnswerShape } from "./answer-shape";
 import type { QuestionId } from "./questions";
+import {
+  markMirroredSynced,
+  mirrorAnswer,
+  readPendingMirroredAnswers,
+} from "./local-mirror";
 
 // Debounced autosave with a persistent save slot (F04-T02, FR-7, ui_ux.md D4,
 // §6).
@@ -109,14 +114,17 @@ export function useAutosave({
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // PATCH one answer. Takes the question id explicitly so the same writer can
+  // drain mirrored answers for other screens on reconnect (F04-T03), not only
+  // the question this hook instance is mounted for.
   const send = useCallback(
-    async (toSend: SavedSnapshot, keepalive = false) => {
+    async (qid: QuestionId, toSend: SavedSnapshot, keepalive = false) => {
       const res = await fetch("/api/answers", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         keepalive,
         body: JSON.stringify({
-          question_id: questionIdRef.current,
+          question_id: qid,
           value: toSend.value,
           ...(toSend.confidence != null
             ? { confidence: toSend.confidence }
@@ -164,12 +172,17 @@ export function useAutosave({
         setSaveState("saving");
         let ok = true;
         try {
-          await send(target);
+          await send(questionIdRef.current, target);
         } catch {
           ok = false;
         }
         if (ok && latestIs(target)) {
           lastSavedRef.current = target;
+          // A confirmed save settles the mirror entry for this question so a
+          // later reconnect does not re-send it (F04-T03).
+          if (typeof localStorage !== "undefined") {
+            markMirroredSynced(localStorage, questionIdRef.current);
+          }
         }
         if (!ok) {
           // Failed: retain the answer (it stays in latestRef), keep accepting
@@ -228,7 +241,7 @@ export function useAutosave({
   const keepaliveFlushRef = useRef(() => {});
   keepaliveFlushRef.current = () => {
     if (dirty()) {
-      void send(latestRef.current, true).catch(() => {});
+      void send(questionIdRef.current, latestRef.current, true).catch(() => {});
     }
   };
 
@@ -245,5 +258,75 @@ export function useAutosave({
     };
   }, []);
 
-  return { saveState, flush };
+  // --- F04-T03: local mirror and offline mode ---
+  //
+  // Reflect the true network state on mount without a hydration mismatch: the
+  // first render always reports "online" (server and client agree), and this
+  // mount effect corrects it from navigator.onLine in the browser. There is no
+  // state the app hides behind offline — it answers identically and just shows
+  // the reassurance slot instead of "✓ Saved". `localStorage` is only touched
+  // inside this effect and the callbacks, never during render.
+  const [offline, setOffline] = useState<boolean>(false);
+
+  // Drain every unsynced mirrored answer to the server. Fires on reconnect
+  // (fire-and-forget): a failed PATCH leaves the entry pending for the next
+  // reconnect. Overlapping with the current screen's own retry loop is fine —
+  // the endpoint upserts, so re-sending the same value is idempotent.
+  const flushPending = useCallback(async () => {
+    if (typeof localStorage === "undefined") return;
+    for (const pending of readPendingMirroredAnswers(localStorage)) {
+      try {
+        await send(pending.question_id as QuestionId, {
+          value: pending.value,
+          confidence: pending.confidence,
+        });
+        markMirroredSynced(localStorage, pending.question_id as QuestionId);
+      } catch {
+        // Keep the entry mirrored and unsynced; the next reconnect retries it.
+      }
+    }
+  }, [send]);
+
+  const flushPendingRef = useRef(flushPending);
+  flushPendingRef.current = flushPending;
+  // Only flush on a real offline → online transition, not on initial mount —
+  // draining the whole mirror on every page load is F04-T05's restore scope.
+  const wasOfflineRef = useRef(false);
+
+  useEffect(() => {
+    setOffline(typeof navigator !== "undefined" && navigator.onLine === false);
+    const goOffline = () => {
+      wasOfflineRef.current = true;
+      setOffline(true);
+    };
+    const backOnline = () => {
+      setOffline(false);
+      if (wasOfflineRef.current) {
+        wasOfflineRef.current = false;
+        void flushPendingRef.current();
+      }
+    };
+    window.addEventListener("offline", goOffline);
+    window.addEventListener("online", backOnline);
+    return () => {
+      window.removeEventListener("offline", goOffline);
+      window.removeEventListener("online", backOnline);
+    };
+  }, []);
+
+  // Mirror the current answer on every change (after the mount value) so an
+  // offline jump between screens or a tab kill cannot lose it. Skipping the
+  // mount render means revisiting a question without editing it never re-mirrors
+  // an empty draft over a saved answer.
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (typeof localStorage === "undefined") return;
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    mirrorAnswer(localStorage, questionIdRef.current, value, confidence);
+  }, [value, confidence]);
+
+  return { saveState, flush, offline };
 }
