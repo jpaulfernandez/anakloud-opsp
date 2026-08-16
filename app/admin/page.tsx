@@ -5,9 +5,15 @@ import { requirePageSession } from "@/lib/auth";
 import { adminPageView } from "@/lib/admin";
 import { fetchRoster, type RosterEntry } from "@/lib/roster";
 import { fetchBudget, fetchGuardTrips } from "@/lib/admin-strip";
+import {
+  fetchCohortLive,
+  resolveServedLevel,
+  type CohortLifecycleState,
+} from "@/lib/cohort-lifecycle";
 import { loadConfig } from "@/lib/config";
 import type { AdminStripData } from "@/lib/level-strip";
 import LevelStrip from "./LevelStrip";
+import CohortLifecycle from "./CohortLifecycle";
 
 // F09-T02 — the admin-locked UI state (ui_ux.md §6 "Admin locked", FR-28).
 //
@@ -52,17 +58,24 @@ export default async function AdminPage() {
     // Only a submitted facilitator reaches the roster fetch, so FR-28 holds:
     // nobody reads their team's answers before their own are locked.
     const roster = await fetchRoster(db, session.respondentId, session.cohortId);
-    // F09-T04 — the header strip. The level is the deterministic boot pin;
-    // budget, circuit and guard-trip counts come from the row the cohort
-    // either does or does not have yet (F12 writes them). Assembled server-side
-    // so the strip is honest and never renders to a respondent.
+    // F09-T04 — the header strip. The level is the deterministic boot pin,
+    // overridable per cohort by the facilitator's level pin (F09-T05); budget,
+    // circuit and guard-trip counts come from the row the cohort either does or
+    // does not have yet (F12 writes them). Assembled server-side so the strip
+    // is honest and never renders to a respondent.
     const { aiLevel } = loadConfig();
+    // F09-T05 — the cohort lifecycle control needs the cohort's name, status
+    // and current pin, and the strip must reflect a pinned level on the next
+    // request (no redeploy). fetchCohortLive reads the live cohorts row, so a
+    // pin lands without a server restart.
+    const cohort = await fetchCohortLive(db, session.cohortId);
+    const servedLevel = resolveServedLevel(aiLevel, cohort?.aiLevelPin ?? null);
     const strip: AdminStripData = {
-      level: aiLevel,
+      level: servedLevel,
       budget: await fetchBudget(db, session.cohortId),
       guardTrips: await fetchGuardTrips(db, session.cohortId),
     };
-    return <AdminDashboard roster={roster} strip={strip} />;
+    return <AdminDashboard roster={roster} strip={strip} cohort={cohort} />;
   } finally {
     await db.end();
   }
@@ -104,9 +117,11 @@ function AdminLocked() {
 function AdminDashboard({
   roster,
   strip,
+  cohort,
 }: {
   roster: RosterEntry[];
   strip: AdminStripData;
+  cohort: CohortLifecycleState | null;
 }) {
   return (
     <main className="mx-auto w-full max-w-4xl px-4 pb-10 pt-6 text-base">
@@ -115,6 +130,7 @@ function AdminDashboard({
       </h1>
       <LevelStrip data={strip} />
       <RosterTable roster={roster} />
+      {cohort !== null ? <CohortLifecycle initial={cohort} /> : null}
     </main>
   );
 }

@@ -49,6 +49,24 @@ export function rejectIfSubmitted(
 }
 
 /**
+ * The route-layer 403 for a cohort that is not open. lib/session.ts resolves
+ * `readOnly` live from `cohorts.status` on every request, so a cohort that
+ * closed after the cookie was issued is reflected here without a redeploy.
+ * ui_ux.md §6 "Cohort closed": read-only for everyone, with OPSP and PDF still
+ * accessible — this guard refuses the answer/submit/OPSP *writes* while the
+ * read routes (answers GET, OPSP GET, PDF) keep working. It complements, not
+ * replaces, the immutable-after-submit lock.
+ */
+export function rejectIfCohortReadOnly(
+  session: Pick<ResolvedSession, "readOnly">,
+): NextResponse | null {
+  if (session.readOnly) {
+    return NextResponse.json({ ok: false, readOnly: true }, { status: 403 });
+  }
+  return null;
+}
+
+/**
  * The data-layer guard. Throws `AnswerLockedError` when the respondent has
  * submitted; returns normally otherwise. Intended to run first inside the
  * transaction that owns the write, so a locked respondent is refused before

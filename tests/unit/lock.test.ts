@@ -1,7 +1,11 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { AnswerLockedError, rejectIfSubmitted } from "../../lib/lock";
+import {
+  AnswerLockedError,
+  rejectIfCohortReadOnly,
+  rejectIfSubmitted,
+} from "../../lib/lock";
 
 // F06-T04 lock enforcement — the invariants that need no database, pinned at
 // the source level. Two of the ticket's acceptance criteria are structural and
@@ -30,7 +34,18 @@ interface TsFile {
 
 /** Every runtime .ts file under app/ and lib/, excluding schema/DDL files. */
 function runtimeFiles(): TsFile[] {
-  const excluded = new Set(["lib/schema.ts", "lib/access-policy.ts", "lib/migrate.ts"]);
+  // cohort-lifecycle.ts is excluded deliberately: its app_delete_cohort SQL
+  // *deletes* answer_snapshots/answers rows, but only as the F09-T05 full-cohort
+  // cascading delete — a separate, facilitator-gated, name-confirmed path that
+  // never runs in the respondent request path the immutable-baseline rule
+  // protects, and never creates a snapshot. Listed here so the "only submit
+  // writes snapshots" scan does not read it as an accidental baseline mutation.
+  const excluded = new Set([
+    "lib/schema.ts",
+    "lib/access-policy.ts",
+    "lib/migrate.ts",
+    "lib/cohort-lifecycle.ts",
+  ]);
   const files: TsFile[] = [];
   const walk = (dir: string) => {
     for (const entry of readdirSync(dir)) {
@@ -63,6 +78,16 @@ describe("lock guard", () => {
 
   it("allows an unsubmitted session", () => {
     expect(rejectIfSubmitted({ submittedAt: null })).toBeNull();
+  });
+
+  it("rejects a closed cohort with the single HTTP 403", () => {
+    const guard = rejectIfCohortReadOnly({ readOnly: true });
+    expect(guard).not.toBeNull();
+    expect(guard!.status).toBe(403);
+  });
+
+  it("allows an open cohort", () => {
+    expect(rejectIfCohortReadOnly({ readOnly: false })).toBeNull();
   });
 
   it("AnswerLockedError is thrown by the data-layer guard, and by nothing else in error handling", () => {

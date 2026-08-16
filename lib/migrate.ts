@@ -4,6 +4,10 @@ import {
   OWN_ANSWER_READ_FUNCTION_DROP_SQL,
   OWN_ANSWER_READ_FUNCTION_SQL,
 } from "./answers";
+import {
+  COHORT_LIFECYCLE_DOWN_SQL,
+  COHORT_LIFECYCLE_UP_SQL,
+} from "./cohort-lifecycle";
 import { renderDownSql, renderUpSql, SCHEMA } from "./schema";
 
 export interface Migration {
@@ -81,6 +85,19 @@ export const MIGRATIONS: Migration[] = [
     // in that module (the F01-T03 invariant); this migration only applies it.
     up: OWN_ANSWER_READ_FUNCTION_SQL,
     down: OWN_ANSWER_READ_FUNCTION_DROP_SQL,
+  },
+  {
+    version: "0007_cohort_lifecycle",
+    // F09-T05 — the one cascading, name-confirmed cohort delete. A
+    // security-definer function owned by the migration role so it can delete a
+    // cohort's answers despite RLS (a facilitator's RLS grants cohort-wide
+    // *read* but only own-row delete). It verifies the acting respondent is
+    // the cohort's facilitator and that the request names the cohort
+    // correctly, then removes every dependent row in dependency order. The SQL
+    // lives in lib/cohort-lifecycle.ts so the backend that calls it and the
+    // migration that applies it cannot drift.
+    up: COHORT_LIFECYCLE_UP_SQL,
+    down: COHORT_LIFECYCLE_DOWN_SQL,
   },
 ];
 

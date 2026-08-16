@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createDbClient } from "@/lib/db";
 import { requireApiSession } from "@/lib/auth";
+import { rejectIfCohortReadOnly } from "@/lib/lock";
 import { withRespondentContext } from "@/lib/access";
 import {
   createOpspDraftVersion,
@@ -78,6 +79,11 @@ export async function PATCH(
     if (!auth.ok) return auth.response;
     const session = auth.session;
     const { id } = await params;
+
+    // A closed cohort is read-only (ui_ux.md §6): editing the OPSP is a write.
+    // Reading it (this route's GET, and the PDF route) still works.
+    const readOnly = rejectIfCohortReadOnly(session);
+    if (readOnly) return readOnly;
 
     let body: unknown;
     try {

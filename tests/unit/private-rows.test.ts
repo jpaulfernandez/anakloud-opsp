@@ -36,6 +36,12 @@ describe("private-row separation (F01-T03)", () => {
     const files = collectSourceFiles(ROOT);
     const offenders = files.filter((file) => {
       if (file === join(ROOT, "lib", "answers.ts")) return false;
+      // cohort-lifecycle.ts is the one deliberate exception: its
+      // app_delete_cohort SQL references `answers` in a cascade `delete`,
+      // *removing* rows as the F09-T05 full-cohort delete — never selecting
+      // answer data, so it cannot leak a private row. It is facilitator-gated
+      // and name-confirmed, and this test guards reads, not the delete.
+      if (file === join(ROOT, "lib", "cohort-lifecycle.ts")) return false;
       return SELECT_FROM_ANSWERS.test(readFileSync(file, "utf8"));
     });
 

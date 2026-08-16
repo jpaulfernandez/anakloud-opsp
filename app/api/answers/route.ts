@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createDbClient } from "@/lib/db";
 import { requireApiSession } from "@/lib/auth";
-import { rejectIfSubmitted } from "@/lib/lock";
+import { rejectIfCohortReadOnly, rejectIfSubmitted } from "@/lib/lock";
 import { withRespondentContext } from "@/lib/access";
 import { listOwnAnswers, upsertAnswer } from "@/lib/answers";
 import { parseAnswerWriteBody } from "@/lib/answer-shape";
@@ -59,6 +59,11 @@ export async function PATCH(request: Request) {
     // and confidence — no respondent id can survive this parse.
     const parsed = parseAnswerWriteBody(body);
     if (!parsed) return badRequest();
+
+    // A cohort that is not open is read-only (ui_ux.md §6): refuse the write
+    // before touching a row, while the read paths (answers GET) keep working.
+    const readOnly = rejectIfCohortReadOnly(session);
+    if (readOnly) return readOnly;
 
     // Lock check first: a submitted respondent's answers are immutable (PR5).
     // The session was resolved live this request, so this reflects the latest
