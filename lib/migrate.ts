@@ -1,4 +1,5 @@
 import type { Client } from "pg";
+import { ACCESS_DOWN_SQL, ACCESS_UP_SQL } from "./access-policy";
 import { renderDownSql, renderUpSql, SCHEMA } from "./schema";
 
 export interface Migration {
@@ -8,16 +9,21 @@ export interface Migration {
 }
 
 /**
- * The full list of migrations, applied in order. Each pair is generated from
- * SCHEMA, so the up SQL always matches the schema under test and every
- * migration has a reversible down. F01-T02 ships a single migration that
- * creates the whole core schema; later features append their own.
+ * The full list of migrations, applied in order. 0001 is generated from
+ * SCHEMA so the up SQL always matches the schema under test; 0002 is hand
+ * written because row-level security is a policy, not a table shape. Every
+ * migration has a reversible down. Later features append their own.
  */
 export const MIGRATIONS: Migration[] = [
   {
     version: "0001_core_schema",
     up: renderUpSql(SCHEMA),
     down: renderDownSql(SCHEMA),
+  },
+  {
+    version: "0002_access_policy",
+    up: ACCESS_UP_SQL,
+    down: ACCESS_DOWN_SQL,
   },
 ];
 

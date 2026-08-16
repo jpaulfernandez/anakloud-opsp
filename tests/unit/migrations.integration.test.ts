@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { withRespondentContext } from "../../lib/access";
 import { createDbClient } from "../../lib/db";
-import { migrate, rollbackMigration } from "../../lib/migrate";
+import { MIGRATIONS, migrate, rollbackMigration } from "../../lib/migrate";
 
 // These acceptance tests need a real Postgres and are destructive, so they run
 // only when the operator opts in: `DATABASE_URL` set AND `RUN_DB_TESTS=1`.
@@ -57,7 +58,7 @@ describe.skipIf(!enabled)("migrations against a real Postgres", () => {
     const { rows } = await db!.query(
       "select count(*)::int as n from schema_migrations",
     );
-    expect(rows[0].n).toBe(1);
+    expect(rows[0].n).toBe(MIGRATIONS.length);
   });
 
   it("rejects a second answer with the same (respondent_id, question_id)", async () => {
@@ -72,21 +73,27 @@ describe.skipIf(!enabled)("migrations against a real Postgres", () => {
       [RESPONDENT, COHORT],
     );
 
-    const insertAnswer = () =>
-      db!.query(
-        `insert into answers (id, respondent_id, question_id, value)
-         values ($1, $2, 'q1', $3::jsonb)`,
-        ["33333333-3333-3333-3333-333333333333", RESPONDENT, JSON.stringify({ text: "x" })],
-      );
+    // RLS (0002) rejects inserts that don't run as the owning respondent, so
+    // the constraint test must establish that context inside the transaction.
+    await withRespondentContext(db!, RESPONDENT, async (tx) => {
+      const insertAnswer = () =>
+        tx.query(
+          `insert into answers (id, respondent_id, question_id, value)
+           values ($1, $2, 'q1', $3::jsonb)`,
+          ["33333333-3333-3333-3333-333333333333", RESPONDENT, JSON.stringify({ text: "x" })],
+        );
 
-    await insertAnswer();
-    await expect(insertAnswer()).rejects.toMatchObject({
-      code: "23505", // unique_violation
+      await insertAnswer();
+      await expect(insertAnswer()).rejects.toMatchObject({
+        code: "23505", // unique_violation
+      });
     });
   });
 
   it("rolls the migration back cleanly", async () => {
     await migrate(db!);
+    // Reversed order: undo the policies before dropping the tables they sit on.
+    await rollbackMigration(db!, "0002_access_policy");
     await rollbackMigration(db!, "0001_core_schema");
 
     const { rows } = await db!.query(`

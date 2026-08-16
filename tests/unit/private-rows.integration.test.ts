@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { withRespondentContext } from "../../lib/access";
 import {
   buildAiPayload,
   listFacilitatorAnswers,
@@ -14,6 +15,12 @@ import { migrate } from "../../lib/migrate";
 // when the operator opts in: `DATABASE_URL` set AND `RUN_DB_TESTS=1`. They
 // SKIP by default, keeping `./verify.sh` green without a database. Each run
 // works inside its own temporary schema and drops it afterwards.
+//
+// Since F01-T04, every gated table also sits behind row-level security, so each
+// operation below runs inside the context of the actor it claims to be: answer
+// writes and public helper reads as RESPONDENT; raw row inspection and the
+// facilitator read path as the cohort FACILITATOR (who alone can see private
+// rows).
 const SPLIT_INPUT = {
   wants: ["sales", "fundraise"],
   others: { "44444444-4444-4444-4444-444444444444": "product" },
@@ -32,6 +39,7 @@ const enabled =
 
 const COHORT = "55555555-5555-5555-5555-555555555555";
 const RESPONDENT = "66666666-6666-6666-6666-666666666666";
+const FACILITATOR = "77777777-7777-7777-7777-777777777777";
 
 describe.skipIf(!enabled)("Q14 private-row separation against a real Postgres", () => {
   let db = null as ReturnType<typeof createDbClient> | null;
@@ -54,6 +62,12 @@ describe.skipIf(!enabled)("Q14 private-row separation against a real Postgres", 
        values ($1, $2, 'Respondent', 'token-q14', 'ABCDEF')`,
       [RESPONDENT, COHORT],
     );
+    await db!.query(
+      `insert into respondents
+         (id, cohort_id, display_name, invite_token, resume_code, is_facilitator)
+       values ($1, $2, 'Facilitator', 'token-fac', 'FAC123', true)`,
+      [FACILITATOR, COHORT],
+    );
   });
 
   afterAll(async () => {
@@ -65,120 +79,145 @@ describe.skipIf(!enabled)("Q14 private-row separation against a real Postgres", 
   });
 
   it("writes Q14 as two rows: a public `q14` and a private `q14d`", async () => {
-    await upsertAnswer(db!, {
-      respondent_id: RESPONDENT,
-      question_id: "q14",
-      value: SPLIT_INPUT,
-    });
-
-    const { rows } = await db!.query(
-      `select question_id, is_private, value
-         from answers
-        where respondent_id = $1
-        order by question_id`,
-      [RESPONDENT],
+    await withRespondentContext(db!, RESPONDENT, (tx) =>
+      upsertAnswer(tx, {
+        respondent_id: RESPONDENT,
+        question_id: "q14",
+        value: SPLIT_INPUT,
+      }),
     );
-    expect(rows).toHaveLength(2);
-    expect(rows.map((r) => r.question_id)).toEqual(["q14", "q14d"]);
 
-    const publicRow = rows.find((r) => r.question_id === "q14")!;
-    expect(publicRow.is_private).toBe(false);
-    expect(publicRow.value).toEqual(PUBLIC_ONLY);
+    // Only the facilitator sees private rows, so inspect the split as them.
+    await withRespondentContext(db!, FACILITATOR, async (tx) => {
+      const { rows } = await tx.query(
+        `select question_id, is_private, value
+           from answers
+          where respondent_id = $1
+          order by question_id`,
+        [RESPONDENT],
+      );
+      expect(rows).toHaveLength(2);
+      expect(rows.map((r) => r.question_id)).toEqual(["q14", "q14d"]);
 
-    const privateRow = rows.find((r) => r.question_id === "q14d")!;
-    expect(privateRow.is_private).toBe(true);
-    expect(privateRow.value).toEqual({ private_note: SPLIT_INPUT.private_note });
+      const publicRow = rows.find((r) => r.question_id === "q14")!;
+      expect(publicRow.is_private).toBe(false);
+      expect(publicRow.value).toEqual(PUBLIC_ONLY);
+
+      const privateRow = rows.find((r) => r.question_id === "q14d")!;
+      expect(privateRow.is_private).toBe(true);
+      expect(privateRow.value).toEqual({ private_note: SPLIT_INPUT.private_note });
+    });
   });
 
   it("never nests the private note inside the q14 payload", async () => {
-    const { rows } = await db!.query(
-      "select value from answers where respondent_id = $1 and question_id = 'q14'",
-      [RESPONDENT],
-    );
-    expect(rows[0].value).not.toHaveProperty("private_note");
+    await withRespondentContext(db!, FACILITATOR, async (tx) => {
+      const { rows } = await tx.query(
+        "select value from answers where respondent_id = $1 and question_id = 'q14'",
+        [RESPONDENT],
+      );
+      expect(rows[0].value).not.toHaveProperty("private_note");
+    });
   });
 
   it("upserting Q14 again replaces both rows without leaving stale data", async () => {
-    await upsertAnswer(db!, {
-      respondent_id: RESPONDENT,
-      question_id: "q14",
-      value: {
-        wants: ["sales"],
-        others: {},
-        hours: 20,
-        private_note: "Updated: I'm staying.",
-      },
-    });
-
-    const { rows } = await db!.query(
-      `select question_id, is_private, value
-         from answers
-        where respondent_id = $1
-        order by question_id`,
-      [RESPONDENT],
+    await withRespondentContext(db!, RESPONDENT, (tx) =>
+      upsertAnswer(tx, {
+        respondent_id: RESPONDENT,
+        question_id: "q14",
+        value: {
+          wants: ["sales"],
+          others: {},
+          hours: 20,
+          private_note: "Updated: I'm staying.",
+        },
+      }),
     );
-    expect(rows).toHaveLength(2);
-    expect(rows.find((r) => r.question_id === "q14").value.hours).toBe(20);
-    expect(rows.find((r) => r.question_id === "q14d").value).toEqual({
-      private_note: "Updated: I'm staying.",
+
+    await withRespondentContext(db!, FACILITATOR, async (tx) => {
+      const { rows } = await tx.query(
+        `select question_id, is_private, value
+           from answers
+          where respondent_id = $1
+          order by question_id`,
+        [RESPONDENT],
+      );
+      expect(rows).toHaveLength(2);
+      expect(rows.find((r) => r.question_id === "q14").value.hours).toBe(20);
+      expect(rows.find((r) => r.question_id === "q14d").value).toEqual({
+        private_note: "Updated: I'm staying.",
+      });
     });
   });
 
   it("excludes the private note from the export helper", async () => {
-    const answers = await listPublicAnswers(db!, RESPONDENT);
-    expect(answers.some((a) => a.question_id === "q14")).toBe(true);
-    expect(answers.some((a) => a.question_id === "q14d")).toBe(false);
-    expect(answers.find((a) => a.question_id === "q14")?.value).not.toHaveProperty(
-      "private_note",
-    );
+    await withRespondentContext(db!, RESPONDENT, async (tx) => {
+      const answers = await listPublicAnswers(tx, RESPONDENT);
+      expect(answers.some((a) => a.question_id === "q14")).toBe(true);
+      expect(answers.some((a) => a.question_id === "q14d")).toBe(false);
+      expect(answers.find((a) => a.question_id === "q14")?.value).not.toHaveProperty(
+        "private_note",
+      );
+    });
   });
 
   it("excludes the private note from the PDF helper", async () => {
-    const answers = await listPublicAnswers(db!, RESPONDENT);
-    expect(answers.some((a) => a.question_id === "q14d")).toBe(false);
-    expect(
-      JSON.stringify(answers.map((a) => a.value)).includes("I'm staying."),
-    ).toBe(false);
+    await withRespondentContext(db!, RESPONDENT, async (tx) => {
+      const answers = await listPublicAnswers(tx, RESPONDENT);
+      expect(answers.some((a) => a.question_id === "q14d")).toBe(false);
+      expect(
+        JSON.stringify(answers.map((a) => a.value)).includes("I'm staying."),
+      ).toBe(false);
+    });
   });
 
   it("excludes the private note from the AI payload builder", async () => {
-    const payload = await buildAiPayload(db!, RESPONDENT);
-    expect(payload.some((e) => e.question_id === "q14")).toBe(true);
-    expect(payload.some((e) => e.question_id === "q14d")).toBe(false);
+    await withRespondentContext(db!, RESPONDENT, async (tx) => {
+      const payload = await buildAiPayload(tx, RESPONDENT);
+      expect(payload.some((e) => e.question_id === "q14")).toBe(true);
+      expect(payload.some((e) => e.question_id === "q14d")).toBe(false);
 
-    // Payload carries question metadata + answer text only, no row/respondent ids.
-    const keys = new Set(Object.keys(payload[0]));
-    expect(keys).toEqual(new Set(["question_id", "value"]));
-    expect(payload.find((e) => e.question_id === "q14")?.value).not.toHaveProperty(
-      "private_note",
-    );
+      // Payload carries question metadata + answer text only, no row/respondent ids.
+      const keys = new Set(Object.keys(payload[0]));
+      expect(keys).toEqual(new Set(["question_id", "value"]));
+      expect(payload.find((e) => e.question_id === "q14")?.value).not.toHaveProperty(
+        "private_note",
+      );
+    });
   });
 
   it("returns the private note on the facilitator read path only", async () => {
-    const all = await listFacilitatorAnswers(db!, COHORT);
-    const privateRow = all.find((a) => a.question_id === "q14d");
-    expect(privateRow).toBeDefined();
-    expect(privateRow!.value).toEqual({ private_note: "Updated: I'm staying." });
+    await withRespondentContext(db!, FACILITATOR, async (tx) => {
+      const all = await listFacilitatorAnswers(tx, COHORT);
+      const privateRow = all.find((a) => a.question_id === "q14d");
+      expect(privateRow).toBeDefined();
+      expect(privateRow!.value).toEqual({ private_note: "Updated: I'm staying." });
+    });
   });
 
   it("does not split non-Q14 answers", async () => {
-    await upsertAnswer(db!, {
-      respondent_id: RESPONDENT,
-      question_id: "q7",
-      value: { text: "one priority" },
-      confidence: 4,
+    await withRespondentContext(db!, RESPONDENT, (tx) =>
+      upsertAnswer(tx, {
+        respondent_id: RESPONDENT,
+        question_id: "q7",
+        value: { text: "one priority" },
+        confidence: 4,
+      }),
+    );
+
+    await withRespondentContext(db!, FACILITATOR, async (tx) => {
+      const { rows } = await tx.query(
+        "select question_id, is_private, confidence from answers where question_id = 'q7'",
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0].is_private).toBe(false);
+      expect(rows[0].confidence).toBe(4);
     });
 
-    const { rows } = await db!.query(
-      "select question_id, is_private, confidence from answers where question_id = 'q7'",
-    );
-    expect(rows).toHaveLength(1);
-    expect(rows[0].is_private).toBe(false);
-    expect(rows[0].confidence).toBe(4);
-
-    const answers = await listPublicAnswers(db!, RESPONDENT);
-    expect(answers.find((a) => a.question_id === "q7")?.value).toEqual({
-      text: "one priority",
+    await withRespondentContext(db!, RESPONDENT, async (tx) => {
+      const answers = await listPublicAnswers(tx, RESPONDENT);
+      expect(answers.find((a) => a.question_id === "q7")?.value).toEqual({
+        text: "one priority",
+      });
     });
   });
 });

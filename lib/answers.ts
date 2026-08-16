@@ -103,6 +103,28 @@ async function upsertOne(
     is_private: boolean;
   },
 ): Promise<void> {
+  if (row.is_private) {
+    // A private row can be created and re-saved by its owner but never read
+    // back by them (F01-T04). Postgres RLS refuses to UPDATE/DELETE a row the
+    // writer cannot SELECT, and the owner cannot SELECT their own private row,
+    // so the plain upsert below would fail 42501. This write therefore goes
+    // through app_upsert_own_answer, the single security-definer function that
+    // persists a respondent's own private row, exactly as the RLS migration
+    // provides. It re-checks ownership against app.respondent_id, so acting as
+    // someone else still fails.
+    await db.query(
+      "select app_upsert_own_answer($1, $2, $3, $4::jsonb, $5, $6)",
+      [
+        randomUUID(),
+        row.respondent_id,
+        row.question_id,
+        JSON.stringify(row.value),
+        row.is_private,
+        row.confidence,
+      ],
+    );
+    return;
+  }
   await db.query(
     `insert into answers (id, respondent_id, question_id, value, is_private, confidence)
      values ($1, $2, $3, $4::jsonb, $5, $6)
