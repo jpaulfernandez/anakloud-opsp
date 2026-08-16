@@ -138,6 +138,12 @@ function staticHintFor(questionId: string): string {
   return s?.hint ?? "";
 }
 
+/** The static §5.4-compliant example for a question, or empty when it has none. */
+function staticExampleFor(questionId: string): string {
+  const s = (STATIC_HINTS as Record<string, StaticHint | undefined>)[questionId];
+  return s?.example ?? "";
+}
+
 /**
  * Shape a gateway result into the coach body. A healthy L0 result is parsed
  * back into §5.3 structured output and served at L0. Everything else — a
@@ -145,6 +151,14 @@ function staticHintFor(questionId: string): string {
  * unparseable model reply — serves the deterministic static hint at the level
  * the gateway chose (L1 or L2), never an error surface (PR3, PR6). `level` is
  * reported so the caller can log it.
+ *
+ * F13-T05 — examples on request only: an example is served only when the
+ * respondent asked for one (`ctx.exampleRequested`). On a clean L0 pass that
+ * gate drops a model reply that smuggled an example out without a request — a
+ * prompt leak the serve boundary is invariant to. On a degraded serve (which
+ * is what a guard trip on the example lands on) a requested example is drawn
+ * from the static set rather than dropped to nothing, so a prohibited-domain
+ * example is replaced, not lost (FR-19).
  */
 export function coachResponseFromResult(
   ctx: CoachRequestContext,
@@ -153,7 +167,11 @@ export function coachResponseFromResult(
   if (!result.degraded && result.provider !== undefined) {
     try {
       const output = parseCoachResponse(result.provider.text);
-      return { ...output, level: "L0" };
+      return {
+        ...output,
+        example: ctx.exampleRequested ? output.example : "",
+        level: "L0",
+      };
     } catch {
       // Not a §5.3-shaped reply despite a clean guard pass: this is a leak the
       // guard did not classify, so it must not reach the browser. Fall through
@@ -165,7 +183,7 @@ export function coachResponseFromResult(
     verdict: "needs_work",
     dimension: null,
     hint: staticHintFor(ctx.questionId),
-    example: "",
+    example: ctx.exampleRequested ? staticExampleFor(ctx.questionId) : "",
     level: degradedLevel,
   };
 }
@@ -197,7 +215,11 @@ export function degradedCoachBody(questionId: string | null): CoachResponseBody 
     verdict: "needs_work",
     dimension: null,
     hint: questionId === null ? "" : staticHintFor(questionId),
-    example: "",
+    // F13-T05: the static example is the deterministic sibling of a generated
+    // one, so an example-bearing question keeps its framed example even on the
+    // outermost failure edge. The UI reveals it only on request (ui_ux §5.2),
+    // so an unrequested example is never shown.
+    example: questionId === null ? "" : staticExampleFor(questionId),
     level: "L2",
   };
 }

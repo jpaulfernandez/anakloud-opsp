@@ -258,3 +258,21 @@ describe("verdict: ok never arrives with a non-empty hint (acceptance 3)", () =>
     ).toContain('verdict "ok" carries a non-empty hint');
   });
 });
+
+describe("F13-T05 — example generation is gated and framed", () => {
+  it("the example output field is a single string, so at most one example is returned per request", () => {
+    const example = (COACH_RESULT_TOOL.input_schema as unknown as {
+      properties: { example: { type?: string } };
+    }).properties.example;
+    expect(example.type).toBe("string");
+  });
+
+  it("the prompt asks to frame the one requested example as a shape, not a suggestion (ui_ux §5.2)", () => {
+    const prompt = COACH_SYSTEM_PROMPT.toLowerCase();
+    expect(prompt).toContain("give one example");
+    expect(prompt).toContain("frame the example as a shape");
+    expect(COACH_SYSTEM_PROMPT).toMatch(
+      /Yours will be about your business, not deliveries/,
+    );
+  });
+});

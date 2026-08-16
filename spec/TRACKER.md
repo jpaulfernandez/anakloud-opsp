@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 79
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 80
 
 ---
 
@@ -202,7 +202,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F13-T02 | Payload minimisation | Done | |
 | F13-T03 | Output guard | Done | |
 | F13-T04 | Coach endpoint resilience | Done | |
-| F13-T05 | Examples on request only | Not started | |
+| F13-T05 | Examples on request only | Done | |
 | F13-T06 | Contamination audit | Not started | |
 
 ## F14 — Facilitator analysis

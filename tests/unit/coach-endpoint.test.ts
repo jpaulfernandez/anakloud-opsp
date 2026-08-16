@@ -70,7 +70,7 @@ describe("coachResponseFromResult — shapes the served level and hint", () => {
         model: "pinned-model",
       },
     };
-    const body = coachResponseFromResult(coachCtx(), result);
+    const body = coachResponseFromResult(coachCtx({ exampleRequested: true }), result);
     expect(body.level).toBe("L0");
     expect(body.verdict).toBe("needs_work");
     expect(body.hint).toBe("Count something you can look up next quarter.");
@@ -168,6 +168,113 @@ describe("serveCoach — forced latency yields a hint within the pending-state b
   });
 });
 
+describe("F13-T05 — examples on request only (FR-18, FR-19, spec.md §6.2, ui_ux §5.2)", () => {
+  // The endpoint is the gate that makes FR-18 real on the model path: an
+  // example may be served only when the respondent asked for one, and when a
+  // requested example is generated it comes from a neutral domain framed as a
+  // shape — otherwise the static one is served instead (acceptance criteria).
+
+  function l0WithExample(example: string): GatewayResult {
+    return {
+      level: "L0",
+      degraded: false,
+      provider: {
+        text: JSON.stringify({
+          verdict: "needs_work",
+          dimension: "measurability",
+          hint: "Count something you can look up next quarter.",
+          example,
+        }),
+        inputTokens: 5,
+        outputTokens: 5,
+        model: "pinned-model",
+      },
+    };
+  }
+
+  it("no example is served unless the respondent asked for one (acceptance 1)", () => {
+    // A clean L0 model reply that smuggles an example out without a request is
+    // a prompt leak. The serve boundary drops it regardless of the guard, so
+    // the audit log — which flips example_shown only from a request — and the
+    // served body agree that no example was generated.
+    const body = coachResponseFromResult(coachCtx(), l0WithExample("A courier counts deliveries per day."));
+    expect(body.level).toBe("L0");
+    expect(body.example).toBe("");
+
+    // The same clean output, asked for, is served.
+    const asked = coachResponseFromResult(
+      coachCtx({ exampleRequested: true }),
+      l0WithExample("A courier counts deliveries per day."),
+    );
+    expect(asked.example).toBe("A courier counts deliveries per day.");
+  });
+
+  it("an unrequested example stays empty on a degraded serve too", () => {
+    const body = coachResponseFromResult(coachCtx(), { level: "L2", degraded: true });
+    expect(body.hint).toBe(STATIC_HINTS.q7.hint);
+    expect(body.example).toBe("");
+  });
+
+  it("a requested but degraded serve draws the example from the static set", () => {
+    const body = coachResponseFromResult(
+      coachCtx({ exampleRequested: true }),
+      { level: "L2", degraded: true },
+    );
+    expect(body.example).toBe(STATIC_HINTS.q7.example);
+  });
+
+  it("a prohibited-domain example trips the guard and is replaced by the static one (acceptance 3)", async () => {
+    // The provider leaks a "patient/clinic" example. The guard rejects the
+    // whole reply, the gateway degrades to L2, and the requested example is
+    // served from the static set — so a leaking model never reaches the browser
+    // and the respondent still gets a framed, neutral example.
+    const leaking: AIProvider = {
+      request: async (): Promise<ProviderResponse> => ({
+        text: JSON.stringify({
+          verdict: "needs_work",
+          dimension: "measurability",
+          hint: "Count something you can look up next quarter.",
+          example: "A children's clinic counts new patients each month.",
+        }),
+        inputTokens: 5,
+        outputTokens: 5,
+        model: "pinned-model",
+      }),
+    };
+    const body = await serveCoach(
+      coachCtx({ exampleRequested: true }),
+      gatewayCtx(),
+      leaking,
+      "pinned-model",
+    );
+    expect(body.level).toBe("L2");
+    expect(body.hint).toBe(STATIC_HINTS.q7.hint);
+    expect(body.example).toBe(STATIC_HINTS.q7.example);
+  });
+
+  it("the deterministic served example carries the §5.2 shape-framing closing (acceptance 2)", () => {
+    const examples = Object.values(STATIC_HINTS)
+      .map((h) => h.example)
+      .filter((e): e is string => e !== undefined);
+    expect(examples.length).toBeGreaterThan(0);
+    for (const example of examples) {
+      expect(example, example).toMatch(/Yours will be about your business, not \w+\b/i);
+    }
+  });
+
+  it("at most one example is ever served per request (requirement 4)", () => {
+    // The §5.3 output schema has a single string `example` field, so a reply
+    // can hold at most one example; the served body passes that one field
+    // through unchanged (or drops it to empty on the request gate).
+    const asked = coachResponseFromResult(
+      coachCtx({ exampleRequested: true }),
+      l0WithExample("A bakery sells a full pallet of flour in a week."),
+    );
+    expect(typeof asked.example).toBe("string");
+    expect(asked.example).toBe("A bakery sells a full pallet of flour in a week.");
+  });
+});
+
 describe("buildCoachProviderRequest — the outbound payload stays minimal", () => {
   it("uses structured output (forced tool), the §5.2 system prompt and the coach cap", () => {
     const req = buildCoachProviderRequest(coachCtx(), "pinned-model");
@@ -196,21 +303,22 @@ describe("buildCoachProviderRequest — the outbound payload stays minimal", () 
 });
 
 describe("degradedCoachBody — the outermost non-5xx edge", () => {
-  it("attaches the static hint for a known question", () => {
+  it("attaches the static hint and static example for a known question", () => {
     const body = degradedCoachBody("q7");
     expect(body).toEqual({
       verdict: "needs_work",
       dimension: null,
       hint: STATIC_HINTS.q7.hint,
-      example: "",
+      example: STATIC_HINTS.q7.example,
       level: "L2",
     });
   });
 
-  it("still returns a valid body, with an empty hint, when the question is unknown", () => {
+  it("still returns a valid body, with empty hint and example, when the question is unknown", () => {
     const body = degradedCoachBody(null);
     expect(body.level).toBe("L2");
     expect(body.hint).toBe("");
+    expect(body.example).toBe("");
     expect(body.verdict).toBe("needs_work");
   });
 });
