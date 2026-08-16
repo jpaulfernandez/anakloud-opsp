@@ -1,12 +1,16 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import {
   FR10_INPUT_TYPES,
+  LONG_TEXT_QUESTION_IDS,
+  Q13_CAUSES,
   QUESTION_IDS,
   QUESTION_MAP,
   QUESTIONS,
+  isLongTextQuestion,
   type AppId,
   type AnswerValueFor,
   type FunctionId,
+  type Q13Cause,
   type Q6Choice,
   type QuestionAnswerValues,
   type QuestionId,
@@ -131,6 +135,44 @@ describe("question registry (F01-T07)", () => {
   });
 });
 
+describe("long-text questions (F03-T02)", () => {
+  it("marks exactly q1, q13 and q15 as long-text questions", () => {
+    expect(LONG_TEXT_QUESTION_IDS).toEqual(["q1", "q13", "q15"]);
+    for (const id of LONG_TEXT_QUESTION_IDS) {
+      expect(isLongTextQuestion(id)).toBe(true);
+      expect(QUESTION_MAP[id].inputTypes).toContain("long_text");
+    }
+    for (const id of QUESTION_IDS) {
+      if ((LONG_TEXT_QUESTION_IDS as readonly string[]).includes(id)) continue;
+      expect(isLongTextQuestion(id), `${id} is not long text`).toBe(false);
+    }
+  });
+
+  it("defines the Q13 cause control verbatim, all nine options in order", () => {
+    expect([...Q13_CAUSES]).toEqual([
+      "centers wouldn't change their workflow",
+      "doctors wouldn't refer through us",
+      "ran out of money",
+      "the team drifted apart",
+      "data privacy or regulatory problem",
+      "a competitor got there first",
+      "product too complex to onboard",
+      "we never picked one thing",
+      "other",
+    ]);
+    expect(Q13_CAUSES.length).toBe(9);
+    expect(new Set(Q13_CAUSES).size).toBe(Q13_CAUSES.length);
+  });
+
+  it("never marks the three long-text questions as coachable (ui_ux §4.4)", () => {
+    for (const id of LONG_TEXT_QUESTION_IDS) {
+      expect(QUESTION_MAP[id].coachable, `${id} must not be coachable`).toBe(
+        false,
+      );
+    }
+  });
+});
+
 describe("answer value types derived from §3.1", () => {
   it("derives a value type for every question", () => {
     // Every registered id maps to a §3.1 answer shape; a union across the map
@@ -162,7 +204,7 @@ describe("answer value types derived from §3.1", () => {
         starred: 0 | 1 | 2;
       };
       q12: { text: string };
-      q13: { text: string };
+      q13: { text: string; cause: Q13Cause };
       q14: Q14Value;
       q15: { text: string };
     }>();

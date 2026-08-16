@@ -59,6 +59,17 @@ export const FR10_INPUT_TYPES: readonly QuestionInputType[] = [
 export const APP_IDS = ["pedconnect", "teachday", "parentup", "fourth_app"] as const;
 export type AppId = (typeof APP_IDS)[number];
 
+/**
+ * The three questions that render the long-text input (q1/q13/q15). A type
+ * guard so the F03 shell can narrow a QuestionId to these before mounting the
+ * long-text component, keeping the component's props precisely typed.
+ */
+export const LONG_TEXT_QUESTION_IDS = ["q1", "q13", "q15"] as const;
+export type LongTextQuestionId = (typeof LONG_TEXT_QUESTION_IDS)[number];
+export function isLongTextQuestion(id: QuestionId): id is LongTextQuestionId {
+  return (LONG_TEXT_QUESTION_IDS as readonly QuestionId[]).includes(id);
+}
+
 export const Q5_ROLE_IDS = [
   "pediatrician", "center_owner", "occupational_therapist",
   "speech_pathologist", "parent", "school_sped", "child", "lgu_doh",
@@ -68,6 +79,25 @@ export type RoleId = (typeof Q5_ROLE_IDS)[number];
 
 export const Q6_CHOICES = ["center", "parent", "pedia", "therapist"] as const;
 export type Q6Choice = (typeof Q6_CHOICES)[number];
+
+/**
+ * The single-choice cause on Q13 (baseline Part A Q13). Written verbatim from
+ * the baseline list and rendered below the textarea (F03-T02). The selected
+ * cause feeds the OPSP SWT — Threats cell (Part B), so it is stored alongside
+ * the long text as `{ text, cause }` rather than discarded.
+ */
+export const Q13_CAUSES = [
+  "centers wouldn't change their workflow",
+  "doctors wouldn't refer through us",
+  "ran out of money",
+  "the team drifted apart",
+  "data privacy or regulatory problem",
+  "a competitor got there first",
+  "product too complex to onboard",
+  "we never picked one thing",
+  "other",
+] as const;
+export type Q13Cause = (typeof Q13_CAUSES)[number];
 
 export const FUNCTION_IDS = [
   "product", "backend", "mobile_web", "qa", "design_ux",
@@ -155,7 +185,7 @@ export interface QuestionAnswerValues {
   q10: Q10Value;
   q11: Q11Value;
   q12: { text: string };
-  q13: { text: string };
+  q13: { text: string; cause: Q13Cause };
   q14: Q14Value;
   q15: { text: string };
 }
@@ -164,6 +194,12 @@ export interface QuestionAnswerValues {
 export type AnswerValueFor<K extends QuestionId> = QuestionAnswerValues[K];
 /** Union of every question's answer value — one member per question. */
 export type AnyAnswerValue = QuestionAnswerValues[QuestionId];
+/**
+ * The stored answer value for the long-text questions (q1/q13/q15). A union of
+ * exactly the three §3.1 shapes, so the F03 long-text component is typed
+ * against the questions it can actually be mounted for.
+ */
+export type LongTextValue = QuestionAnswerValues[LongTextQuestionId];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The fifteen records. Section, text and helper are written verbatim from the

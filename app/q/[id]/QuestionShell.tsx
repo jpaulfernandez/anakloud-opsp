@@ -1,8 +1,13 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  LONG_TEXT_QUESTION_IDS,
   QUESTION_IDS,
+  isLongTextQuestion,
+  type LongTextQuestionId,
+  type LongTextValue,
   type QuestionDefinition,
   type QuestionId,
 } from "@/lib/questions";
@@ -11,6 +16,8 @@ import {
   questionRouteSegment,
   type QuestionNeighbors,
 } from "@/lib/navigation";
+import { longTextIsAnswered } from "@/lib/long-text";
+import { LongTextInput } from "./LongTextInput";
 
 // The question shell (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
 //
@@ -29,10 +36,15 @@ import {
 // and explains itself in words rather than simply greying out. Exactly one
 // question (Q15) is optional, but the rule is generic — canAdvance decides
 // from the registry's `required` flag, never a hardcoded id.
+//
+// F03-T02 wires the long-text input (Q1, Q13, Q15) into the input slot. The
+// shell lifts the answered set so `canAdvance` reflects what the respondent
+// has actually typed; the long-text component reports its value up and the
+// shell derives "answered" from it (a non-empty answer unblocks Continue). The
+// full value is kept in shell state so a later autosave ticket (F04) can read
+// it back verbatim, including Q13's `{ text, cause }` pair.
 
-/** The answered set until the input tickets (F03-T02..T11) land: empty, so
- *  every required question blocks Continue and the one optional never does. */
-const EMPTY_ANSWERED: ReadonlySet<QuestionId> = new Set();
+type LongTextAnswers = Partial<Record<LongTextQuestionId, LongTextValue>>;
 
 export function QuestionShell({
   question,
@@ -42,7 +54,18 @@ export function QuestionShell({
   neighbors: QuestionNeighbors;
 }) {
   const router = useRouter();
-  const blocked = canAdvance(question.id, EMPTY_ANSWERED);
+  const [longTextAnswers, setLongTextAnswers] = useState<LongTextAnswers>({});
+
+  const answered: ReadonlySet<QuestionId> = useMemo(() => {
+    const set = new Set<QuestionId>();
+    for (const id of LONG_TEXT_QUESTION_IDS) {
+      const value = longTextAnswers[id];
+      if (value && longTextIsAnswered(value)) set.add(id);
+    }
+    return set;
+  }, [longTextAnswers]);
+
+  const blocked = canAdvance(question.id, answered);
   const prev = neighbors.prev;
   const next = neighbors.next;
 
@@ -61,7 +84,20 @@ export function QuestionShell({
       </p>
 
       {/* The four §4.3 slots, in order: input, coach, confidence, save. */}
-      <section aria-label="Answer" data-slot="input" className="mt-6" />
+      <section aria-label="Answer" data-slot="input" className="mt-6">
+        {isLongTextQuestion(question.id) && (
+          <LongTextInput
+            questionId={question.id}
+            value={longTextAnswers[question.id]}
+            onChange={(next) =>
+              setLongTextAnswers((current) => ({
+                ...current,
+                [question.id]: next,
+              }))
+            }
+          />
+        )}
+      </section>
 
       <section
         aria-label="Coach"
