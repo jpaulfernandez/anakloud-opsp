@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { QUESTION_MAP, type QuestionId } from "@/lib/questions";
 import { questionRouteSegment } from "@/lib/navigation";
 import { isConfidenceQuestion } from "@/lib/confidence";
@@ -31,10 +31,18 @@ import {
 export function ReviewScreen({
   questions,
   rosterNames,
+  onConfirmSubmit,
 }: {
   questions: ReviewQuestion[];
   /** cohort mate id → display name, for q14(b)'s "thinks others own" lines. */
   rosterNames: Record<string, string>;
+  /**
+   * Called when the respondent confirms in the submit dialog. F06-T02 is
+   * the confirmation itself; the actual `POST /api/submit` transaction is
+   * F06-T03, which wires this handler. Until then it is optional and the
+   * confirm action just closes the dialog.
+   */
+  onConfirmSubmit?: () => void;
 }) {
   const nameOf: DisplayNameResolver = useCallback(
     (respondentId) => rosterNames[respondentId],
@@ -46,6 +54,7 @@ export function ReviewScreen({
   );
   const complete = allRequiredQuestionsAnswered(answered);
   const skipped = skippedOptionalQuestions(answered);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Answered questions (plus any unanswered required, an edge that can only
   // occur by direct navigation) go in the main list; skipped optional ones are
@@ -99,6 +108,7 @@ export function ReviewScreen({
         <button
           type="button"
           data-testid="review-submit"
+          onClick={() => setConfirmOpen(true)}
           className={
             complete
               ? "rounded-md bg-neutral-900 px-5 py-2 text-base font-semibold text-white hover:bg-neutral-700"
@@ -108,7 +118,75 @@ export function ReviewScreen({
           Submit and lock
         </button>
       </div>
+
+      {confirmOpen && (
+        <SubmitDialog
+          onNotYet={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            onConfirmSubmit?.();
+          }}
+        />
+      )}
     </main>
+  );
+}
+
+// Submit confirmation (F06-T02, FR-14, ui_ux.md §4.13). A real decision point,
+// not a rubber stamp: the respondent is told the answers will be locked, that
+// this is deliberate, and that the OPSP built from them stays editable. It
+// renders verbatim §4.13 copy with `[ Not yet ]` (returns to review, nothing
+// changed) and `[ Submit and lock ]` (the single confirmation that can lead to
+// a submit). There is no submit path that bypasses this dialog — the review
+// screen's button opens it rather than submitting directly.
+function SubmitDialog({
+  onNotYet,
+  onConfirm,
+}: {
+  onNotYet: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="submit-confirm-title"
+      data-testid="submit-confirmation"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 p-4"
+    >
+      <div className="w-full max-w-md rounded-lg border border-neutral-200 bg-white p-6 shadow-lg">
+        <h2
+          id="submit-confirm-title"
+          className="text-lg font-semibold leading-snug text-neutral-900"
+        >
+          Submitting locks your answers.
+        </h2>
+        <p className="mt-3 text-base leading-relaxed text-neutral-700">
+          You won&apos;t be able to change them afterwards &mdash; that&apos;s
+          deliberate, so the baseline stays a baseline. You&apos;ll still be
+          able to edit the OPSP that gets built from them.
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            data-testid="submit-not-yet"
+            autoFocus
+            onClick={onNotYet}
+            className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50"
+          >
+            Not yet
+          </button>
+          <button
+            type="button"
+            data-testid="submit-confirm"
+            onClick={onConfirm}
+            className="rounded-md bg-neutral-900 px-4 py-2 text-base font-semibold text-white hover:bg-neutral-700"
+          >
+            Submit and lock
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

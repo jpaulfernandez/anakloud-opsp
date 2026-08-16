@@ -158,3 +158,69 @@ test("the review shows the respondent's own q14(d) private note", async ({ page 
   await expect(page.getByText("worried about the runway")).toBeVisible();
   await expect(page.getByText("Only Paul sees this one.")).toBeVisible();
 });
+
+// F06-T02 — submit confirmation (FR-14, ui_ux.md §4.13). The review screen's
+// submit action opens a confirmation dialog carrying verbatim §4.13 copy;
+// `[ Not yet ]` closes it and returns to review with nothing changed; and the
+// only "Submit and lock" that can lead to a submit lives inside that dialog,
+// so no path submits on a single click without passing through it.
+
+test("submit confirmation copy matches ui_ux.md §4.13", async ({ page }) => {
+  await setSession(page);
+  await seedAllAnswers();
+
+  await page.goto("/review");
+  await submitButton(page).click();
+
+  const dialog = page.getByTestId("submit-confirmation");
+  await expect(dialog).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Submitting locks your answers." }),
+  ).toBeVisible();
+  await expect(dialog).toContainText(
+    "You won't be able to change them afterwards — that's deliberate, so the baseline stays a baseline. You'll still be able to edit the OPSP that gets built from them.",
+  );
+  await expect(page.getByRole("button", { name: "Not yet" })).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Submit and lock" }),
+  ).toBeVisible();
+});
+
+test("'Not yet' returns to review with nothing changed", async ({ page }) => {
+  await setSession(page);
+  await seedAllAnswers();
+
+  await page.goto("/review");
+  await submitButton(page).click();
+  await expect(page.getByTestId("submit-confirmation")).toBeVisible();
+
+  await page.getByRole("button", { name: "Not yet" }).click();
+
+  await expect(page.getByTestId("submit-confirmation")).not.toBeVisible();
+  await expect(page).toHaveURL(/\/review$/);
+  // Nothing changed: the answers and the primary submit button are still intact.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Review your answers");
+  await expect(page.getByTestId("summary-q3")).toContainText("centers onboarded");
+  await expect(submitButton(page)).toHaveClass(/bg-neutral-900/);
+});
+
+test("no submit path bypasses the confirmation", async ({ page }) => {
+  await setSession(page);
+  await seedAllAnswers();
+
+  await page.goto("/review");
+
+  // The review screen's submit button does not submit on its own — it only
+  // reveals the confirmation dialog, and the page is otherwise unchanged.
+  await submitButton(page).click();
+  await expect(page.getByTestId("submit-confirmation")).toBeVisible();
+  await expect(page).toHaveURL(/\/review$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Review your answers");
+
+  // The only "Submit and lock" that can lead to a submit is inside the dialog.
+  await expect(
+    page.getByTestId("submit-confirmation").getByRole("button", {
+      name: "Submit and lock",
+    }),
+  ).toBeVisible();
+});
