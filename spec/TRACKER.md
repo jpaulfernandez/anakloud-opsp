@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 81
+**Last updated:** 2026-08-17 · **Current phase:** P3 · **Tickets:** 94 · **Done:** 82
 
 ---
 
@@ -54,7 +54,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F11 | Release gates & test harness | P1 | Done | 2026-08-17 | 2026-08-17 | **P1 gate** |
 | F12 | AI gateway & degradation | P2 | Done | 2026-08-17 | 2026-08-17 | Do not start before F11 green |
 | F13 | AI coach | P2 | Done | 2026-08-17 | 2026-08-17 | |
-| F14 | Facilitator analysis | P3 | Not started | — | — | |
+| F14 | Facilitator analysis | P3 | In progress | 2026-08-17 | — | |
 | F15 | Official OPSP canvas | P4 | Not started | — | — | |
 
 ---
@@ -209,7 +209,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F14-T01 | Analysis prompt and payload | Not started | |
+| F14-T01 | Analysis prompt and payload | Done | |
 | F14-T02 | Analysis endpoint with degradation | Not started | |
 | F14-T03 | Analysis side panel | Not started | |
 | F14-T04 | Individual OPSP strengths and gaps | Not started | |

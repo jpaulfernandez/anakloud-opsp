@@ -245,6 +245,31 @@ export async function listPublicAnswersForQuestion(
   return rows as AnswerRow[];
 }
 
+/**
+ * Cohort-wide public read of every answer, used by the whole-cohort analysis
+ * payload (F14-T01). Private rows are filtered in the SQL exactly like every
+ * other public read (F01-T03), so the Q14(d) note is absent before any AI
+ * payload is shaped — the query-layer guarantee, never a filter step someone
+ * could forget. Rows are ordered deterministically by respondent id so the
+ * anonymised A/B/C labelling downstream is stable. Must run inside the
+ * facilitator's RLS context (withRespondentContext) for cohort-wide answers
+ * to be visible, matching listPublicAnswersForQuestion above.
+ */
+export async function listPublicAnswersForCohort(
+  db: ClientBase,
+  cohortId: string,
+): Promise<AnswerRow[]> {
+  const { rows } = await db.query(
+    `select a.id, a.respondent_id, a.question_id, a.value, a.confidence
+       from answers a
+       join respondents r on r.id = a.respondent_id
+      where r.cohort_id = $1 and a.is_private = false
+      order by a.respondent_id asc, a.question_id asc`,
+    [cohortId],
+  );
+  return rows as AnswerRow[];
+}
+
 /** One cohort answer row as the CSV export (F10-T05) needs it. */
 export interface CohortAnswerRow {
   respondent_id: string;
