@@ -47,6 +47,16 @@ const EXCLUDED: Array<{ name: string; kind: string }> = [
   { name: "mobx", kind: "state management" },
   { name: "jotai", kind: "state management" },
   { name: "recoil", kind: "state management" },
+  // JavaScript PDF builders (F08-T03, tech_infrastructure.md §7 — the OPSP is
+  // a grid with mixed typographic weights; PDF is made by the print stylesheet
+  // and headless Chromium, never by a PDF DSL).
+  { name: "jspdf", kind: "JS PDF builder" },
+  { name: "jsPDF", kind: "JS PDF builder" },
+  { name: "pdfmake", kind: "JS PDF builder" },
+  { name: "pdf-lib", kind: "JS PDF builder" },
+  { name: "pdfkit", kind: "JS PDF builder" },
+  { name: "@react-pdf/renderer", kind: "JS PDF builder" },
+  { name: "react-pdf", kind: "JS PDF builder" },
 ];
 
 describe("dependency tree", () => {
