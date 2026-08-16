@@ -220,6 +220,31 @@ export async function listFacilitatorAnswers(
   return rows as AnswerRow[];
 }
 
+/**
+ * Cohort-wide public reads used by the comparison endpoint (F10-T02): every
+ * respondent's answer to one question, with private rows filtered in the SQL.
+ * The facilitator's RLS policy (`answers_facilitator_read`) would otherwise
+ * expose private rows here, so the `is_private = false` predicate is the
+ * query-layer guarantee that the Q14(d) note never reaches the comparison
+ * screen — even the facilitator's. It runs inside the caller's
+ * withRespondentContext so the cohort-wide answers are visible at all.
+ */
+export async function listPublicAnswersForQuestion(
+  db: ClientBase,
+  cohortId: string,
+  questionId: string,
+): Promise<AnswerRow[]> {
+  const { rows } = await db.query(
+    `select a.id, a.respondent_id, a.question_id, a.value, a.confidence
+       from answers a
+       join respondents r on r.id = a.respondent_id
+      where r.cohort_id = $1 and a.question_id = $2 and a.is_private = false
+      order by r.display_name asc, r.id asc`,
+    [cohortId, questionId],
+  );
+  return rows as AnswerRow[];
+}
+
 /** One of a respondent's own answer rows, as GET /api/answers returns it. */
 export interface OwnAnswerRow {
   question_id: string;
