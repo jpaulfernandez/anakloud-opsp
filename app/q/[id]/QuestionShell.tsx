@@ -212,7 +212,7 @@ export function QuestionShell({
     q9Drafts,
     q10Drafts,
   ]);
-  const { saveState, flush, offline } = useAutosave({
+  const { saveState, flush, offline, lockConflict } = useAutosave({
     questionId: question.id,
     value: storableAnswerValue(question.id, currentDraft),
     confidence: isConfidenceQuestion(question.id)
@@ -481,6 +481,9 @@ export function QuestionShell({
 
       <section aria-label="Save status" data-slot="save" className="mt-6">
         <SaveStatus state={saveState} offline={offline} />
+        {lockConflict?.locked && lockConflict.preserve != null && (
+          <LockConflictNotice text={formatReadonlyValue(lockConflict.preserve)} />
+        )}
       </section>
 
       <nav className="mt-10 flex items-center justify-between gap-3">
@@ -568,8 +571,21 @@ function ProgressHeader({
     is never a toast or anything that fades, and "✓ Saved" stays for as long as
     the state is settled. While the browser is offline the slot says the
     verbatim §6 reassurance line instead of a save verdict — a positive promise
-    that answers are held on the device and will sync, not an error (F04-T03). */
+    that answers are held on the device and will sync, not an error (F04-T03).
+    A lock conflict overrides both: the server won, so the slot states the
+    lock plainly rather than pretending a save or a sync is pending (F04-T04). */
 function SaveStatus({ state, offline }: { state: SaveState | null; offline: boolean }) {
+  if (state === "locked") {
+    return (
+      <p
+        data-testid="save-status"
+        aria-live="polite"
+        className="text-sm text-neutral-500"
+      >
+        Locked
+      </p>
+    );
+  }
   if (offline) {
     return (
       <p
@@ -591,4 +607,43 @@ function SaveStatus({ state, offline }: { state: SaveState | null; offline: bool
       {state === "saving" ? "Saving…" : "✓ Saved"}
     </p>
   );
+}
+
+/** The F04-T04 read-only surface. The respondent typed text that the server
+    refused because the answer was already locked (submission happened in
+    another tab). Feedback §6: server wins on lock, but typed text is never
+    discarded silently — so the text is shown here, read-only, so the person
+    can see it is not lost. Deliberately plain copy: this is a bent state being
+    named, not a survey congratulation. */
+function LockConflictNotice({ text }: { text: string }) {
+  return (
+    <div
+      data-testid="lock-conflict"
+      role="status"
+      className="mt-4 rounded-md border border-neutral-300 bg-neutral-50 p-4"
+    >
+      <h2 className="text-base font-semibold text-neutral-900">
+        Locked — your answers were already submitted.
+      </h2>
+      <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+        What you typed here couldn&#39;t be saved, so it&#39;s kept visible below
+        rather than lost.
+      </p>
+      <pre
+        data-testid="lock-conflict-text"
+        className="mt-3 whitespace-pre-wrap rounded bg-white p-3 text-sm text-neutral-800"
+      >
+        {text}
+      </pre>
+    </div>
+  );
+}
+
+/** Faithful read-only rendering of an unsaved answer value. Most §3.1 shapes
+    are objects; a composite answer falls back to its serialized form so no
+    part of the typed text disappears from the read-only surface. */
+function formatReadonlyValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  return JSON.stringify(value, null, 2);
 }

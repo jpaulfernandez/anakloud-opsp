@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 28
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 29
 
 ---
 
@@ -106,7 +106,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F04-T01 | Answer persistence API | Done | |
 | F04-T02 | Debounced autosave and persistent save state | Done | |
 | F04-T03 | Local mirror and offline mode | Done | |
-| F04-T04 | Sync conflict resolution | Not started | |
+| F04-T04 | Sync conflict resolution | Done | |
 | F04-T05 | Resume landing | Not started | |
 
 ## F05 — Validators & coach shell

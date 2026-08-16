@@ -8,6 +8,10 @@ import {
   mirrorAnswer,
   readPendingMirroredAnswers,
 } from "./local-mirror";
+import {
+  resolveSyncConflict,
+  type SyncResolution,
+} from "./sync-conflict";
 
 // Debounced autosave with a persistent save slot (F04-T02, FR-7, ui_ux.md D4,
 // §6).
@@ -33,10 +37,18 @@ import {
 // (a ranking with no delete choice, a metric triple with no number) is never
 // persisted, and stands aside until it becomes a real answer.
 
-export type SaveState = "saving" | "saved";
+export type SaveState = "saving" | "saved" | "locked";
 
 const DEFAULT_DEBOUNCE_MS = 600;
 const RETRY_MS = 4000;
+
+/** What one PATCH attempt returned. `network` is any transient failure worth
+    retrying; `locked` is the server refusing a write because the respondent
+    has submitted (PR5), which no retry can ever fix. */
+type SendResult =
+  | { ok: true }
+  | { ok: false; reason: "network" }
+  | { ok: false; reason: "locked" };
 
 /** Deep (but plain) equality for JSON-like answer values, ignoring object
     identity — a re-created Q14 `others` map with the same content must not
@@ -95,6 +107,14 @@ export function useAutosave({
 }) {
   const [saveState, setSaveState] = useState<SaveState | null>(null);
 
+  // F04-T04: once the server reports this question locked (a 409 on PATCH), it
+  // can never succeed again, so the hook stops retrying and remembers the
+  // conflict so the shell can surface the unsaved text read-only. Locked is
+  // terminal for the mounted question — the server won, and all we can do is
+  // keep the typed text visible rather than silently discard it.
+  const [lockConflict, setLockConflict] = useState<SyncResolution | null>(null);
+  const lockedRef = useRef(false);
+
   const questionIdRef = useRef(questionId);
   questionIdRef.current = questionId;
 
@@ -116,22 +136,46 @@ export function useAutosave({
 
   // PATCH one answer. Takes the question id explicitly so the same writer can
   // drain mirrored answers for other screens on reconnect (F04-T03), not only
-  // the question this hook instance is mounted for.
+  // the question this hook instance is mounted for. Never throws: a network
+  // failure and a 409 lock (PR5) are different outcomes, and the caller has to
+  // tell them apart — the loop retries the former and accepts the latter.
   const send = useCallback(
-    async (qid: QuestionId, toSend: SavedSnapshot, keepalive = false) => {
-      const res = await fetch("/api/answers", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        keepalive,
-        body: JSON.stringify({
-          question_id: qid,
-          value: toSend.value,
-          ...(toSend.confidence != null
-            ? { confidence: toSend.confidence }
-            : {}),
-        }),
-      });
-      if (!res.ok) throw new Error("autosave failed");
+    async (
+      qid: QuestionId,
+      toSend: SavedSnapshot,
+      keepalive = false,
+    ): Promise<SendResult> => {
+      let res: Response;
+      try {
+        res = await fetch("/api/answers", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          keepalive,
+          body: JSON.stringify({
+            question_id: qid,
+            value: toSend.value,
+            ...(toSend.confidence != null
+              ? { confidence: toSend.confidence }
+              : {}),
+          }),
+        });
+      } catch {
+        return { ok: false, reason: "network" };
+      }
+      if (!res.ok) {
+        // 409 is the server reporting answers locked (PR5), never a transient
+        // condition. Distinguish the two so the loop stops instead of hammering
+        // a lock that cannot change client-side (F04-T04: server wins on lock).
+        let locked = false;
+        try {
+          const body = (await res.json()) as { locked?: boolean };
+          locked = body.locked === true;
+        } catch {
+          // A non-JSON error body (e.g. a 500 proxy page) is transient.
+        }
+        return { ok: false, reason: locked ? "locked" : "network" };
+      }
+      return { ok: true };
     },
     [],
   );
@@ -159,8 +203,12 @@ export function useAutosave({
   // The serialized save loop: sends the latest dirty value, retrying on failure
   // without dropping the in-memory answer and without a busy spin, and stops the
   // moment nothing is dirty. Only one loop runs; a caller during a running loop
-  // just lets it pick up the newest value on its next pass.
+  // just lets it pick up the newest value on its next pass. A 409 (locked) stops
+  // the loop permanently — the server has won on lock status and no retry can
+  // succeed — and hands the conflict to the UI so the unsaved text is surfaced
+  // read-only rather than silently discarded (F04-T04).
   const trigger = useCallback(() => {
+    if (lockedRef.current) return;
     if (runningRef.current) return runningRef.current;
     const task = (async () => {
       if (retryTimerRef.current) {
@@ -170,28 +218,39 @@ export function useAutosave({
       while (dirty()) {
         const target = latestRef.current;
         setSaveState("saving");
-        let ok = true;
-        try {
-          await send(questionIdRef.current, target);
-        } catch {
-          ok = false;
-        }
-        if (ok && latestIs(target)) {
-          lastSavedRef.current = target;
-          // A confirmed save settles the mirror entry for this question so a
-          // later reconnect does not re-send it (F04-T03).
-          if (typeof localStorage !== "undefined") {
-            markMirroredSynced(localStorage, questionIdRef.current);
+        const result = await send(questionIdRef.current, target);
+        if (result.ok) {
+          if (latestIs(target)) {
+            lastSavedRef.current = target;
+            // A confirmed save settles the mirror entry for this question so a
+            // later reconnect does not re-send it (F04-T03).
+            if (typeof localStorage !== "undefined") {
+              markMirroredSynced(localStorage, questionIdRef.current);
+            }
           }
+          continue;
         }
-        if (!ok) {
-          // Failed: retain the answer (it stays in latestRef), keep accepting
-          // input, and retry after a pause. Never an error implying data loss.
-          await new Promise<void>((resolve) => {
-            retryTimerRef.current = setTimeout(resolve, RETRY_MS);
-          });
-          retryTimerRef.current = null;
+        if (result.reason === "locked") {
+          // The save loop only runs while `dirty()`, so the content being sent
+          // is genuinely unsaved. Server wins on lock; keep the typed text so
+          // the shell can surface it read-only, then stop retrying forever.
+          lockedRef.current = true;
+          setLockConflict(
+            resolveSyncConflict(
+              { value: latestRef.current.value, unsaved: true },
+              { locked: true },
+            ),
+          );
+          setSaveState("locked");
+          return;
         }
+        // Network failure: retain the answer (it stays in latestRef), keep
+        // accepting input, and retry after a pause. Never an error implying
+        // data loss.
+        await new Promise<void>((resolve) => {
+          retryTimerRef.current = setTimeout(resolve, RETRY_MS);
+        });
+        retryTimerRef.current = null;
       }
       setSaveState("saved");
     })();
@@ -208,6 +267,7 @@ export function useAutosave({
 
   // Debounce on change: any storable edit reschedules a save after a quiet gap.
   useEffect(() => {
+    if (lockedRef.current) return;
     if (!isValidAnswerShape(questionIdRef.current, value)) return;
     const last = lastSavedRef.current;
     if (
@@ -238,10 +298,11 @@ export function useAutosave({
 
   // A keepalive flush for leaving the page entirely (Back is a full page load;
   // phones kill backgrounded tabs). Best-effort — done before unload completes.
+  // Skips a locked question: the 409 cannot be fixed by a final attempt.
   const keepaliveFlushRef = useRef(() => {});
   keepaliveFlushRef.current = () => {
-    if (dirty()) {
-      void send(questionIdRef.current, latestRef.current, true).catch(() => {});
+    if (dirty() && !lockedRef.current) {
+      void send(questionIdRef.current, latestRef.current, true);
     }
   };
 
@@ -275,15 +336,19 @@ export function useAutosave({
   const flushPending = useCallback(async () => {
     if (typeof localStorage === "undefined") return;
     for (const pending of readPendingMirroredAnswers(localStorage)) {
-      try {
-        await send(pending.question_id as QuestionId, {
-          value: pending.value,
-          confidence: pending.confidence,
-        });
+      const result = await send(pending.question_id as QuestionId, {
+        value: pending.value,
+        confidence: pending.confidence,
+      });
+      if (result.ok) {
         markMirroredSynced(localStorage, pending.question_id as QuestionId);
-      } catch {
-        // Keep the entry mirrored and unsynced; the next reconnect retries it.
+      } else if (result.reason === "locked") {
+        // The server has locked this respondent's answers, so no pending write
+        // can ever succeed. Leave the entries mirrored (their text is
+        // preserved, never silently discarded) and stop trying.
+        break;
       }
+      // Network failure: keep the entry pending for the next reconnect.
     }
   }, [send]);
 
@@ -328,5 +393,5 @@ export function useAutosave({
     mirrorAnswer(localStorage, questionIdRef.current, value, confidence);
   }, [value, confidence]);
 
-  return { saveState, flush, offline };
+  return { saveState, flush, offline, lockConflict };
 }
