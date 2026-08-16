@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { QUESTION_MAP, type QuestionId } from "@/lib/questions";
 import { questionRouteSegment } from "@/lib/navigation";
 import { isConfidenceQuestion } from "@/lib/confidence";
@@ -37,13 +38,14 @@ export function ReviewScreen({
   /** cohort mate id → display name, for q14(b)'s "thinks others own" lines. */
   rosterNames: Record<string, string>;
   /**
-   * Called when the respondent confirms in the submit dialog. F06-T02 is
-   * the confirmation itself; the actual `POST /api/submit` transaction is
-   * F06-T03, which wires this handler. Until then it is optional and the
-   * confirm action just closes the dialog.
+   * Called when the respondent confirms in the submit dialog. F06-T02 is the
+   * confirmation itself; the actual `POST /api/submit` transaction is F06-T03.
+   * When a page supplies this handler it owns the submit; otherwise the review
+   * performs the submit itself (F11-T02 journeys through the real UI).
    */
   onConfirmSubmit?: () => void;
 }) {
+  const router = useRouter();
   const nameOf: DisplayNameResolver = useCallback(
     (respondentId) => rosterNames[respondentId],
     [rosterNames],
@@ -55,6 +57,26 @@ export function ReviewScreen({
   const complete = allRequiredQuestionsAnswered(answered);
   const skipped = skippedOptionalQuestions(answered);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // F06-T03 submit: when the page does not supply an onConfirmSubmit, the
+  // review performs POST /api/submit itself and sends the respondent to the
+  // submitted view. A failed submit leaves them on the review screen with their
+  // answers intact — PR4: nothing about the questionnaire fails.
+  function confirmSubmit() {
+    setConfirmOpen(false);
+    if (onConfirmSubmit) {
+      onConfirmSubmit();
+      return;
+    }
+    void fetch("/api/submit", { method: "POST" })
+      .then((response) => {
+        if (response.ok) router.push("/");
+      })
+      .catch(() => {
+        // Network failure: stay on the review screen with answers intact.
+        return;
+      });
+  }
 
   // Answered questions (plus any unanswered required, an edge that can only
   // occur by direct navigation) go in the main list; skipped optional ones are
@@ -122,10 +144,7 @@ export function ReviewScreen({
       {confirmOpen && (
         <SubmitDialog
           onNotYet={() => setConfirmOpen(false)}
-          onConfirm={() => {
-            setConfirmOpen(false);
-            onConfirmSubmit?.();
-          }}
+          onConfirm={confirmSubmit}
         />
       )}
     </main>
