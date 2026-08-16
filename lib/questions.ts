@@ -163,6 +163,48 @@ export function isQ14Question(
   return (Q14_QUESTION_IDS as readonly QuestionId[]).includes(id);
 }
 
+/**
+ * The three questions rendered with a capped short-text input (Q4/Q7/Q12,
+ * F03-T10). A type guard so the F03 shell can narrow a QuestionId before
+ * mounting the component — the same pattern as the other input guards above.
+ * Q9 is deliberately *not* here: it stores three short strings rather than
+ * one, so it has its own guard and component below.
+ */
+export const CAPPED_SHORT_TEXT_QUESTION_IDS = ["q4", "q7", "q12"] as const;
+export type CappedShortTextQuestionId =
+  (typeof CAPPED_SHORT_TEXT_QUESTION_IDS)[number];
+export function isCappedShortTextQuestion(
+  id: QuestionId,
+): id is CappedShortTextQuestionId {
+  return (CAPPED_SHORT_TEXT_QUESTION_IDS as readonly QuestionId[]).includes(id);
+}
+
+/**
+ * The question rendered with the three-short-fields input (Q9, F03-T10). A
+ * type guard so the F03 shell can narrow a QuestionId before mounting the
+ * component — the same pattern as the other input guards above.
+ */
+export const Q9_QUESTION_IDS = ["q9"] as const;
+export type Q9QuestionId = (typeof Q9_QUESTION_IDS)[number];
+export function isQ9Question(
+  id: QuestionId,
+): id is Q9QuestionId {
+  return (Q9_QUESTION_IDS as readonly QuestionId[]).includes(id);
+}
+
+/**
+ * The question rendered with the four-part money input (Q10, F03-T10). A type
+ * guard so the F03 shell can narrow a QuestionId before mounting the
+ * component — the same pattern as the other input guards above.
+ */
+export const Q10_QUESTION_IDS = ["q10"] as const;
+export type Q10QuestionId = (typeof Q10_QUESTION_IDS)[number];
+export function isQ10Question(
+  id: QuestionId,
+): id is Q10QuestionId {
+  return (Q10_QUESTION_IDS as readonly QuestionId[]).includes(id);
+}
+
 export const Q5_ROLE_IDS = [
   "pediatrician", "center_owner", "occupational_therapist",
   "speech_pathologist", "parent", "school_sped", "child", "lgu_doh",
@@ -172,6 +214,45 @@ export type RoleId = (typeof Q5_ROLE_IDS)[number];
 
 export const Q6_CHOICES = ["center", "parent", "pedia", "therapist"] as const;
 export type Q6Choice = (typeof Q6_CHOICES)[number];
+
+/**
+ * Q10(a) payer options (baseline Part A Q10 / F03-T10). Written verbatim: the
+ * stored `payer` value IS the display string — there is no separate id→label
+ * map, because Q10's single choices are written to the payload exactly as the
+ * baseline words them. This is unlike Q6/Q13, which key on short ids.
+ */
+export const Q10_PAYER_OPTIONS = [
+  "center",
+  "parent",
+  "pediatrician/clinic",
+  "school",
+  "LGU/DOH",
+  "HMO",
+  "other",
+] as const;
+export type Q10PayerOption = (typeof Q10_PAYER_OPTIONS)[number];
+
+/**
+ * Q10(b) model options (baseline Part A Q10 / F03-T10). Written verbatim. The
+ * stored `model` value IS the display string, exactly like the payer options.
+ * "not sure yet" is deliberately one of them: picking it is a complete, valid
+ * answer to Q10(b) that must not be penalised in validation or coaching
+ * (F03-T10, spec.md §7.1 Q10).
+ */
+export const Q10_MODEL_OPTIONS = [
+  "monthly subscription per center",
+  "per-seat/per-therapist",
+  "per active child per month",
+  "per session fee",
+  "freemium with parent upgrade",
+  "commission on referrals",
+  "grant or institutional funding",
+  "not sure yet",
+] as const;
+export type Q10ModelOption = (typeof Q10_MODEL_OPTIONS)[number];
+
+/** The exact string of the "I don't know the model yet" option on Q10(b). */
+export const Q10_NOT_SURE_MODEL = "not sure yet" as const;
 
 /**
  * The single-choice cause on Q13 (baseline Part A Q13). Written verbatim from
@@ -329,6 +410,25 @@ export type RankingValue = QuestionAnswerValues[RankingQuestionId];
  * the one starred as the #1 priority that F03-T08 renders.
  */
 export type PairedRowsValue = QuestionAnswerValues[PairedRowsQuestionId];
+/**
+ * The stored answer value for the capped short-text questions (q4/q7/q12). The
+ * §3.1 shape `{ text }` — one hard-capped line (140 / 120 / 40 characters), so
+ * the F03 short-text component is typed against the questions it can mount for.
+ */
+export type CappedShortTextValue = QuestionAnswerValues[CappedShortTextQuestionId];
+/**
+ * The stored answer value for the three-short-fields question (q9). The §3.1
+ * shape `{ items: [string, string, string] }` — the three required refusals
+ * F03-T10 renders, all of which must carry text before Q9 counts as answered.
+ */
+export type Q9ValueType = QuestionAnswerValues[Q9QuestionId];
+/**
+ * The stored answer value for the four-part money question (q10). The §3.1
+ * shape `{ payer, model, amount, unit, first_peso }` — the payer and model
+ * single choices, the peso amount whose label follows the model, and the
+ * YYYY-MM month of the first real peso that F03-T10 renders.
+ */
+export type Q10ValueType = QuestionAnswerValues[Q10QuestionId];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The fifteen records. Section, text and helper are written verbatim from the

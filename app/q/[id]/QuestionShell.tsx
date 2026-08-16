@@ -3,23 +3,31 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  CAPPED_SHORT_TEXT_QUESTION_IDS,
   LONG_TEXT_QUESTION_IDS,
   MATRIX_GRID_QUESTION_IDS,
   METRIC_TRIPLE_QUESTION_IDS,
   PAIRED_ROWS_QUESTION_IDS,
   Q14_QUESTION_IDS,
+  Q9_QUESTION_IDS,
+  Q10_QUESTION_IDS,
   QUESTION_IDS,
   RANKING_QUESTION_IDS,
   SENTENCE_COMPLETION_QUESTION_IDS,
   SINGLE_CHOICE_REASON_QUESTION_IDS,
+  isCappedShortTextQuestion,
   isLongTextQuestion,
   isMatrixGridQuestion,
   isMetricTripleQuestion,
   isPairedRowsQuestion,
   isQ14Question,
+  isQ9Question,
+  isQ10Question,
   isRankingQuestion,
   isSentenceCompletionQuestion,
   isSingleChoiceReasonQuestion,
+  type CappedShortTextQuestionId,
+  type CappedShortTextValue,
   type LongTextQuestionId,
   type LongTextValue,
   type MatrixGridQuestionId,
@@ -27,6 +35,9 @@ import {
   type PairedRowsQuestionId,
   type Q14QuestionId,
   type Q5Value,
+  type Q9QuestionId,
+  type Q9ValueType,
+  type Q10QuestionId,
   type QuestionDefinition,
   type QuestionId,
   type RankingQuestionId,
@@ -58,6 +69,12 @@ import {
   pairedRowsIsAnswered,
 } from "@/lib/paired-rows";
 import { type Q14Draft, q14IsAnswered } from "@/lib/q14";
+import { q9IsAnswered } from "@/lib/q9";
+import {
+  SHORT_TEXT_CAPS,
+  shortTextIsAnswered,
+} from "@/lib/short-text";
+import { type Q10Draft, q10IsAnswered } from "@/lib/q10";
 import { LongTextInput } from "./LongTextInput";
 import { SentenceCompletionInput } from "./SentenceCompletionInput";
 import { MetricTripleInput } from "./MetricTripleInput";
@@ -66,6 +83,9 @@ import { SingleChoiceReasonInput } from "./SingleChoiceReasonInput";
 import { RankingInput } from "./RankingInput";
 import { PairedRowsInput } from "./PairedRowsInput";
 import { Q14Input } from "./Q14Input";
+import { ShortTextInput } from "./ShortTextInput";
+import { Q9Input } from "./Q9Input";
+import { Q10Input } from "./Q10Input";
 
 // The question shell (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
 //
@@ -104,6 +124,11 @@ type SingleChoiceReasonDrafts = Partial<
 type RankingDrafts = Partial<Record<RankingQuestionId, RankingDraft>>;
 type PairedRowsDrafts = Partial<Record<PairedRowsQuestionId, PairedRowsDraft>>;
 type Q14Drafts = Partial<Record<Q14QuestionId, Q14Draft>>;
+type CappedShortTextAnswers = Partial<
+  Record<CappedShortTextQuestionId, CappedShortTextValue>
+>;
+type Q9Drafts = Partial<Record<Q9QuestionId, Q9ValueType>>;
+type Q10Drafts = Partial<Record<Q10QuestionId, Q10Draft>>;
 
 export function QuestionShell({
   question,
@@ -130,6 +155,10 @@ export function QuestionShell({
   const [rankedDrafts, setRankedDrafts] = useState<RankingDrafts>({});
   const [pairedRowsDrafts, setPairedRowsDrafts] = useState<PairedRowsDrafts>({});
   const [q14Drafts, setQ14Drafts] = useState<Q14Drafts>({});
+  const [shortTextAnswers, setShortTextAnswers] =
+    useState<CappedShortTextAnswers>({});
+  const [q9Drafts, setQ9Drafts] = useState<Q9Drafts>({});
+  const [q10Drafts, setQ10Drafts] = useState<Q10Drafts>({});
 
   const answered: ReadonlySet<QuestionId> = useMemo(() => {
     const set = new Set<QuestionId>();
@@ -165,6 +194,18 @@ export function QuestionShell({
       const draft = q14Drafts[id];
       if (draft && q14IsAnswered(draft)) set.add(id);
     }
+    for (const id of CAPPED_SHORT_TEXT_QUESTION_IDS) {
+      const value = shortTextAnswers[id];
+      if (value && shortTextIsAnswered(value)) set.add(id);
+    }
+    for (const id of Q9_QUESTION_IDS) {
+      const draft = q9Drafts[id];
+      if (draft && q9IsAnswered(draft)) set.add(id);
+    }
+    for (const id of Q10_QUESTION_IDS) {
+      const draft = q10Drafts[id];
+      if (draft && q10IsAnswered(draft)) set.add(id);
+    }
     return set;
   }, [
     longTextAnswers,
@@ -175,6 +216,9 @@ export function QuestionShell({
     rankedDrafts,
     pairedRowsDrafts,
     q14Drafts,
+    shortTextAnswers,
+    q9Drafts,
+    q10Drafts,
   ]);
 
   const blocked = canAdvance(question.id, answered);
@@ -290,6 +334,41 @@ export function QuestionShell({
             teammates={roster}
             onChange={(next) =>
               setQ14Drafts((current) => ({
+                ...current,
+                [question.id]: next,
+              }))
+            }
+          />
+        )}
+        {isCappedShortTextQuestion(question.id) && (
+          <ShortTextInput
+            cap={SHORT_TEXT_CAPS[question.id]}
+            value={shortTextAnswers[question.id]}
+            inputId={question.id}
+            onChange={(next) =>
+              setShortTextAnswers((current) => ({
+                ...current,
+                [question.id]: next,
+              }))
+            }
+          />
+        )}
+        {isQ9Question(question.id) && (
+          <Q9Input
+            value={q9Drafts[question.id]}
+            onChange={(next) =>
+              setQ9Drafts((current) => ({
+                ...current,
+                [question.id]: next,
+              }))
+            }
+          />
+        )}
+        {isQ10Question(question.id) && (
+          <Q10Input
+            value={q10Drafts[question.id]}
+            onChange={(next) =>
+              setQ10Drafts((current) => ({
                 ...current,
                 [question.id]: next,
               }))
