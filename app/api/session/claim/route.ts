@@ -10,6 +10,7 @@ import {
   recordResumeAttempt,
   resolveByResumeCode,
 } from "@/lib/resume";
+import { claimDestination } from "@/lib/respondent";
 
 // Session claim (F02-T02, F02-T03, tech_infrastructure.md §4, §9).
 //
@@ -34,11 +35,13 @@ import {
 // is the client's own IP (x-forwarded-for), used only to key the rate limit.
 
 /**
- * The post-claim destination, free of any token. Name entry / ground rules
- * (F02-T04, F02-T05) replace this with their own first-run destination; the
- * requirement here is only that the URL no longer carries the invite token.
+ * The post-claim destination is decided per respondent (claimDestination in
+ * lib/respondent.ts): a respondent with no display name yet is on their first
+ * run and is sent to name entry (/welcome, F02-T04), one who already has a
+ * name has their session restored at the home page instead. Either way the
+ * returned URL carries no invite token — the requirement here is only that the
+ * token stops appearing anywhere after the initial claim exchange.
  */
-const CLAIM_REDIRECT = "/";
 
 export async function POST(request: Request) {
   let body: { token?: unknown; resumeCode?: unknown };
@@ -71,7 +74,8 @@ async function handleInviteClaim(token: string): Promise<Response> {
     const store = await cookies();
     store.set(SESSION_COOKIE, sessionToken, sessionCookieOptions());
 
-    return NextResponse.json({ ok: true, redirectTo: CLAIM_REDIRECT });
+    const destination = await claimDestination(db, invite.respondentId);
+    return NextResponse.json({ ok: true, redirectTo: destination });
   } finally {
     await db.end();
   }
@@ -120,7 +124,8 @@ async function handleResumeClaim(
     const store = await cookies();
     store.set(SESSION_COOKIE, sessionToken, sessionCookieOptions());
 
-    return NextResponse.json({ ok: true, redirectTo: CLAIM_REDIRECT });
+    const destination = await claimDestination(db, respondent.respondentId);
+    return NextResponse.json({ ok: true, redirectTo: destination });
   } finally {
     await db.end();
   }
