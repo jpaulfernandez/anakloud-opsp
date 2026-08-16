@@ -3,11 +3,13 @@ import { createDbClient } from "../../lib/db";
 import { migrate } from "../../lib/migrate";
 import {
   claimDestination,
+  groundRulesAcknowledged,
+  setGroundRulesAcknowledged,
   setRespondentName,
 } from "../../lib/respondent";
 
-// F02-T04 name persistence against a real Postgres. Runs only when opted in
-// (`DATABASE_URL` set AND `RUN_DB_TESTS=1`), SKIPS otherwise, inside a
+// F02-T04 / F02-T05 onboarding state against a real Postgres. Runs only when
+// opted in (`DATABASE_URL` set AND `RUN_DB_TESTS=1`), SKIPS otherwise, inside a
 // temporary schema it drops afterwards — the same pattern as the other DB
 // tests, calling the lib functions directly. respondents/cohorts are not
 // RLS-gated, so these queries run directly.
@@ -17,7 +19,7 @@ const enabled =
 const COHORT = "aaaa1111-aaaa-1111-aaaa-111111111121";
 const RO = "aaaa1111-aaaa-1111-aaaa-111111111122";
 
-describe.skipIf(!enabled)("respondent name entry against a real Postgres", () => {
+describe.skipIf(!enabled)("respondent onboarding against a real Postgres", () => {
   let db = null as ReturnType<typeof createDbClient> | null;
   let schemaName = "";
 
@@ -64,8 +66,9 @@ describe.skipIf(!enabled)("respondent name entry against a real Postgres", () =>
     expect(after.rows[0].display_name).toBe("Ana Reyes");
     expect(after.rows[0].email).toBe("ana@anakloud.ph");
 
-    // With a name on file the next claim restores the session instead.
-    expect(await claimDestination(db!, RO)).toBe("/");
+    // With a name on file but no ground-rules acknowledgement, the next claim
+    // lands on the ground-rules screen rather than re-asking for a name.
+    expect(await claimDestination(db!, RO)).toBe("/ground-rules");
 
     // Leaving the email blank (a later resume) clears an earlier value.
     await setRespondentName(db!, RO, "Ana Reyes", "   ");
@@ -75,5 +78,27 @@ describe.skipIf(!enabled)("respondent name entry against a real Postgres", () =>
     );
     expect(cleared.rows[0].display_name).toBe("Ana Reyes");
     expect(cleared.rows[0].email).toBeNull();
+  });
+
+  it("setGroundRulesAcknowledged records the one-time acknowledgement", async () => {
+    // Starts unacknowledged even though the name is on file.
+    expect(await groundRulesAcknowledged(db!, RO)).toBe(false);
+    expect(await claimDestination(db!, RO)).toBe("/ground-rules");
+
+    await setGroundRulesAcknowledged(db!, RO);
+    expect(await groundRulesAcknowledged(db!, RO)).toBe(true);
+
+    // With the acknowledgement the claim restores the session instead.
+    expect(await claimDestination(db!, RO)).toBe("/");
+
+    // Idempotent: re-acknowledging keeps the first timestamp and never
+    // re-gates the respondent.
+    await setGroundRulesAcknowledged(db!, RO);
+    const row = await db!.query(
+      "select ground_rules_acknowledged_at from respondents where id = $1",
+      [RO],
+    );
+    expect(row.rows[0].ground_rules_acknowledged_at).not.toBeNull();
+    expect(await groundRulesAcknowledged(db!, RO)).toBe(true);
   });
 });

@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  claimLanding,
   isProvidedDisplayName,
   normalizeDisplayName,
-  welcomeDestination,
 } from "../../lib/respondent";
 
-// F02-T04 name-entry rules, verified without a database. The two load-bearing
-// rules here are "name is required (non-blank)" and "nothing else is checked" —
-// FR-2's SHALL NOT on validating language, script or spelling means any
-// non-whitespace way of writing a name is acceptable, exactly as candidly as
-// someone might type it. welcomeDestination is the pure half of the claim
-// redirect decision.
+// F02-T04 / F02-T05 onboarding rules, verified without a database. The two
+// load-bearing rules are "name is required (non-blank)" and "nothing else is
+// checked" — FR-2's SHALL NOT on validating language, script or spelling means
+// any non-whitespace way of writing a name is acceptable, exactly as candidly
+// as someone might type it. claimLanding is the pure half of the claim
+// redirect decision: it routes a freshly-authenticated respondent through the
+// name-entry gate (F02-T04) and the ground-rules gate (F02-T05).
 
 describe("normalizeDisplayName (F02-T04)", () => {
   it("strips surrounding whitespace", () => {
@@ -51,15 +52,19 @@ describe("isProvidedDisplayName (F02-T04)", () => {
   });
 });
 
-describe("welcomeDestination (F02-T04)", () => {
+describe("claimLanding (F02-T04, F02-T05)", () => {
   it("sends a respondent with no name to name entry", () => {
-    expect(welcomeDestination("")).toBe("/welcome");
-    expect(welcomeDestination("   ")).toBe("/welcome");
-    expect(welcomeDestination(null)).toBe("/welcome");
-    expect(welcomeDestination(undefined)).toBe("/welcome");
+    expect(claimLanding("", false)).toBe("/welcome");
+    expect(claimLanding("   ", false)).toBe("/welcome");
+    expect(claimLanding(null, true)).toBe("/welcome");
+    expect(claimLanding(undefined, false)).toBe("/welcome");
   });
 
-  it("sends a respondent with a name straight to the session restore", () => {
-    expect(welcomeDestination("Ana Reyes")).toBe("/");
+  it("sends a named respondent who has not acknowledged the ground rules to the ground-rules screen", () => {
+    expect(claimLanding("Ana Reyes", false)).toBe("/ground-rules");
+  });
+
+  it("restores the session once a name and the acknowledgement are both in place", () => {
+    expect(claimLanding("Ana Reyes", true)).toBe("/");
   });
 });

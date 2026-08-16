@@ -48,6 +48,18 @@ export const MIGRATIONS: Migration[] = [
            on resume_code_attempts (ip, attempted_at);`,
     down: `drop table if exists resume_code_attempts;`,
   },
+  {
+    version: "0005_ground_rules_acknowledgement",
+    // The ground-rules acknowledgement (F02-T05): a timestamp on respondents
+    // that records the one-time "Got it" before any question is shown. The
+    // gate is presence — null means not yet acknowledged, a value means it has
+    // been. It lives on the respondents row so it persists across sessions and
+    // devices and survives resumption. Added to the fresh-schema path (0001,
+    // generated from SCHEMA) already, so this `if not exists` stays a no-op
+    // there, exactly like 0003.
+    up: `alter table respondents add column if not exists ground_rules_acknowledged_at timestamptz;`,
+    down: `alter table respondents drop column if exists ground_rules_acknowledged_at;`,
+  },
 ];
 
 async function withTransaction<T>(

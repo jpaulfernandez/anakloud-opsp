@@ -67,6 +67,9 @@ export const SCHEMA: SchemaDef = {
       invite_token: col("invite_token", "text"),
       invite_revoked_at: col("invite_revoked_at", "timestamptz", { nullable: true }),
       resume_code: col("resume_code", "text"),
+      ground_rules_acknowledged_at: col("ground_rules_acknowledged_at", "timestamptz", {
+        nullable: true,
+      }),
       is_facilitator: col("is_facilitator", "bool", { default: "false" }),
       started_at: col("started_at", "timestamptz", { nullable: true }),
       submitted_at: col("submitted_at", "timestamptz", { nullable: true }),

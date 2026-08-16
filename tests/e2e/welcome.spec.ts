@@ -58,9 +58,20 @@ test.beforeAll(async () => {
   for (const [tag, id] of Object.entries(R)) {
     const named = tag === "claimNamed";
     await db.query(
-      `insert into respondents (id, cohort_id, display_name, invite_token, resume_code, is_facilitator)
-       values ($1, $2, $3, $4, 'WELCOM', false)`,
-      [id, COHORT, named ? "Existing Person" : "", inviteToken(tag)],
+      `insert into respondents
+         (id, cohort_id, display_name, invite_token, resume_code, is_facilitator,
+          ground_rules_acknowledged_at)
+       values ($1, $2, $3, $4, 'WELCOM', false, case when $5 then now() end)`,
+      [
+        id,
+        COHORT,
+        named ? "Existing Person" : "",
+        inviteToken(tag),
+        // claimNamed models a returning respondent who has been through the
+        // whole onboarding, so their claim restores the session at "/" rather
+        // than re-showing name entry or the ground rules.
+        named,
+      ],
     );
   }
 });
@@ -151,7 +162,8 @@ test("email left blank completes the flow", async ({ page }) => {
   // Email is optional and left blank — completing must not require it.
   await page.getByRole("button", { name: "Continue" }).click();
 
-  await expect(page).toHaveURL(/\/$/);
+  // Name entry advances to the ground-rules gate (F02-T05).
+  await expect(page).toHaveURL(/\/ground-rules$/);
   const row = await db!.query(
     "select display_name, email from respondents where id = $1",
     [R.emailBlank],
@@ -164,10 +176,11 @@ test("a name is accepted regardless of script or spelling", async ({ page }) => 
   await openWelcome(page, R.continuous);
 
   // FR-2 SHALL NOT on validating language/script/spelling: this name includes
-  // non-Latin script and needs no spelling check to be accepted.
+  // non-Latin script and needs no spelling check to be accepted. Name entry
+  // advances to the ground-rules gate (F02-T05).
   await page.getByLabel("Your name").fill("李 明");
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/ground-rules$/);
   const row = await db!.query("select display_name from respondents where id = $1", [
     R.continuous,
   ]);

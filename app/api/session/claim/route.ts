@@ -37,8 +37,10 @@ import { claimDestination } from "@/lib/respondent";
 /**
  * The post-claim destination is decided per respondent (claimDestination in
  * lib/respondent.ts): a respondent with no display name yet is on their first
- * run and is sent to name entry (/welcome, F02-T04), one who already has a
- * name has their session restored at the home page instead. Either way the
+ * run and is sent to name entry (/welcome, F02-T04); one with a name but no
+ * ground-rules acknowledgement yet is sent to the ground-rules screen
+ * (/ground-rules, F02-T05); one who has both is restored at the session's
+ * destination (/, once F03 points it at the first question). Either way the
  * returned URL carries no invite token — the requirement here is only that the
  * token stops appearing anywhere after the initial claim exchange.
  */

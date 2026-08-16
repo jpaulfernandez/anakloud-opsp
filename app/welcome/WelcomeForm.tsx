@@ -8,8 +8,8 @@ import { useRouter } from "next/navigation";
 // button disabled, and nothing else about the name is checked (FR-2's SHALL
 // NOT on validating language, script or spelling). The email is secondary and
 // optional, accompanied by the one-line reason it exists. On a successful save
-// the respondent advances to the ground-rules flow; the current next hop is
-// the home page, where F02-T05 will install the ground-rules screen.
+// the respondent advances to the ground-rules screen (F02-T05, ui_ux.md §4.2),
+// the gate in front of the first question.
 export function WelcomeForm({
   initialName,
   initialEmail,
@@ -35,7 +35,7 @@ export function WelcomeForm({
         body: JSON.stringify({ name, email }),
       });
       if (response.ok) {
-        router.push("/");
+        router.push("/ground-rules");
       }
     } finally {
       setSubmitting(false);

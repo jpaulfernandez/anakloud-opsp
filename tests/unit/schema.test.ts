@@ -32,6 +32,7 @@ const EXPECTED: Record<
     invite_token: { type: "text", nullable: false },
     invite_revoked_at: { type: "timestamptz", nullable: true },
     resume_code: { type: "text", nullable: false },
+    ground_rules_acknowledged_at: { type: "timestamptz", nullable: true },
     is_facilitator: { type: "bool", nullable: false },
     started_at: { type: "timestamptz", nullable: true },
     submitted_at: { type: "timestamptz", nullable: true },
