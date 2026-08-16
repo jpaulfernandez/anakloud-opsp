@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Q14's hours slider starts unset (F03-T09): a default position is an anchor.
+ * Until the respondent moves it the native thumb is hidden so the screen
+ * visibly has no value, while the track stays interactive — clicking it sets a
+ * value and the thumb appears. Hidden by opacity rather than removed so the
+ * control still receives the focus a keyboard user places on it.
+ */
+.q14-hours[data-set="false"] input[type="range"]::-webkit-slider-thumb {
+  opacity: 0;
+}
+.q14-hours[data-set="false"] input[type="range"]::-moz-range-thumb {
+  opacity: 0;
+}

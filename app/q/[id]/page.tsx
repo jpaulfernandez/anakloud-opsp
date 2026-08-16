@@ -4,7 +4,8 @@ import { createDbClient } from "@/lib/db";
 import { requirePageSession } from "@/lib/auth";
 import { groundRulesAcknowledged } from "@/lib/respondent";
 import { questionNeighbors, toQuestionId } from "@/lib/navigation";
-import { QUESTION_MAP } from "@/lib/questions";
+import { QUESTION_MAP, isQ14Question } from "@/lib/questions";
+import { listCohortTeammates } from "@/lib/cohort";
 import { QuestionShell } from "./QuestionShell";
 
 // Question route (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
@@ -36,11 +37,19 @@ export default async function QuestionPage({
   const db = createDbClient();
   await db.connect();
   let respondentId = "";
+  let cohortId = "";
+  let roster: readonly { id: string; displayName: string }[] = [];
   try {
     const session = await requirePageSession(db);
     respondentId = session.respondentId;
+    cohortId = session.cohortId;
     if (!(await groundRulesAcknowledged(db, session.respondentId))) {
       redirect("/ground-rules");
+    }
+    // Q14(b) pre-fills one field per teammate with the cohort roster's names
+    // (F03-T09), so the question needs the other members of the same cohort.
+    if (isQ14Question(qid)) {
+      roster = await listCohortTeammates(db, cohortId, respondentId);
     }
   } finally {
     await db.end();
@@ -54,6 +63,7 @@ export default async function QuestionPage({
       // in the same cohort see different pool orders, and a single respondent
       // keeps a stable one across reloads.
       poolSeed={respondentId}
+      roster={roster}
     />
   );
 }

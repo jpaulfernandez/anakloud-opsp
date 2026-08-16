@@ -149,6 +149,20 @@ export function isPairedRowsQuestion(
   return (PAIRED_ROWS_QUESTION_IDS as readonly QuestionId[]).includes(id);
 }
 
+/**
+ * The question rendered with the capped multi-select + hours slider + private
+ * field input (Q14, F03-T09). A type guard so the F03 shell can narrow a
+ * QuestionId before mounting the component — the same pattern as the other
+ * input guards above.
+ */
+export const Q14_QUESTION_IDS = ["q14"] as const;
+export type Q14QuestionId = (typeof Q14_QUESTION_IDS)[number];
+export function isQ14Question(
+  id: QuestionId,
+): id is Q14QuestionId {
+  return (Q14_QUESTION_IDS as readonly QuestionId[]).includes(id);
+}
+
 export const Q5_ROLE_IDS = [
   "pediatrician", "center_owner", "occupational_therapist",
   "speech_pathologist", "parent", "school_sped", "child", "lgu_doh",

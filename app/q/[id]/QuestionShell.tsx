@@ -7,6 +7,7 @@ import {
   MATRIX_GRID_QUESTION_IDS,
   METRIC_TRIPLE_QUESTION_IDS,
   PAIRED_ROWS_QUESTION_IDS,
+  Q14_QUESTION_IDS,
   QUESTION_IDS,
   RANKING_QUESTION_IDS,
   SENTENCE_COMPLETION_QUESTION_IDS,
@@ -15,6 +16,7 @@ import {
   isMatrixGridQuestion,
   isMetricTripleQuestion,
   isPairedRowsQuestion,
+  isQ14Question,
   isRankingQuestion,
   isSentenceCompletionQuestion,
   isSingleChoiceReasonQuestion,
@@ -23,6 +25,7 @@ import {
   type MatrixGridQuestionId,
   type MetricTripleQuestionId,
   type PairedRowsQuestionId,
+  type Q14QuestionId,
   type Q5Value,
   type QuestionDefinition,
   type QuestionId,
@@ -31,6 +34,7 @@ import {
   type SentenceCompletionValue,
   type SingleChoiceReasonQuestionId,
 } from "@/lib/questions";
+import type { CohortMember } from "@/lib/cohort";
 import {
   canAdvance,
   questionRouteSegment,
@@ -53,6 +57,7 @@ import {
   type PairedRowsDraft,
   pairedRowsIsAnswered,
 } from "@/lib/paired-rows";
+import { type Q14Draft, q14IsAnswered } from "@/lib/q14";
 import { LongTextInput } from "./LongTextInput";
 import { SentenceCompletionInput } from "./SentenceCompletionInput";
 import { MetricTripleInput } from "./MetricTripleInput";
@@ -60,6 +65,7 @@ import { MatrixGridInput } from "./MatrixGridInput";
 import { SingleChoiceReasonInput } from "./SingleChoiceReasonInput";
 import { RankingInput } from "./RankingInput";
 import { PairedRowsInput } from "./PairedRowsInput";
+import { Q14Input } from "./Q14Input";
 
 // The question shell (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
 //
@@ -97,16 +103,20 @@ type SingleChoiceReasonDrafts = Partial<
 >;
 type RankingDrafts = Partial<Record<RankingQuestionId, RankingDraft>>;
 type PairedRowsDrafts = Partial<Record<PairedRowsQuestionId, PairedRowsDraft>>;
+type Q14Drafts = Partial<Record<Q14QuestionId, Q14Draft>>;
 
 export function QuestionShell({
   question,
   neighbors,
   poolSeed,
+  roster = [],
 }: {
   question: QuestionDefinition;
   neighbors: QuestionNeighbors;
   /** Per-respondent seed for Q8's deterministic pool shuffle (F03-T07). */
   poolSeed: string;
+  /** The cohort roster minus the respondent, pre-filling Q14's (b) rows. */
+  roster: readonly CohortMember[];
 }) {
   const router = useRouter();
   const [longTextAnswers, setLongTextAnswers] = useState<LongTextAnswers>({});
@@ -119,6 +129,7 @@ export function QuestionShell({
     useState<SingleChoiceReasonDrafts>({});
   const [rankedDrafts, setRankedDrafts] = useState<RankingDrafts>({});
   const [pairedRowsDrafts, setPairedRowsDrafts] = useState<PairedRowsDrafts>({});
+  const [q14Drafts, setQ14Drafts] = useState<Q14Drafts>({});
 
   const answered: ReadonlySet<QuestionId> = useMemo(() => {
     const set = new Set<QuestionId>();
@@ -150,6 +161,10 @@ export function QuestionShell({
       const draft = pairedRowsDrafts[id];
       if (draft && pairedRowsIsAnswered(draft)) set.add(id);
     }
+    for (const id of Q14_QUESTION_IDS) {
+      const draft = q14Drafts[id];
+      if (draft && q14IsAnswered(draft)) set.add(id);
+    }
     return set;
   }, [
     longTextAnswers,
@@ -159,6 +174,7 @@ export function QuestionShell({
     singleChoiceReasonDrafts,
     rankedDrafts,
     pairedRowsDrafts,
+    q14Drafts,
   ]);
 
   const blocked = canAdvance(question.id, answered);
@@ -262,6 +278,18 @@ export function QuestionShell({
             value={pairedRowsDrafts[question.id]}
             onChange={(next) =>
               setPairedRowsDrafts((current) => ({
+                ...current,
+                [question.id]: next,
+              }))
+            }
+          />
+        )}
+        {isQ14Question(question.id) && (
+          <Q14Input
+            value={q14Drafts[question.id]}
+            teammates={roster}
+            onChange={(next) =>
+              setQ14Drafts((current) => ({
                 ...current,
                 [question.id]: next,
               }))
