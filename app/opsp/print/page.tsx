@@ -6,38 +6,33 @@ import { groundRulesAcknowledged } from "@/lib/respondent";
 import { withRespondentContext } from "@/lib/access";
 import { latestIndividualDraft, type IndividualDraft } from "@/lib/opsp-draft";
 import { listCohortTeammates } from "@/lib/cohort";
-import { OPSPView } from "./OPSPView";
+import { OPSPView } from "../OPSPView";
 
-// The individual OPSP route (F07-T02, FR-22/23, ui_ux.md §4.14) — the draft
-// sheet a submitted respondent reaches from their finished view.
+// F08-T02 — the authenticated print route (FR-27, tech_infrastructure §7,
+// ui_ux §4.16). This is the sheet a respondent or the server renders to PDF:
+// the same OPSP grid as the view, served read-only in print mode, with the
+// export header (name, timestamp, draft label) always present. Requiring a
+// valid session is the same gate as every other respondent screen, and the
+// draft is read inside the respondent's RLS context so a respondent can only
+// ever render their own plan.
 //
-// Same gate as every respondent screen (requirePageSession → ground rules),
-// then two F07-specific guards:
-//   * Only a submitted respondent has a plan. The draft is created at submit
-//     (F06-T03), so an unsubmitted respondent is sent back to the resume flow
-//     at "/" — there is nothing to show them yet. This guard also keeps the
-//     route off the unsubmitted respondent's path, mirroring how the review and
-//     question routes guard the other direction.
-//   * The draft is read inside the respondent's RLS context (drafts_own_read
-//     allows owner_type='individual' and owner_id = current respondent), so a
-//     respondent can only ever see their own plan, never a cohort mate's.
-//
-// When no draft row exists the respondent is redirected to "/" rather than
-// shown an error: a submitted respondent always has version 1, so this only
-// arises from a test fixture that stamped submission without the submit path —
-// and the honest response to "there is no plan" is the finished view, not a
-// broken sheet.
+// The timestamp is generated server-side at render so the sheet carries when
+// it was produced, and the sheet shares the very component the interactive
+// view uses — in printMode that component drops the editing chrome — so the
+// printed PDF (F08-T03) and the browser's own print from /opsp are equivalent
+// by construction rather than by a second layout that could drift.
 export const metadata: Metadata = {
-  title: "Your One-Page Strategic Plan",
+  title: "Your One-Page Strategic Plan — print",
 };
 
-export default async function OpspPage() {
+export default async function OpspPrintPage() {
   const db = createDbClient();
   await db.connect();
 
   let name = "";
   let rosterNames: Record<string, string> = {};
   let draft: IndividualDraft | null = null;
+  let timestamp = new Date();
   try {
     const session = await requirePageSession(db);
     if (session.submittedAt === null || session.submittedAt === undefined) {
@@ -56,6 +51,7 @@ export default async function OpspPage() {
     draft = await withRespondentContext(db, session.respondentId, (tx) =>
       latestIndividualDraft(tx),
     );
+    timestamp = new Date();
   } finally {
     await db.end();
   }
@@ -68,6 +64,8 @@ export default async function OpspPage() {
       rosterNames={rosterNames}
       draftId={draft.id}
       name={name}
+      printMode
+      printedAt={timestamp}
     />
   );
 }

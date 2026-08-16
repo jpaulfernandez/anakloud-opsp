@@ -218,3 +218,100 @@ test("no interactive chrome appears in the printed output", async ({ page }) => 
     await expect(page.getByTestId(testId)).toBeHidden();
   }
 });
+
+// --- F08-T02 — print route and client save-as-PDF (FR-27,
+// tech_infrastructure §7, ui_ux §4.16). Two export paths, one sheet: the
+// primary path is window.print() from the OPSP view with no server round trip,
+// and the /opsp/print route serves the identical sheet read-only. Both carry
+// the respondent's name, a timestamp and the FR-23 draft label.
+//
+// The print-only export header is hidden on screen and revealed under print
+// media, so the on-screen OPSP header stays intact while paper carries the
+// FR-27 identity.
+
+test("a Save as PDF trigger is reachable on desktop and mobile and prints with no server round trip", async ({
+  page,
+}) => {
+  await setSession(page);
+  // Stub window.print so clicking the trigger is observable as a client call.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __printCalls?: number };
+    window.print = () => {
+      w.__printCalls = (w.__printCalls ?? 0) + 1;
+    };
+  });
+
+  const apiCalls: string[] = [];
+  page.on("request", (req) => {
+    if (req.url().includes("/api/opsp")) apiCalls.push(req.url());
+  });
+
+  // Desktop.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/opsp");
+  await expect(page.getByTestId("opsp-grid")).toBeVisible();
+  const trigger = page.getByTestId("opsp-print-trigger");
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+  expect(await page.evaluate(() => (window as unknown as { __printCalls?: number }).__printCalls)).toBeGreaterThan(0);
+
+  // The trigger is present on a phone viewport too, so save-as-PDF is
+  // reachable from a mobile browser.
+  await page.setViewportSize({ width: 360, height: 780 });
+  await expect(trigger).toBeVisible();
+
+  // The primary export path is client-side: clicking it fired no OPSP request.
+  expect(apiCalls).toEqual([]);
+});
+
+test("printed from the OPSP view, the sheet carries the name, timestamp and draft label", async ({
+  page,
+}) => {
+  await setSession(page);
+  await page.goto("/opsp");
+  await expect(page.getByTestId("opsp-grid")).toBeVisible();
+  await page.emulateMedia({ media: "print" });
+
+  // The export header is revealed only under print media, so the screen stays
+  // clean while paper carries the FR-27 identity.
+  await expect(page.getByTestId("opsp-print-header")).toBeVisible();
+  await expect(page.getByTestId("opsp-print-name")).toContainText("Planner Two");
+  await expect(page.getByTestId("opsp-print-timestamp")).toContainText("Generated");
+  await expect(page.getByTestId("opsp-print-label")).toHaveText(
+    "Your draft — not the company's plan",
+  );
+
+  // The on-screen draft header and the export trigger are hidden on paper: the
+  // print header is the single source of the label.
+  await expect(page.getByTestId("opsp-draft-label")).toBeHidden();
+  await expect(page.getByTestId("opsp-print-trigger")).toBeHidden();
+});
+
+test("the print route requires a valid session", async ({ page }) => {
+  // No session cookie: the route redirects to the claim screen rather than
+  // rendering a plan for an unauthenticated visitor.
+  await page.goto("/opsp/print");
+  await expect(page).toHaveURL("/");
+});
+
+test("the print route serves the same sheet read-only, with name, timestamp and draft label", async ({
+  page,
+}) => {
+  await setSession(page);
+  await page.goto("/opsp/print");
+
+  await expect(page.getByTestId("opsp-print-header")).toBeVisible();
+  await expect(page.getByTestId("opsp-print-name")).toContainText("Planner Two");
+  await expect(page.getByTestId("opsp-print-timestamp")).toContainText("Generated");
+  await expect(page.getByTestId("opsp-print-label")).toHaveText(
+    "Your draft — not the company's plan",
+  );
+
+  // The grid renders, and the interactive view's chrome is absent from the
+  // DOM entirely rather than merely hidden in print.
+  await expect(page.getByTestId("opsp-grid")).toBeVisible();
+  await expect(page.getByTestId("opsp-draft-label")).toHaveCount(0);
+  await expect(page.getByTestId("opsp-edit-bar")).toHaveCount(0);
+  await expect(page.getByTestId("opsp-cell-edit-purpose")).toHaveCount(0);
+  await expect(page.getByTestId("opsp-howto-panel")).toHaveCount(0);
+});

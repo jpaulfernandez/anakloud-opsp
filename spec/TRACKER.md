@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 48
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 49
 
 ---
 
@@ -146,7 +146,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
 | F08-T01 | Print stylesheet | Done | |
-| F08-T02 | Print route and client save-as-PDF | Not started | |
+| F08-T02 | Print route and client save-as-PDF | Done | |
 | F08-T03 | Server-side PDF rendering | Not started | |
 | F08-T04 | Private exclusion in export paths | Not started | |
 

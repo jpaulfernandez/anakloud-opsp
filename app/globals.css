@@ -82,7 +82,12 @@
     border-color: #737373;
   }
 
-  /* Interactive chrome — nothing that edits or navigates prints. */
+  /* Interactive chrome — nothing that edits, exports or navigates prints. The
+     on-screen draft header is hidden too, so the print-only export header is
+     the single source of the name, timestamp and FR-23 label on paper rather
+     than duplicating the screen's "Your draft. Not the company's plan." */
+  [data-testid="opsp-draft-label"],
+  [data-testid="opsp-print-trigger"],
   [data-testid="opsp-edit-bar"],
   [data-testid^="opsp-cell-edit-"],
   [data-testid^="opsp-howto-trigger-"],
