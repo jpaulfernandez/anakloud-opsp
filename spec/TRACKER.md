@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 0
+**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 1
 
 ---
 
@@ -41,7 +41,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | # | Feature | Phase | Status | Started | Done | Notes |
 |---|---|---|---|---|---|---|
-| F01 | Foundation & data model | P1 | Not started | — | — | |
+| F01 | Foundation & data model | P1 | In progress | 2026-08-16 | — | |
 | F02 | Invite, session & onboarding | P1 | Not started | — | — | |
 | F03 | Question engine & input types | P1 | Not started | — | — | Q8 content blocked on 4th app name |
 | F04 | Autosave, resume & offline | P1 | Not started | — | — | |
@@ -63,7 +63,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F01-T01 | Project scaffold and verification pipeline | Not started | |
+| F01-T01 | Project scaffold and verification pipeline | Done | |
 | F01-T02 | Core schema migration | Not started | |
 | F01-T03 | Private-row separation for Q14(d) | Not started | |
 | F01-T04 | Access policy and row-level security | Not started | |
