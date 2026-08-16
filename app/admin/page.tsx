@@ -12,6 +12,7 @@ import {
 } from "@/lib/cohort-lifecycle";
 import { loadConfig } from "@/lib/config";
 import type { AdminStripData } from "@/lib/level-strip";
+import { QUESTION_IDS, QUESTION_MAP } from "@/lib/questions";
 import LevelStrip from "./LevelStrip";
 import CohortLifecycle from "./CohortLifecycle";
 
@@ -129,6 +130,7 @@ function AdminDashboard({
         Admin
       </h1>
       <LevelStrip data={strip} />
+      <ComparisonNav />
       <RosterTable roster={roster} />
       {cohort !== null ? <CohortLifecycle initial={cohort} /> : null}
     </main>
@@ -146,6 +148,39 @@ const STATUS_PILL: Record<RosterEntry["status"], string> = {
   in_progress: "bg-amber-50 text-amber-900",
   submitted: "bg-emerald-50 text-emerald-900",
 };
+
+/**
+ * One question's comparison link, one per question, in registry order. The
+ * per-question comparison screen (F10-T03) is the reason the whole exercise
+ * pays off, so it is a first-class entry on the dashboard rather than buried.
+ * Rendered at the dashboard's tight density: the question's number and text
+ * only, no answer content.
+ */
+function ComparisonNav() {
+  return (
+    <div className="mt-4">
+      <div className="text-xs uppercase tracking-wide text-neutral-500">
+        Compare answers
+      </div>
+      <ul className="mt-1 divide-y divide-neutral-100 border-t border-neutral-200">
+        {QUESTION_IDS.map((id) => (
+          <li key={id}>
+            <Link
+              href={`/admin/question/${id}`}
+              data-testid="comparison-link"
+              className="flex items-baseline gap-2 px-1 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
+            >
+              <span className="w-8 shrink-0 font-mono text-xs text-neutral-500">
+                Q{id.replace("q", "")}
+              </span>
+              <span>{QUESTION_MAP[id].text}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function RosterTable({ roster }: { roster: RosterEntry[] }) {
   return (
