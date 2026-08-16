@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createDbClient } from "@/lib/db";
 import { requireApiSession } from "@/lib/auth";
+import { rejectIfSubmitted } from "@/lib/lock";
 import { withRespondentContext } from "@/lib/access";
 import { listOwnAnswers, upsertAnswer } from "@/lib/answers";
 import { parseAnswerWriteBody } from "@/lib/answer-shape";
@@ -61,10 +62,12 @@ export async function PATCH(request: Request) {
 
     // Lock check first: a submitted respondent's answers are immutable (PR5).
     // The session was resolved live this request, so this reflects the latest
-    // lock state; rejecting here leaves every row untouched.
-    if (session.submittedAt !== null && session.submittedAt !== undefined) {
-      return NextResponse.json({ ok: false, locked: true }, { status: 409 });
-    }
+    // lock state; rejecting here leaves every row untouched. The one 409 shape
+    // every mutation route returns comes from rejectIfSubmitted, and the write
+    // below is independently refused at the data layer (assertAnswersWritable),
+    // so even a direct caller of upsertAnswer cannot bypass the lock.
+    const conflict = rejectIfSubmitted(session);
+    if (conflict) return conflict;
 
     await withRespondentContext(db, session.respondentId, (tx) =>
       upsertAnswer(tx, {

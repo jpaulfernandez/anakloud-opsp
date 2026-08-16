@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { ClientBase } from "pg";
 import { markCoachAnswerChanged } from "./interactions";
+import { assertAnswersWritable } from "./lock";
 
 // Answer persistence and read paths, with the Q14(d) private-row separation
 // (F01-T03). Q14's `private_note` is written to its own `is_private = true`
@@ -64,6 +65,12 @@ export async function upsertAnswer(
   db: ClientBase,
   input: UpsertAnswerInput,
 ): Promise<void> {
+  // PR5 — a submitted respondent's answers are immutable. Enforced here at the
+  // data layer, not only in the PATCH route, so no code path (today's autosave,
+  // a resume replay, or an OPSP-edit bug from F07) can write to answers once
+  // the respondent has locked — the guard throws before any row is touched.
+  await assertAnswersWritable(db, input.respondent_id);
+
   if (input.question_id === Q14) {
     await upsertQ14(db, input);
   } else {
