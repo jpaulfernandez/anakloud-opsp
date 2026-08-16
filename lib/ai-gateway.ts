@@ -26,7 +26,7 @@ import {
   type ProviderResponse,
 } from "./provider";
 import { isLatencyDegraded, LATENCY_WINDOW } from "./latency-health";
-import { hintViolations } from "./coach-containment";
+import { guardCoachResponse } from "./output-guard";
 import { logAICall, type AICallLevel, type AICallPurpose } from "./log";
 import {
   perRequestOutputCap,
@@ -341,17 +341,20 @@ async function boundAttempt(
   });
 }
 
-// 6. Output guard (tech_infrastructure.md §5.4). Coach output is scanned for
-// banned terms, over-length and digits; a trip discards the model output and
-// serves the deterministic sibling (F13-T03 owns the structured parse). The
+// 6. Output guard (tech_infrastructure.md §5.4, F13-T03). Coach output is run
+// through the full §5.4 guard — banned terms on hint and example, hint ≤25
+// words, no digit, and the verdict-sanity rule (an "ok" verdict carries an
+// empty hint). A trip discards the model output and serves the deterministic
+// sibling; it is never retried — a tripped guard means the prompt is leaking
+// and should surface in the log rather than be papered over. The
 // facilitator-only purposes are not coach output, so they have no such guard.
 async function guardStage(run: Run): Promise<StageDecision> {
   if (run.ctx.purpose !== "coach") return CONTINUE;
   const output = run.providerResult;
   if (output === undefined) return CONTINUE;
-  const violations = hintViolations(output.text);
-  if (violations.length > 0) {
-    run.guardTripped = violations.join("; ");
+  const guarded = guardCoachResponse(output.text);
+  if (guarded.kind === "trip") {
+    run.guardTripped = guarded.violations.join("; ");
     return { kind: "stop", level: "L2", degraded: true, guardTripped: run.guardTripped };
   }
   return CONTINUE;
