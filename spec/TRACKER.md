@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 6
+**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 7
 
 ---
 
@@ -41,7 +41,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | # | Feature | Phase | Status | Started | Done | Notes |
 |---|---|---|---|---|---|---|
-| F01 | Foundation & data model | P1 | In progress | 2026-08-16 | — | |
+| F01 | Foundation & data model | P1 | Done | 2026-08-16 | 2026-08-16 | |
 | F02 | Invite, session & onboarding | P1 | Not started | — | — | |
 | F03 | Question engine & input types | P1 | Not started | — | — | Q8 content blocked on 4th app name |
 | F04 | Autosave, resume & offline | P1 | Not started | — | — | |
@@ -69,7 +69,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F01-T04 | Access policy and row-level security | Done | |
 | F01-T05 | Seed script | Done | |
 | F01-T06 | Environment config and level pinning | Done | |
-| F01-T07 | Question registry | Not started | |
+| F01-T07 | Question registry | Done | |
 
 ## F02 — Invite, session & onboarding
 

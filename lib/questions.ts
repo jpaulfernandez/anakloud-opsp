@@ -1,0 +1,351 @@
+// The question registry — one typed source of truth for all fifteen questions
+// (F01-T07). Everything downstream reads from here: F03 renders each question
+// from `inputTypes`, F05 validates from the value types, F07 maps answers to
+// OPSP cells, F10 clamps divergence scoring to the confidence-bearing set, and
+// F13 decides whether the coach runs at all from `coachable`.
+//
+// Source precedence follows spec/README.md: question wording, sections and
+// helper text come from anakloud-baseline-questions.md Part A; the coached /
+// not-coached split comes from spec.md §6.3 (FR-21); the confidence set from
+// FR-11; the answer value shapes from tech_infrastructure.md §3.1.
+
+export const QUESTION_IDS = [
+  "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10",
+  "q11", "q12", "q13", "q14", "q15",
+] as const;
+
+export type QuestionId = (typeof QUESTION_IDS)[number];
+
+/**
+ * The input components a question renders, one per FR-10 type. Four of the
+ * twelve appear only as constituents of a composite screen (Q8's ranking, the
+ * month picker in Q10, the hours slider in Q14, the confidence slider on six
+ * questions), so a question carries the *list* of controls it renders rather
+ * than a single primary.
+ */
+export type QuestionInputType =
+  | "long_text"
+  | "sentence_completion"
+  | "metric_triple"
+  | "short_text" // hard character cap
+  | "matrix_grid"
+  | "ranking" // 4 items, tap-to-assign
+  | "single_choice_reason"
+  | "paired_rows_star"
+  | "numeric_slider"
+  | "capped_multi_select"
+  | "confidence_slider" // 1–5
+  | "month_picker";
+
+/** Every input type named in FR-10, in that requirement's order. */
+export const FR10_INPUT_TYPES: readonly QuestionInputType[] = [
+  "long_text",
+  "sentence_completion",
+  "metric_triple",
+  "short_text",
+  "matrix_grid",
+  "ranking",
+  "single_choice_reason",
+  "paired_rows_star",
+  "numeric_slider",
+  "capped_multi_select",
+  "confidence_slider",
+  "month_picker",
+];
+
+// Stable vocabularies behind the §3.1 value shapes. These are the same ids the
+// seed fixture and F03 control components key on; question_id values never
+// change, and neither do these.
+export const APP_IDS = ["pedconnect", "teachday", "parentup", "fourth_app"] as const;
+export type AppId = (typeof APP_IDS)[number];
+
+export const Q5_ROLE_IDS = [
+  "pediatrician", "center_owner", "occupational_therapist",
+  "speech_pathologist", "parent", "school_sped", "child", "lgu_doh",
+  "hmo_insurer",
+] as const;
+export type RoleId = (typeof Q5_ROLE_IDS)[number];
+
+export const Q6_CHOICES = ["center", "parent", "pedia", "therapist"] as const;
+export type Q6Choice = (typeof Q6_CHOICES)[number];
+
+export const FUNCTION_IDS = [
+  "product", "backend", "mobile_web", "qa", "design_ux",
+  "data_privacy_security", "clinical_relations", "sales_partner",
+  "doctor_relations", "onboarding_success", "support", "marketing",
+  "finance", "fundraising", "legal_ip", "hiring",
+] as const;
+export type FunctionId = (typeof FUNCTION_IDS)[number];
+
+export interface QuestionDefinition {
+  /** Stable, q1..q15. Never changes across content revisions. */
+  id: QuestionId;
+  /** Quiet section label (baseline Part A section headings). */
+  section: string;
+  /** The question text shown large (baseline Part A headings). */
+  text: string;
+  /** Helper text shown below the question (baseline interaction / ui_ux copy). */
+  helper: string;
+  /**
+   * The FR-10 input components this question renders. Every one of the twelve
+   * FR-10 types appears in at least one entry here, so the F03 renderer is
+   * guaranteed to build each component against a real question. The use of a
+   * list rather than a single type is because composite screens (Q3's triple,
+   * Q10's month picker, Q11's star, Q14's chips + hours slider, plus the
+   * confidence slider) render more than one control.
+   */
+  inputTypes: readonly QuestionInputType[];
+  /** Whether the question must be answered before submit. */
+  required: boolean;
+  /** Whether a required confidence slider (1–5) applies (FR-11). */
+  confidence: boolean;
+  /** Whether the coach evaluates an answer on advance (spec.md §6.3). */
+  coachable: boolean;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Answer value shapes, verbatim from tech_infrastructure.md §3.1. A question's
+// stored payload is `QuestionAnswerValues[QuestionId]` — the discriminated
+// union keyed by the same id the registry uses, so the shape can never drift
+// from the question it belongs to.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface Q3Value { metric: string; value: number; unit: string; why: string }
+export interface Q5Value {
+  pays: RoleId[];
+  decides: RoleId[];
+  uses: RoleId[];
+  benefits: RoleId[];
+}
+export interface Q6Value { choice: Q6Choice; why: string }
+export interface Q8Value {
+  rank: AppId[];
+  delete: AppId;
+  why: string;
+  predicted: AppId[];
+}
+export interface Q9Value { items: [string, string, string] }
+export interface Q10Value {
+  payer: string;
+  model: string;
+  amount: number;
+  unit: string;
+  first_peso: string; // YYYY-MM
+}
+export interface Q11Rock { what: string; done_when: string }
+export interface Q11Value { rocks: Q11Rock[]; starred: 0 | 1 | 2 }
+/** Q14's full payload as submitted. `private_note` is split to its own row. */
+export interface Q14Value {
+  wants: FunctionId[];
+  others: Record<string, FunctionId>;
+  hours: number;
+  private_note: string;
+}
+
+export interface QuestionAnswerValues {
+  q1: { text: string };
+  q2: { who: string; because: string };
+  q3: Q3Value;
+  q4: { text: string };
+  q5: Q5Value;
+  q6: Q6Value;
+  q7: { text: string };
+  q8: Q8Value;
+  q9: Q9Value;
+  q10: Q10Value;
+  q11: Q11Value;
+  q12: { text: string };
+  q13: { text: string };
+  q14: Q14Value;
+  q15: { text: string };
+}
+
+/** The stored answer value for one question, derived from §3.1. */
+export type AnswerValueFor<K extends QuestionId> = QuestionAnswerValues[K];
+/** Union of every question's answer value — one member per question. */
+export type AnyAnswerValue = QuestionAnswerValues[QuestionId];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The fifteen records. Section, text and helper are written verbatim from the
+// baseline Part A so the RLS and renderer never carry their own copy of the
+// questionnaire.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const QUESTIONS: readonly QuestionDefinition[] = [
+  {
+    id: "q1",
+    section: "Why this exists",
+    text: "Why does Anakloud need to exist?",
+    helper:
+      "In 2–3 sentences: what is broken in the world right now that Anakloud fixes? Write it the way you'd explain it to a friend who isn't in tech.",
+    inputTypes: ["long_text"],
+    required: true,
+    confidence: false,
+    coachable: false, // §6.3 Q1 — wants raw voice
+  },
+  {
+    id: "q2",
+    section: "Why this exists",
+    text: "If Anakloud disappeared tonight, who notices first?",
+    helper:
+      'Finish the sentence: "The people who would miss it most are ______, because ______."',
+    inputTypes: ["sentence_completion"],
+    required: true,
+    confidence: false,
+    coachable: false, // §6.3 Q2 — no coach
+  },
+  {
+    id: "q3",
+    section: "Where we're going",
+    text: "The number that would prove it worked",
+    helper:
+      "Three years from now, if Anakloud is working, what is the one number that proves it? Name the metric, then give the value. Then one line: why that number and not another?",
+    inputTypes: ["metric_triple", "confidence_slider"],
+    required: true,
+    confidence: true, // FR-11
+    coachable: true, // §6.3 Q3 — measurability, single metric
+  },
+  {
+    id: "q4",
+    section: "Where we're going",
+    text: "Ten years, not three",
+    helper:
+      "Same question, but ten years out and allowed to be unreasonable. One sentence. If it doesn't feel slightly embarrassing to write down, it's too small. (140 character cap.)",
+    inputTypes: ["short_text", "confidence_slider"],
+    required: true,
+    confidence: true, // FR-11
+    coachable: true, // §6.3 Q4 — length, single statement
+  },
+  {
+    id: "q5",
+    section: "Who we're for",
+    text: "The four roles",
+    helper:
+      "For each group below, mark which of the four things they do. A group can do more than one, or none.",
+    inputTypes: ["matrix_grid"],
+    required: true,
+    confidence: false,
+    coachable: false, // §6.3 Q5 — structurally constrained
+  },
+  {
+    id: "q6",
+    section: "Who we're for",
+    text: "The tiebreak",
+    helper:
+      "The therapy center wants one thing. The parent wants the opposite. We can only serve one. Whose side do we take? One line: why.",
+    inputTypes: ["single_choice_reason"],
+    required: true,
+    confidence: false,
+    coachable: true, // §6.3 Q6 — reason non-empty, not circular
+  },
+  {
+    id: "q7",
+    section: "Who we're for",
+    text: "Why us and not the notebook",
+    helper:
+      'Finish this sentence in one line, max 120 characters: "A therapy center should switch from their notebook, Excel and Viber group to Anakloud because we are the only ones who ______."',
+    inputTypes: ["short_text", "confidence_slider"],
+    required: true,
+    confidence: true, // FR-11
+    coachable: true, // §6.3 Q7 — single promise, not a feature list
+  },
+  {
+    id: "q8",
+    section: "Focus",
+    text: "Which door opens first",
+    helper:
+      "Rank the four apps by which one gets a customer to say yes first. Not which is most important long-term — which one opens the door. Then: if we had to delete one entirely and ship three, which goes? One line why.",
+    inputTypes: ["ranking", "confidence_slider"],
+    required: true,
+    // FR-11 lists Q8 as confidence-bearing; §6.3 lists Q8 as NOT coached.
+    // Both are deliberate and asserted in tests — a confidence slider and no coach.
+    confidence: true, // FR-11
+    coachable: false, // §6.3 Q8 — structurally constrained
+  },
+  {
+    id: "q9",
+    section: "Focus",
+    text: "What we are deliberately not doing",
+    helper:
+      "Name three things Anakloud will not do in the next two years, even though they're tempting and someone will suggest them.",
+    inputTypes: ["short_text"],
+    required: true,
+    confidence: false,
+    coachable: true, // §6.3 Q9 — specificity
+  },
+  {
+    id: "q10",
+    section: "Money",
+    text: "How the money works",
+    helper:
+      "Four parts. (a) Who physically pays us? (b) What's the model? (c) What do they pay, in pesos? (d) What month does the first real peso arrive?",
+    inputTypes: ["month_picker", "confidence_slider"],
+    required: true,
+    confidence: true, // FR-11
+    coachable: true, // §6.3 Q10 — completeness of the four parts
+  },
+  {
+    id: "q11",
+    section: "The next 90 days",
+    text: "What must be done by year-end",
+    helper:
+      "Beta starts soon. Name up to three things that must be finished by 31 December 2026 for us to say the quarter worked. For each one, write how we'll know it's done — a number, a date, or something you could point at. 'Improve onboarding' is not done-able.",
+    inputTypes: ["paired_rows_star", "confidence_slider"],
+    required: true,
+    confidence: true, // FR-11
+    coachable: true, // §6.3 Q11 — done-condition is verifiable
+  },
+  {
+    id: "q12",
+    section: "The next 90 days",
+    text: "Name the quarter",
+    helper:
+      "In 3–5 words, what should this quarter be called? Something people can actually repeat in a huddle. (40 character cap.)",
+    inputTypes: ["short_text"],
+    required: true,
+    confidence: false,
+    coachable: false, // §6.3 Q12 — short by design
+  },
+  {
+    id: "q13",
+    section: "Risk, people, values",
+    text: "Pre-mortem",
+    helper:
+      "It's early 2028. Anakloud is dead. Write the two sentences explaining what killed it. Then pick the most likely cause from the list.",
+    inputTypes: ["long_text"],
+    required: true,
+    confidence: false,
+    coachable: false, // §6.3 Q13 — wants raw voice
+  },
+  {
+    id: "q14",
+    section: "Risk, people, values",
+    text: "What you want to own, and what you think others own",
+    helper:
+      "(a) From the list, pick up to three functions you want to own. (b) For each teammate, name the one function you think they own. (c) Realistically, how many hours a week can you give Anakloud from October 2026? (d) Anything that would make you step back, that you haven't said out loud yet? (Only the facilitator sees (d).)",
+    inputTypes: ["capped_multi_select", "numeric_slider"],
+    required: true,
+    confidence: false,
+    coachable: false, // §6.3 Q14 — structurally constrained
+  },
+  {
+    id: "q15",
+    section: "Risk, people, values",
+    text: "A moment worth copying",
+    helper:
+      "Think of a time someone on this team did something that made you think 'that's exactly how we should operate.' What did they do? Don't name the value — tell the story.",
+    inputTypes: ["long_text"],
+    required: false, // baseline marks Q15 "(optional)"
+    confidence: false,
+    coachable: false, // §6.3 Q15 — wants raw voice
+  },
+];
+
+/** Roster of every question by its stable id. */
+export const QUESTION_MAP: Record<QuestionId, QuestionDefinition> = QUESTIONS.reduce(
+  (acc, q) => {
+    acc[q.id] = q;
+    return acc;
+  },
+  {} as Record<QuestionId, QuestionDefinition>,
+);
