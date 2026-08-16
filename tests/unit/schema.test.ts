@@ -90,6 +90,8 @@ const EXPECTED: Record<
     circuit_open: { type: "bool", nullable: false },
     circuit_reason: { type: "text", nullable: true },
     circuit_until: { type: "timestamptz", nullable: true },
+    warn70_fired: { type: "bool", nullable: false },
+    warn90_fired: { type: "bool", nullable: false },
   },
 };
 

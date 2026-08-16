@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { BudgetSnapshot, ResolvedLevel } from "../../lib/level-strip";
 import {
+  advanceBudgetAlerts,
+  initialBudgetAlertState,
+  budgetAlertLabel,
   budgetPercent,
   budgetState,
   budgetTotal,
   budgetWarningLabel,
+  guardTripAlert,
   levelReason,
 } from "../../lib/level-strip";
 
@@ -16,6 +20,10 @@ import {
 // respondent). The SQL that feeds the budget/circuit/guard data lives in the
 // DB-gated integration test (level-strip.integration.test.ts) and the rendered
 // strip in tests/e2e/level-strip.spec.ts.
+//
+// F12-T07 — the same file carries the budget-alert state machine: each
+// threshold fires at most once per cohort, so reloading at the same spend
+// re-warns nothing, and the guard-trip alert appears at 3+ trips.
 
 function budget(overrides: Partial<BudgetSnapshot> = {}): BudgetSnapshot {
   return {
@@ -25,6 +33,8 @@ function budget(overrides: Partial<BudgetSnapshot> = {}): BudgetSnapshot {
     outputUsed: 200,
     circuitOpen: false,
     circuitReason: null,
+    warn70Fired: false,
+    warn90Fired: false,
     ...overrides,
   };
 }
@@ -107,5 +117,91 @@ describe("F09-T04 — budgetTotal combines input and output", () => {
       used: 150,
       cap: 3000,
     });
+  });
+});
+
+describe("F12-T07 — advanceBudgetAlerts fires each threshold once", () => {
+  it("fires the 70% warning on first crossing of the 70% band", () => {
+    expect(advanceBudgetAlerts(75, initialBudgetAlertState)).toEqual({
+      fired: ["warn70"],
+      state: { warn70Fired: true, warn90Fired: false },
+    });
+  });
+
+  it("does not re-fire the 70% warning on a later request in the same band", () => {
+    const { state } = advanceBudgetAlerts(75, initialBudgetAlertState);
+    // Reload at a higher-but-still-70% spend must warn nothing.
+    expect(advanceBudgetAlerts(85, state)).toEqual({
+      fired: [],
+      state,
+    });
+  });
+
+  it("fires the 90% warning once 90% is crossed, even after 70% already fired", () => {
+    const at70 = advanceBudgetAlerts(75, initialBudgetAlertState);
+    expect(advanceBudgetAlerts(95, at70.state)).toEqual({
+      fired: ["warn90"],
+      state: { warn70Fired: true, warn90Fired: true },
+    });
+  });
+
+  it("does not re-fire either warning on repeated requests at 90%+", () => {
+    const once = advanceBudgetAlerts(95, initialBudgetAlertState);
+    expect(once.fired).toEqual(["warn90"]);
+    expect(advanceBudgetAlerts(95, once.state)).toEqual({
+      fired: [],
+      state: once.state,
+    });
+    expect(advanceBudgetAlerts(100, once.state).fired).toEqual([]);
+  });
+
+  it("gives a cohort that jumps straight past 70% the stronger 90% warning, not two", () => {
+    expect(advanceBudgetAlerts(95, initialBudgetAlertState)).toEqual({
+      fired: ["warn90"],
+      state: { warn70Fired: true, warn90Fired: true },
+    });
+  });
+
+  it("never fires below the 70% threshold", () => {
+    expect(advanceBudgetAlerts(69, initialBudgetAlertState)).toEqual({
+      fired: [],
+      state: initialBudgetAlertState,
+    });
+  });
+});
+
+describe("F12-T07 — budgetAlertLabel and guardTripAlert", () => {
+  it("spells out each warning threshold in facilitator-facing words", () => {
+    expect(budgetAlertLabel("warn70")).toMatch(/70%/);
+    expect(budgetAlertLabel("warn90")).toMatch(/90%/);
+    expect(budgetAlertLabel("warn90")).toMatch(/nearly exhausted/);
+  });
+
+  it("holds silent below the 3-trip guard threshold", () => {
+    expect(guardTripAlert(0)).toBeNull();
+    expect(guardTripAlert(2)).toBeNull();
+  });
+
+  it("alerts at the third guard trip (§11)", () => {
+    expect(guardTripAlert(3)).not.toBeNull();
+    expect(guardTripAlert(5)).toMatch(/3 or more/);
+  });
+
+  it("phrases the guard alert for a non-engineer", () => {
+    // The acceptance: the reason string is readable by a non-engineer — no
+    // bare codes, no symbol names. Guard trips ARE the metric, so the alert
+    // names contamination as its consequence, not the schema column.
+    const alert = guardTripAlert(3);
+    expect(alert).not.toMatch(/guard_tripped|ai_interactions|GL[\d]+|\bL\d\b/);
+    expect(alert).toMatch(/hints may be leaking guidance/);
+  });
+});
+
+describe("F12-T07 — the served-level reason reads plainly", () => {
+  it("names the degradation cause, not a code, wherever a reason is shown", () => {
+    // L1/L2 are the only levels carrying a reason (spec.md §7).
+    expect(levelReason("L1", null)).toMatch(/^[A-Z]/);
+    expect(levelReason("L2", null)).not.toMatch(/\bL[0-2]\b/);
+    expect(levelReason("L2", 94)).not.toMatch(/\bL[0-2]\b/);
   });
 });

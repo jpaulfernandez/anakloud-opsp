@@ -4,14 +4,14 @@ import { createDbClient } from "@/lib/db";
 import { requirePageSession } from "@/lib/auth";
 import { adminPageView } from "@/lib/admin";
 import { fetchRoster, type RosterEntry } from "@/lib/roster";
-import { fetchBudget, fetchGuardTrips } from "@/lib/admin-strip";
+import { fetchBudget, fetchGuardTrips, advanceAndPersistBudgetAlerts } from "@/lib/admin-strip";
 import {
   fetchCohortLive,
   resolveServedLevel,
   type CohortLifecycleState,
 } from "@/lib/cohort-lifecycle";
 import { loadConfig } from "@/lib/config";
-import type { AdminStripData } from "@/lib/level-strip";
+import { guardTripAlert, type AdminStripData } from "@/lib/level-strip";
 import { QUESTION_IDS, QUESTION_MAP } from "@/lib/questions";
 import LevelStrip from "./LevelStrip";
 import CohortLifecycle from "./CohortLifecycle";
@@ -71,10 +71,19 @@ export default async function AdminPage() {
     // pin lands without a server restart.
     const cohort = await fetchCohortLive(db, session.cohortId);
     const servedLevel = resolveServedLevel(aiLevel, cohort?.aiLevelPin ?? null);
+    const budget = await fetchBudget(db, session.cohortId);
+    const guardTrips = await fetchGuardTrips(db, session.cohortId);
     const strip: AdminStripData = {
       level: servedLevel,
-      budget: await fetchBudget(db, session.cohortId),
-      guardTrips: await fetchGuardTrips(db, session.cohortId),
+      budget,
+      guardTrips,
+      // F12-T07 — advance the cohort's budget-warning state so each threshold
+      // fires once, and surface the guard-trip alert at 3+ trips (§11).
+      budgetAlerts:
+        budget === null
+          ? []
+          : await advanceAndPersistBudgetAlerts(db, session.cohortId, budget),
+      guardAlert: guardTripAlert(guardTrips),
     };
     return <AdminDashboard roster={roster} strip={strip} cohort={cohort} />;
   } finally {

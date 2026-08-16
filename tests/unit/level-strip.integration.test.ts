@@ -1,7 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDbClient } from "../../lib/db";
 import { migrate } from "../../lib/migrate";
-import { fetchBudget, fetchGuardTrips } from "../../lib/admin-strip";
+import {
+  advanceAndPersistBudgetAlerts,
+  fetchBudget,
+  fetchGuardTrips,
+} from "../../lib/admin-strip";
 
 // F09-T04 — the admin strip's data path against a real Postgres. Runs only
 // when opted in (`DATABASE_URL` set AND `RUN_DB_TESTS=1`), SKIPS otherwise,
@@ -94,6 +98,50 @@ describe.skipIf(!enabled)("admin level strip data against a real Postgres", () =
 
     expect(await fetchGuardTrips(db!, COHORT)).toBe(2);
     expect(await fetchGuardTrips(db!, OTHER_COHORT)).toBe(0);
+  });
+
+  it("fires each budget threshold once, persisting the fired flag", async () => {
+    // Establish a clean cohort at 75% of the combined cap.
+    await db!.query(
+      `update ai_budget
+          set input_used = 75, output_used = 75, input_cap = 100, output_cap = 100,
+              warn70_fired = false, warn90_fired = false
+        where cohort_id = $1`,
+      [COHORT],
+    );
+    const keepFlags = (used: number) =>
+      db!.query(
+        `update ai_budget
+            set input_used = $1, output_used = $1
+          where cohort_id = $2`,
+        [used, COHORT],
+      );
+
+    const at75 = await fetchBudget(db!, COHORT);
+    expect(await advanceAndPersistBudgetAlerts(db!, COHORT, at75!)).toEqual([
+      "warn70",
+    ]);
+
+    // Reload at a higher-but-still-70% spend: the flag persisted, so nothing
+    // re-fires — the "not on every request" acceptance, proven against a real
+    // database rather than only in the pure state machine.
+    await keepFlags(85);
+    const at85 = await fetchBudget(db!, COHORT);
+    expect(at85!.warn70Fired).toBe(true);
+    expect(at85!.warn90Fired).toBe(false);
+    expect(await advanceAndPersistBudgetAlerts(db!, COHORT, at85!)).toEqual([]);
+
+    // Cross 90%: warn90 fires once, persists, then stays quiet.
+    await keepFlags(95);
+    const at95 = await fetchBudget(db!, COHORT);
+    expect(await advanceAndPersistBudgetAlerts(db!, COHORT, at95!)).toEqual([
+      "warn90",
+    ]);
+    expect((await fetchBudget(db!, COHORT))!.warn90Fired).toBe(true);
+    const recheck = await fetchBudget(db!, COHORT);
+    expect(await advanceAndPersistBudgetAlerts(db!, COHORT, recheck!)).toEqual(
+      [],
+    );
   });
 });
 

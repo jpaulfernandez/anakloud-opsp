@@ -143,6 +143,8 @@ test("the admin strip renders showing L2 with an honest rule-based reason", asyn
   await expect(strip.getByTestId("strip-circuit")).toHaveText("—");
   await expect(strip.getByTestId("strip-guard-trips")).toHaveText("0");
   await expect(strip.getByTestId("strip-warning")).toHaveCount(0);
+  // With no trips there is nothing to raise a contamination alert about.
+  await expect(strip.getByTestId("strip-guard-alert")).toHaveCount(0);
 });
 
 test("the strip surfaces budget used against cap and warns at 70% then 90%", async ({
@@ -169,6 +171,11 @@ test("the strip surfaces budget used against cap and warns at 70% then 90%", asy
   await expect(strip.getByTestId("strip-reason")).toHaveText(
     "Running on rule-based checks — AI budget at 95%.",
   );
+
+  // A further reload at the same spend must not re-fire either warning: the
+  // thresholds already fired and their flags were persisted (F12-T07).
+  await page.reload();
+  await expect(strip.getByTestId("strip-warning")).toHaveCount(0);
 });
 
 test("the strip reports circuit state and the count of guard trips", async ({
@@ -188,6 +195,35 @@ test("the strip reports circuit state and the count of guard trips", async ({
   await expect(strip).toBeVisible();
   await expect(strip.getByTestId("strip-circuit")).toHaveText("Open");
   await expect(strip.getByTestId("strip-guard-trips")).toHaveText("1");
+  // One trip is below the §11 alert threshold.
+  await expect(strip.getByTestId("strip-guard-alert")).toHaveCount(0);
+});
+
+test("the strip alerts the facilitator at three or more guard trips", async ({
+  page,
+}) => {
+  // Push the cohort's guard-trip count to at least 3 (some tests above may
+  // already have added one), then expect the standing contamination alert.
+  await db!.query(
+    `insert into ai_interactions
+       (id, respondent_id, purpose, level, guard_tripped)
+     values ($1, $2, 'coach', 'L0', 'form'),
+            ($3, $2, 'coach', 'L0', 'form'),
+            ($4, $2, 'coach', 'L0', 'form')`,
+    [randomUUID(), RESPONDENT, randomUUID(), randomUUID()],
+  );
+
+  await setSession(page, FACILITATOR);
+  await page.goto("/admin");
+  const strip = page.getByTestId("admin-level-strip");
+  await expect(strip).toBeVisible();
+
+  const trips = Number(await strip.getByTestId("strip-guard-trips").innerText());
+  expect(trips).toBeGreaterThanOrEqual(3);
+  await expect(strip.getByTestId("strip-guard-alert")).toBeVisible();
+  await expect(strip.getByTestId("strip-guard-alert")).toContainText(
+    "3 or more",
+  );
 });
 
 test("no respondent-facing view references the level, budget or circuit strip", async ({

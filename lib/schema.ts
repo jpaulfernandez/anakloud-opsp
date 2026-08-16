@@ -162,6 +162,10 @@ export const SCHEMA: SchemaDef = {
       circuit_open: col("circuit_open", "bool", { default: "false" }),
       circuit_reason: col("circuit_reason", "text", { nullable: true }),
       circuit_until: col("circuit_until", "timestamptz", { nullable: true }),
+      // F12-T07 — which budget-warning thresholds have already fired, so the
+      // 70% and 90% warnings surface once each, not on every dashboard request.
+      warn70_fired: col("warn70_fired", "bool", { default: "false" }),
+      warn90_fired: col("warn90_fired", "bool", { default: "false" }),
     },
     primaryKey: ["cohort_id"],
   },

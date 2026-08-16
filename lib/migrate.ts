@@ -119,6 +119,19 @@ export const MIGRATIONS: Migration[] = [
            on export_events (cohort_id);`,
     down: `drop table if exists export_events;`,
   },
+  {
+    version: "0009_budget_warning_alerts",
+    // F12-T07 — per-cohort "threshold already fired" flags so the 70% and 90%
+    // budget warnings fire once each (spec.md §7.2), never re-warning on every
+    // dashboard request. Boolean columns on ai_budget, the same row that
+    // already carries circuit state. Added to the fresh-schema path (0001,
+    // generated from SCHEMA) already, so this `if not exists` stays a no-op
+    // there, exactly like 0003 and 0005.
+    up: `alter table ai_budget add column if not exists warn70_fired bool not null default false;
+         alter table ai_budget add column if not exists warn90_fired bool not null default false;`,
+    down: `alter table ai_budget drop column if exists warn90_fired;
+           alter table ai_budget drop column if exists warn70_fired;`,
+  },
 ];
 
 async function withTransaction<T>(

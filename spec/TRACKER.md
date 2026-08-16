@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 74
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 75
 
 ---
 
@@ -52,7 +52,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F09 | Admin gate & dashboard | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F10 | Comparison & divergence | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F11 | Release gates & test harness | P1 | Done | 2026-08-17 | 2026-08-17 | **P1 gate** |
-| F12 | AI gateway & degradation | P2 | In progress | 2026-08-17 | — | Do not start before F11 green |
+| F12 | AI gateway & degradation | P2 | Done | 2026-08-17 | 2026-08-17 | Do not start before F11 green |
 | F13 | AI coach | P2 | Not started | — | — | |
 | F14 | Facilitator analysis | P3 | Not started | — | — | |
 | F15 | Official OPSP canvas | P4 | Not started | — | — | |
@@ -192,7 +192,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F12-T04 | Budget accounting | Done | |
 | F12-T05 | Timeout and retry policy | Done | |
 | F12-T06 | Interaction logging and token capture | Done | |
-| F12-T07 | Facilitator budget and guard-trip surfacing | Not started | |
+| F12-T07 | Facilitator budget and guard-trip surfacing | Done | |
 
 ## F13 — AI coach
 

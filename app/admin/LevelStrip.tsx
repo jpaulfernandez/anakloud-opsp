@@ -1,9 +1,8 @@
 import type { AdminStripData } from "@/lib/level-strip";
 import {
+  budgetAlertLabel,
   budgetPercent,
-  budgetState,
   budgetTotal,
-  budgetWarningLabel,
   levelReason,
 } from "@/lib/level-strip";
 
@@ -19,12 +18,16 @@ import {
 // and guard data are F12's. The strip is built now so the shell is honest at
 // L2 — "Running on rule-based checks." with no fabricated figure — and the
 // F12 slots render as obvious "—" dashes until rows exist.
+//
+// F12-T07 — the budget-warning callouts render only for thresholds that
+// *newly fired on this request* (data.budgetAlerts), so a reload at the same
+// spend re-warns nothing. The guard-trip alert appears whenever the cohort has
+// 3+ trips (§11); unlike a threshold crossing, contamination is a standing
+// condition and stays visible until the facilitator acts on it.
 
 export default function LevelStrip({ data }: { data: AdminStripData }) {
   const total = data.budget ? budgetTotal(data.budget) : null;
   const percent = total === null ? null : budgetPercent(total.used, total.cap);
-  const warning =
-    percent === null ? null : budgetWarningLabel(budgetState(percent));
   const reason = levelReason(data.level, percent);
   const circuitLabel =
     data.budget === null ? "—" : data.budget.circuitOpen ? "Open" : "Closed";
@@ -52,12 +55,22 @@ export default function LevelStrip({ data }: { data: AdminStripData }) {
         </span>
       ) : null}
 
-      {warning !== null ? (
+      {data.budgetAlerts.map((alert) => (
         <span
+          key={alert}
           data-testid="strip-warning"
           className="rounded-md bg-amber-50 px-2 py-0.5 font-medium text-amber-900"
         >
-          {warning}
+          {budgetAlertLabel(alert)}
+        </span>
+      ))}
+
+      {data.guardAlert !== null ? (
+        <span
+          data-testid="strip-guard-alert"
+          className="rounded-md bg-rose-50 px-2 py-0.5 font-medium text-rose-900"
+        >
+          {data.guardAlert}
         </span>
       ) : null}
 

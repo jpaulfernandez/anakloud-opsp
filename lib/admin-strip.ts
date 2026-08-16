@@ -1,5 +1,12 @@
 import type { ClientBase } from "pg";
 import type { BudgetSnapshot } from "./level-strip";
+import {
+  advanceBudgetAlerts,
+  budgetPercent,
+  budgetTotal,
+  type BudgetAlert,
+  type BudgetAlertState,
+} from "./level-strip";
 
 // F09-T04 — the admin strip's data source (tech_infrastructure.md §11).
 //
@@ -21,7 +28,8 @@ export async function fetchBudget(
 ): Promise<BudgetSnapshot | null> {
   const { rows } = await db.query(
     `select input_cap, input_used, output_cap, output_used,
-            circuit_open, circuit_reason
+            circuit_open, circuit_reason,
+            warn70_fired, warn90_fired
        from ai_budget
       where cohort_id = $1`,
     [cohortId],
@@ -35,7 +43,50 @@ export async function fetchBudget(
     outputUsed: r.output_used,
     circuitOpen: r.circuit_open,
     circuitReason: r.circuit_reason,
+    warn70Fired: r.warn70_fired,
+    warn90Fired: r.warn90_fired,
   };
+}
+
+/**
+ * Advance the cohort's budget-warning state against its current spend and
+ * persist the result, returning which thresholds newly fired on this request.
+ * F12-T07's "once each, not on every request": a threshold already fired in a
+ * previous request does not fire again, so reloading the dashboard at the same
+ * spend re-warns nothing. The fired flags are written back to `ai_budget` only
+ * when they changed, so an idle dashboard never writes.
+ */
+export async function advanceAndPersistBudgetAlerts(
+  db: ClientBase,
+  cohortId: string,
+  budget: BudgetSnapshot,
+): Promise<BudgetAlert[]> {
+  const total = budgetTotal(budget);
+  const percent = budgetPercent(total.used, total.cap);
+  if (percent === null) return [];
+
+  const { fired, state } = advanceBudgetAlerts(percent, {
+    warn70Fired: budget.warn70Fired,
+    warn90Fired: budget.warn90Fired,
+  });
+  if (fired.length > 0) {
+    await persistBudgetAlertState(db, cohortId, state);
+  }
+  return fired;
+}
+
+/** Persist the cohort's fired-warning flags back to its `ai_budget` row. */
+export async function persistBudgetAlertState(
+  db: ClientBase,
+  cohortId: string,
+  state: BudgetAlertState,
+): Promise<void> {
+  await db.query(
+    `update ai_budget
+        set warn70_fired = $2, warn90_fired = $3
+      where cohort_id = $1`,
+    [cohortId, state.warn70Fired, state.warn90Fired],
+  );
 }
 
 /**
