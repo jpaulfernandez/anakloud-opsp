@@ -7,11 +7,13 @@ import {
   MATRIX_GRID_QUESTION_IDS,
   METRIC_TRIPLE_QUESTION_IDS,
   QUESTION_IDS,
+  RANKING_QUESTION_IDS,
   SENTENCE_COMPLETION_QUESTION_IDS,
   SINGLE_CHOICE_REASON_QUESTION_IDS,
   isLongTextQuestion,
   isMatrixGridQuestion,
   isMetricTripleQuestion,
+  isRankingQuestion,
   isSentenceCompletionQuestion,
   isSingleChoiceReasonQuestion,
   type LongTextQuestionId,
@@ -21,6 +23,7 @@ import {
   type Q5Value,
   type QuestionDefinition,
   type QuestionId,
+  type RankingQuestionId,
   type SentenceCompletionQuestionId,
   type SentenceCompletionValue,
   type SingleChoiceReasonQuestionId,
@@ -42,11 +45,13 @@ import {
   type SingleChoiceReasonDraft,
   singleChoiceReasonIsAnswered,
 } from "@/lib/single-choice-reason";
+import { type RankingDraft, rankingIsAnswered } from "@/lib/ranking";
 import { LongTextInput } from "./LongTextInput";
 import { SentenceCompletionInput } from "./SentenceCompletionInput";
 import { MetricTripleInput } from "./MetricTripleInput";
 import { MatrixGridInput } from "./MatrixGridInput";
 import { SingleChoiceReasonInput } from "./SingleChoiceReasonInput";
+import { RankingInput } from "./RankingInput";
 
 // The question shell (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
 //
@@ -82,13 +87,17 @@ type MatrixGridDrafts = Partial<Record<MatrixGridQuestionId, Q5Value>>;
 type SingleChoiceReasonDrafts = Partial<
   Record<SingleChoiceReasonQuestionId, SingleChoiceReasonDraft>
 >;
+type RankingDrafts = Partial<Record<RankingQuestionId, RankingDraft>>;
 
 export function QuestionShell({
   question,
   neighbors,
+  poolSeed,
 }: {
   question: QuestionDefinition;
   neighbors: QuestionNeighbors;
+  /** Per-respondent seed for Q8's deterministic pool shuffle (F03-T07). */
+  poolSeed: string;
 }) {
   const router = useRouter();
   const [longTextAnswers, setLongTextAnswers] = useState<LongTextAnswers>({});
@@ -99,6 +108,7 @@ export function QuestionShell({
   const [matrixGridDrafts, setMatrixGridDrafts] = useState<MatrixGridDrafts>({});
   const [singleChoiceReasonDrafts, setSingleChoiceReasonDrafts] =
     useState<SingleChoiceReasonDrafts>({});
+  const [rankedDrafts, setRankedDrafts] = useState<RankingDrafts>({});
 
   const answered: ReadonlySet<QuestionId> = useMemo(() => {
     const set = new Set<QuestionId>();
@@ -122,6 +132,10 @@ export function QuestionShell({
       const draft = singleChoiceReasonDrafts[id];
       if (draft && singleChoiceReasonIsAnswered(draft)) set.add(id);
     }
+    for (const id of RANKING_QUESTION_IDS) {
+      const draft = rankedDrafts[id];
+      if (draft && rankingIsAnswered(draft)) set.add(id);
+    }
     return set;
   }, [
     longTextAnswers,
@@ -129,6 +143,7 @@ export function QuestionShell({
     metricTripleDrafts,
     matrixGridDrafts,
     singleChoiceReasonDrafts,
+    rankedDrafts,
   ]);
 
   const blocked = canAdvance(question.id, answered);
@@ -209,6 +224,18 @@ export function QuestionShell({
             value={singleChoiceReasonDrafts[question.id]}
             onChange={(next) =>
               setSingleChoiceReasonDrafts((current) => ({
+                ...current,
+                [question.id]: next,
+              }))
+            }
+          />
+        )}
+        {isRankingQuestion(question.id) && (
+          <RankingInput
+            value={rankedDrafts[question.id]}
+            seed={poolSeed}
+            onChange={(next) =>
+              setRankedDrafts((current) => ({
                 ...current,
                 [question.id]: next,
               }))

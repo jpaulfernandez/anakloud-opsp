@@ -123,6 +123,19 @@ export function isSingleChoiceReasonQuestion(
   return (SINGLE_CHOICE_REASON_QUESTION_IDS as readonly QuestionId[]).includes(id);
 }
 
+/**
+ * The question rendered with the tap-to-assign ranking input (Q8, F03-T07). A
+ * type guard so the F03 shell can narrow a QuestionId before mounting the
+ * component — the same pattern as the other input guards above.
+ */
+export const RANKING_QUESTION_IDS = ["q8"] as const;
+export type RankingQuestionId = (typeof RANKING_QUESTION_IDS)[number];
+export function isRankingQuestion(
+  id: QuestionId,
+): id is RankingQuestionId {
+  return (RANKING_QUESTION_IDS as readonly QuestionId[]).includes(id);
+}
+
 export const Q5_ROLE_IDS = [
   "pediatrician", "center_owner", "occupational_therapist",
   "speech_pathologist", "parent", "school_sped", "child", "lgu_doh",
@@ -276,6 +289,13 @@ export type MatrixGridValue = QuestionAnswerValues[MatrixGridQuestionId];
  * the one-line reason F03-T06 renders below it.
  */
 export type SingleChoiceReasonValue = QuestionAnswerValues[SingleChoiceReasonQuestionId];
+/**
+ * The stored answer value for the tap-to-assign ranking question (q8). The §3.1
+ * shape `{ rank, delete, why, predicted }` — the four-app ordering, the delete
+ * choice, its one-line why, and the respondent's predicted group ranking that
+ * F03-T07 collects below.
+ */
+export type RankingValue = QuestionAnswerValues[RankingQuestionId];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The fifteen records. Section, text and helper are written verbatim from the

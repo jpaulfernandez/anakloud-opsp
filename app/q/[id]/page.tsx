@@ -35,8 +35,10 @@ export default async function QuestionPage({
 
   const db = createDbClient();
   await db.connect();
+  let respondentId = "";
   try {
     const session = await requirePageSession(db);
+    respondentId = session.respondentId;
     if (!(await groundRulesAcknowledged(db, session.respondentId))) {
       redirect("/ground-rules");
     }
@@ -48,6 +50,10 @@ export default async function QuestionPage({
     <QuestionShell
       question={QUESTION_MAP[qid]}
       neighbors={questionNeighbors(qid)!}
+      // Q8's pool shuffle is seeded per respondent (F03-T07): two respondents
+      // in the same cohort see different pool orders, and a single respondent
+      // keeps a stable one across reloads.
+      poolSeed={respondentId}
     />
   );
 }
