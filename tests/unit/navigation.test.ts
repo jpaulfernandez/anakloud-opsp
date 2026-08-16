@@ -3,6 +3,7 @@ import { QUESTIONS, type QuestionId } from "../../lib/questions";
 import {
   REQUIRED_UNANSWERED_MESSAGE,
   canAdvance,
+  firstUnanswered,
   isRegisteredQuestion,
   questionNeighbors,
   questionRouteSegment,
@@ -122,5 +123,41 @@ describe("canAdvance (FR-9 forward skipping)", () => {
     // that exactly Q15 is the skippable screen. If a second question becomes
     // optional, this test flags it deliberately rather than silently.
     expect(OPTIONAL).toEqual(["q15"]);
+  });
+});
+
+describe("firstUnanswered (F04-T05 resume landing)", () => {
+  it("returns q1 when nothing is answered", () => {
+    expect(firstUnanswered(new Set())).toBe("q1");
+  });
+
+  it("returns null when every question is answered", () => {
+    expect(firstUnanswered(new Set(ALL_IDS))).toBeNull();
+  });
+
+  it("resuming with Q1-Q6 answered lands on Q7", () => {
+    const answered = new Set(ALL_IDS.slice(0, 6));
+    expect(firstUnanswered(answered)).toBe("q7");
+  });
+
+  it("resuming with Q1-Q6 and Q9 answered lands on Q7, not Q10", () => {
+    // A gap before an answered question: Q7 and Q8 are unanswered while Q9 is
+    // answered, so the first unanswered is still Q7 — never dumped at Q10.
+    const answered = new Set([...ALL_IDS.slice(0, 6), "q9" as QuestionId]);
+    expect(firstUnanswered(answered)).toBe("q7");
+  });
+
+  it("walks the registry in order regardless of which later questions are answered", () => {
+    const sparse = new Set<QuestionId>([
+      "q1", "q2", "q3", "q10", "q12", "q15",
+    ]);
+    expect(firstUnanswered(sparse)).toBe("q4");
+
+    expect(firstUnanswered(new Set(ALL_IDS.filter((id) => id !== "q15")))).toBe("q15");
+  });
+
+  it("a late optional question is still the first unanswered when the rest are done", () => {
+    const allButQ15 = new Set(ALL_IDS.filter((id) => id !== "q15"));
+    expect(firstUnanswered(allButQ15)).toBe("q15");
   });
 });

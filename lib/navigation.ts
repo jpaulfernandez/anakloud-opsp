@@ -97,3 +97,23 @@ export function canAdvance(
   }
   return { kind: "advance" };
 }
+
+/**
+ * The first question in registry order that has no answer yet (F04-T05, FR-8,
+ * ui_ux.md §3.2). Resume must never dump a returning respondent at Q1: going
+ * back to the start is the most common way a half-finished form gets
+ * abandoned. The resume landing's Continue goes here, and because it walks
+ * the registry order a gap (Q7 and Q8 unanswered while Q9 is answered) still
+ * lands on Q7 — the first unanswered, not the next answered one after the
+ * gap. `answered` is the set of question ids holding an answer. Returns null
+ * when every question is answered, so a caller can distinguish "nothing
+ * unanswered" from "on Q1".
+ */
+export function firstUnanswered(
+  answered: ReadonlySet<QuestionId>,
+): QuestionId | null {
+  for (const id of QUESTION_IDS) {
+    if (!answered.has(id)) return id;
+  }
+  return null;
+}
