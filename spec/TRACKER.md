@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 53
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 54
 
 ---
 
@@ -156,7 +156,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 |---|---|---|---|
 | F09-T01 | Admin gate | Done | |
 | F09-T02 | Admin-locked UI state | Done | |
-| F09-T03 | Roster dashboard | Not started | |
+| F09-T03 | Roster dashboard | Done | |
 | F09-T04 | Level and budget header strip | Not started | Shell in P1, data in P2 |
 | F09-T05 | Cohort lifecycle | Not started | |
 
