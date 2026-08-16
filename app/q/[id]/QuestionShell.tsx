@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import {
   LONG_TEXT_QUESTION_IDS,
   QUESTION_IDS,
+  SENTENCE_COMPLETION_QUESTION_IDS,
   isLongTextQuestion,
+  isSentenceCompletionQuestion,
   type LongTextQuestionId,
   type LongTextValue,
   type QuestionDefinition,
   type QuestionId,
+  type SentenceCompletionQuestionId,
+  type SentenceCompletionValue,
 } from "@/lib/questions";
 import {
   canAdvance,
@@ -17,7 +21,9 @@ import {
   type QuestionNeighbors,
 } from "@/lib/navigation";
 import { longTextIsAnswered } from "@/lib/long-text";
+import { sentenceCompletionIsAnswered } from "@/lib/sentence-completion";
 import { LongTextInput } from "./LongTextInput";
+import { SentenceCompletionInput } from "./SentenceCompletionInput";
 
 // The question shell (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
 //
@@ -45,6 +51,9 @@ import { LongTextInput } from "./LongTextInput";
 // it back verbatim, including Q13's `{ text, cause }` pair.
 
 type LongTextAnswers = Partial<Record<LongTextQuestionId, LongTextValue>>;
+type SentenceCompletionAnswers = Partial<
+  Record<SentenceCompletionQuestionId, SentenceCompletionValue>
+>;
 
 export function QuestionShell({
   question,
@@ -55,6 +64,8 @@ export function QuestionShell({
 }) {
   const router = useRouter();
   const [longTextAnswers, setLongTextAnswers] = useState<LongTextAnswers>({});
+  const [sentenceAnswers, setSentenceAnswers] =
+    useState<SentenceCompletionAnswers>({});
 
   const answered: ReadonlySet<QuestionId> = useMemo(() => {
     const set = new Set<QuestionId>();
@@ -62,8 +73,12 @@ export function QuestionShell({
       const value = longTextAnswers[id];
       if (value && longTextIsAnswered(value)) set.add(id);
     }
+    for (const id of SENTENCE_COMPLETION_QUESTION_IDS) {
+      const value = sentenceAnswers[id];
+      if (value && sentenceCompletionIsAnswered(value)) set.add(id);
+    }
     return set;
-  }, [longTextAnswers]);
+  }, [longTextAnswers, sentenceAnswers]);
 
   const blocked = canAdvance(question.id, answered);
   const prev = neighbors.prev;
@@ -91,6 +106,17 @@ export function QuestionShell({
             value={longTextAnswers[question.id]}
             onChange={(next) =>
               setLongTextAnswers((current) => ({
+                ...current,
+                [question.id]: next,
+              }))
+            }
+          />
+        )}
+        {isSentenceCompletionQuestion(question.id) && (
+          <SentenceCompletionInput
+            value={sentenceAnswers[question.id]}
+            onChange={(next) =>
+              setSentenceAnswers((current) => ({
                 ...current,
                 [question.id]: next,
               }))

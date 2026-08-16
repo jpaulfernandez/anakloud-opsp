@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 15
+**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 16
 
 ---
 
@@ -88,7 +88,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 |---|---|---|---|
 | F03-T01 | Question shell and navigation | Done | |
 | F03-T02 | Long text (Q1, Q13, Q15) | Done | |
-| F03-T03 | Sentence completion (Q2) | Not started | |
+| F03-T03 | Sentence completion (Q2) | Done | |
 | F03-T04 | Metric triple (Q3) | Not started | |
 | F03-T05 | Matrix grid with mobile pivot (Q5) | Not started | |
 | F03-T06 | Single choice with required reason (Q6) | Not started | |

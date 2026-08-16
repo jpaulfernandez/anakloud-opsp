@@ -70,6 +70,20 @@ export function isLongTextQuestion(id: QuestionId): id is LongTextQuestionId {
   return (LONG_TEXT_QUESTION_IDS as readonly QuestionId[]).includes(id);
 }
 
+/**
+ * The question rendered with the sentence-completion input (Q2, F03-T03). A
+ * type guard so the F03 shell can narrow a QuestionId before mounting the
+ * component, keeping its props precisely typed — the same pattern as the
+ * long-text guard above.
+ */
+export const SENTENCE_COMPLETION_QUESTION_IDS = ["q2"] as const;
+export type SentenceCompletionQuestionId = (typeof SENTENCE_COMPLETION_QUESTION_IDS)[number];
+export function isSentenceCompletionQuestion(
+  id: QuestionId,
+): id is SentenceCompletionQuestionId {
+  return (SENTENCE_COMPLETION_QUESTION_IDS as readonly QuestionId[]).includes(id);
+}
+
 export const Q5_ROLE_IDS = [
   "pediatrician", "center_owner", "occupational_therapist",
   "speech_pathologist", "parent", "school_sped", "child", "lgu_doh",
@@ -140,6 +154,7 @@ export interface QuestionDefinition {
 // from the question it belongs to.
 // ─────────────────────────────────────────────────────────────────────────────
 
+export interface Q2Value { who: string; because: string }
 export interface Q3Value { metric: string; value: number; unit: string; why: string }
 export interface Q5Value {
   pays: RoleId[];
@@ -174,7 +189,7 @@ export interface Q14Value {
 
 export interface QuestionAnswerValues {
   q1: { text: string };
-  q2: { who: string; because: string };
+  q2: Q2Value;
   q3: Q3Value;
   q4: { text: string };
   q5: Q5Value;
@@ -200,6 +215,11 @@ export type AnyAnswerValue = QuestionAnswerValues[QuestionId];
  * against the questions it can actually be mounted for.
  */
 export type LongTextValue = QuestionAnswerValues[LongTextQuestionId];
+/**
+ * The stored answer value for the sentence-completion question (q2). The §3.1
+ * shape `{ who, because }` — exactly the two blanks the sentence carries.
+ */
+export type SentenceCompletionValue = QuestionAnswerValues[SentenceCompletionQuestionId];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The fifteen records. Section, text and helper are written verbatim from the

@@ -6,7 +6,9 @@ import {
   QUESTION_IDS,
   QUESTION_MAP,
   QUESTIONS,
+  SENTENCE_COMPLETION_QUESTION_IDS,
   isLongTextQuestion,
+  isSentenceCompletionQuestion,
   type AppId,
   type AnswerValueFor,
   type FunctionId,
@@ -132,6 +134,35 @@ describe("question registry (F01-T07)", () => {
         `FR-10 input type "${type}" must be rendered by at least one question`,
       ).toBe(true);
     }
+  });
+});
+
+describe("sentence-completion question (F03-T03)", () => {
+  it("marks exactly q2 as the sentence-completion question", () => {
+    expect(SENTENCE_COMPLETION_QUESTION_IDS).toEqual(["q2"]);
+    expect(isSentenceCompletionQuestion("q2")).toBe(true);
+    expect(QUESTION_MAP.q2.inputTypes).toContain("sentence_completion");
+    expect(QUESTION_MAP.q2.required).toBe(true);
+    for (const id of QUESTION_IDS) {
+      if (id === "q2") continue;
+      expect(
+        isSentenceCompletionQuestion(id),
+        `${id} is not sentence completion`,
+      ).toBe(false);
+    }
+  });
+
+  it("never marks the sentence-completion question as coachable or confidence-bearing", () => {
+    // ui_ux §4.5 and §6.3: Q2's structure does the work, no coach, no slider.
+    expect(QUESTION_MAP.q2.coachable).toBe(false);
+    expect(QUESTION_MAP.q2.confidence).toBe(false);
+  });
+
+  it("derives the `{ who, because }` answer shape for q2", () => {
+    expectTypeOf<AnswerValueFor<"q2">>().toEqualTypeOf<{
+      who: string;
+      because: string;
+    }>();
   });
 });
 
