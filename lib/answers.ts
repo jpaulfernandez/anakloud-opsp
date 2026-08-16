@@ -7,6 +7,15 @@ import type { ClientBase } from "pg";
 // layer instead of remembering to filter it in code. The respondent-facing
 // write path splits it here; the single public read helper below is the only
 // place a non-facilitator read ever touches the answers table.
+//
+// The one deliberate exception to "a respondent never reads their own private
+// row" is listOwnAnswers below (F04-T01): GET /api/answers must return the
+// caller's own q14d so a respondent can review and edit their note. It reads
+// through the bounded security-definer function app_read_own_answers (migration
+// 0006), which returns only the current respondent's rows and is the sole
+// read path that includes private rows. Every exporter, PDF and AI payload
+// still goes through listPublicAnswers, which filters is_private = false — so
+// the note reaches the owner's own session and nowhere else.
 
 export interface AnswerRow {
   id: string;
@@ -196,3 +205,55 @@ export async function listFacilitatorAnswers(
   );
   return rows as AnswerRow[];
 }
+
+/** One of a respondent's own answer rows, as GET /api/answers returns it. */
+export interface OwnAnswerRow {
+  question_id: string;
+  value: unknown;
+  confidence: number | null;
+  is_private: boolean;
+  updated_at: Date;
+}
+
+/**
+ * The read backing GET /api/answers (F04-T01): all of the caller's own answers,
+ * including their own q14d. This is the one read path that returns private
+ * rows, and it is deliberately bounded — app_read_own_answers (migration 0006)
+ * limits itself to the current respondent via the RLS GUC, and it must run
+ * inside withRespondentContext (set to the session's respondent, never a
+ * client value) so that GUC is correctly scoped.
+ */
+export async function listOwnAnswers(db: ClientBase): Promise<OwnAnswerRow[]> {
+  const { rows } = await db.query("select * from app_read_own_answers()");
+  return rows as OwnAnswerRow[];
+}
+
+/**
+ * The SQL that creates app_read_own_answers, the bounded security-definer
+ * function listOwnAnswers reads through. It lives here rather than in the
+ * migration so that every direct `from answers` select stays inside this
+ * module (the F01-T03 invariant), exactly as upsertAnswer's writes do. The
+ * function drops RLS only for the current respondent's own rows, via the same
+ * 'app.respondent_id' GUC the policies read, so no caller can widen it to
+ * someone else's note. Referenced by migration 0006; the migration applies it.
+ */
+export const OWN_ANSWER_READ_FUNCTION_SQL = `
+create function app_read_own_answers()
+returns table (
+  question_id text,
+  value jsonb,
+  confidence smallint,
+  is_private boolean,
+  updated_at timestamptz
+)
+language sql
+stable
+security definer
+as $$
+  select a.question_id, a.value, a.confidence, a.is_private, a.updated_at
+    from answers a
+   where a.respondent_id = app_current_respondent()
+$$;`;
+
+/** The matching down migration for OWN_ANSWER_READ_FUNCTION_SQL. */
+export const OWN_ANSWER_READ_FUNCTION_DROP_SQL = `drop function if exists app_read_own_answers();`;

@@ -93,13 +93,14 @@ describe.skipIf(!enabled)("migrations against a real Postgres", () => {
 
   it("rolls the migration back cleanly", async () => {
     await migrate(db!);
-    // Reversed order: undo the rate-limit ledger (0004) and invite-revocation
-    // column (0003), then the policies (0002), before dropping the tables they
-    // sit on (0001).
-    await rollbackMigration(db!, "0004_resume_code_attempts");
-    await rollbackMigration(db!, "0003_invite_revocation");
-    await rollbackMigration(db!, "0002_access_policy");
-    await rollbackMigration(db!, "0001_core_schema");
+    // Reverse order: every migration must be undoable, newest first, because a
+    // later migration can depend on an object an earlier one drops (0006's
+    // read function calls app_current_respondent, which 0002 drops). Walking
+    // the whole MIGRATIONS list backwards keeps this correct as migrations are
+    // added, ending with 0001 dropping the tables the rest sat on.
+    for (let i = MIGRATIONS.length - 1; i >= 0; i -= 1) {
+      await rollbackMigration(db!, MIGRATIONS[i].version);
+    }
 
     const { rows } = await db!.query(`
       select table_name from information_schema.tables

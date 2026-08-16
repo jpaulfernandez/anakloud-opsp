@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 25
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 26
 
 ---
 
@@ -44,7 +44,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F01 | Foundation & data model | P1 | Done | 2026-08-16 | 2026-08-16 | |
 | F02 | Invite, session & onboarding | P1 | Done | 2026-08-16 | 2026-08-16 | |
 | F03 | Question engine & input types | P1 | Done | 2026-08-16 | 2026-08-17 | F03-T07 done against the placeholder app name (plan blocker 2) |
-| F04 | Autosave, resume & offline | P1 | Not started | — | — | |
+| F04 | Autosave, resume & offline | P1 | In progress | 2026-08-17 | — | |
 | F05 | Validators & coach shell | P1 | Not started | — | — | |
 | F06 | Review, submit & lock | P1 | Not started | — | — | |
 | F07 | Individual OPSP | P1 | Not started | — | — | Unblocked — Part B mapping now available |
@@ -103,7 +103,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F04-T01 | Answer persistence API | Not started | |
+| F04-T01 | Answer persistence API | Done | |
 | F04-T02 | Debounced autosave and persistent save state | Not started | |
 | F04-T03 | Local mirror and offline mode | Not started | |
 | F04-T04 | Sync conflict resolution | Not started | |

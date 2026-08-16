@@ -1,5 +1,9 @@
 import type { Client } from "pg";
 import { ACCESS_DOWN_SQL, ACCESS_UP_SQL } from "./access-policy";
+import {
+  OWN_ANSWER_READ_FUNCTION_DROP_SQL,
+  OWN_ANSWER_READ_FUNCTION_SQL,
+} from "./answers";
 import { renderDownSql, renderUpSql, SCHEMA } from "./schema";
 
 export interface Migration {
@@ -59,6 +63,24 @@ export const MIGRATIONS: Migration[] = [
     // there, exactly like 0003.
     up: `alter table respondents add column if not exists ground_rules_acknowledged_at timestamptz;`,
     down: `alter table respondents drop column if exists ground_rules_acknowledged_at;`,
+  },
+  {
+    version: "0006_own_answer_read",
+    // F04-T01's GET /api/answers must return the caller's own q14d so a
+    // respondent can review and edit their own private note. The answers RLS
+    // policy (0002) deliberately denies a reader their own is_private row
+    // ("deny reads, including the reader's own"). That guarantee stays intact
+    // for every other path — exports, PDFs and AI payloads all go through
+    // listPublicAnswers, which still filters is_private = false. This one
+    // security-definer function, owned by the migration role (a superuser,
+    // which bypasses RLS), is the only read that returns private rows, and it
+    // is bounded to the current respondent via the same 'app.respondent_id'
+    // GUC the policies read, so no one can use it to read another person's
+    // note — exactly like the bounded app_upsert_own_answer writer from 0002.
+    // The SQL lives in lib/answers.ts so every direct answer-table select stays
+    // in that module (the F01-T03 invariant); this migration only applies it.
+    up: OWN_ANSWER_READ_FUNCTION_SQL,
+    down: OWN_ANSWER_READ_FUNCTION_DROP_SQL,
   },
 ];
 
