@@ -51,6 +51,8 @@ import {
   questionRouteSegment,
   type QuestionNeighbors,
 } from "@/lib/navigation";
+import { useAutosave, type SaveState } from "@/lib/use-autosave";
+import { storableAnswerValue } from "@/lib/to-stored-value";
 import { longTextIsAnswered } from "@/lib/long-text";
 import { sentenceCompletionIsAnswered } from "@/lib/sentence-completion";
 import {
@@ -175,6 +177,48 @@ export function QuestionShell({
   const [confidenceAnswers, setConfidenceAnswers] = useState<ConfidenceAnswers>(
     {},
   );
+
+  // F04-T02 autosave. One question per screen, so the only answer that can
+  // change is the current one; this reads that one draft out of whichever slice
+  // the rendered input populates, and the autosave hook persists it (debounced)
+  // for as long as it is a storable §3.1 shape. `storableAnswerValue` handles
+  // the two composite questions whose drafts differ from the stored shape (Q10,
+  // Q14); the rest pass through and the hook's shape guard decides.
+  const currentDraft: unknown = useMemo(() => {
+    const id = question.id;
+    if (isLongTextQuestion(id)) return longTextAnswers[id];
+    if (isSentenceCompletionQuestion(id)) return sentenceAnswers[id];
+    if (isMetricTripleQuestion(id)) return metricTripleDrafts[id];
+    if (isMatrixGridQuestion(id)) return matrixGridDrafts[id];
+    if (isSingleChoiceReasonQuestion(id)) return singleChoiceReasonDrafts[id];
+    if (isRankingQuestion(id)) return rankedDrafts[id];
+    if (isPairedRowsQuestion(id)) return pairedRowsDrafts[id];
+    if (isQ14Question(id)) return q14Drafts[id];
+    if (isCappedShortTextQuestion(id)) return shortTextAnswers[id];
+    if (isQ9Question(id)) return q9Drafts[id];
+    if (isQ10Question(id)) return q10Drafts[id];
+    return undefined;
+  }, [
+    question.id,
+    longTextAnswers,
+    sentenceAnswers,
+    metricTripleDrafts,
+    matrixGridDrafts,
+    singleChoiceReasonDrafts,
+    rankedDrafts,
+    pairedRowsDrafts,
+    q14Drafts,
+    shortTextAnswers,
+    q9Drafts,
+    q10Drafts,
+  ]);
+  const { saveState, flush } = useAutosave({
+    questionId: question.id,
+    value: storableAnswerValue(question.id, currentDraft),
+    confidence: isConfidenceQuestion(question.id)
+      ? (confidenceAnswers[question.id] ?? null)
+      : null,
+  });
 
   const answered: ReadonlySet<QuestionId> = useMemo(() => {
     const set = new Set<QuestionId>();
@@ -435,7 +479,9 @@ export function QuestionShell({
         </section>
       )}
 
-      <section aria-label="Save status" data-slot="save" className="mt-6" />
+      <section aria-label="Save status" data-slot="save" className="mt-6">
+        <SaveStatus state={saveState} />
+      </section>
 
       <nav className="mt-10 flex items-center justify-between gap-3">
         {prev ? (
@@ -457,6 +503,10 @@ export function QuestionShell({
                 // Always keep the button live: a refusal is the line rendered
                 // from `blockedReason` below, never a disabled control (F03-T01).
                 if (canContinue) {
+                  // F04-T02: flush any pending save so a keystroke typed within
+                  // the debounce window is on the wire before the transition.
+                  // Not awaited — a failing save must never hold up navigation.
+                  flush();
                   router.push(`/q/${questionRouteSegment(next)}`);
                 }
               }}
@@ -509,5 +559,23 @@ function ProgressHeader({
         {absolute} of {QUESTION_IDS.length}
       </span>
     </header>
+  );
+}
+
+/** The persistent save slot (F04-T02, FR-7, ui_ux.md §6): "Saving…" while in
+    flight, "✓ Saved" once settled, nothing until the first save is needed. It
+    sits in the fixed §4.3 slot between the confidence control and the nav — it
+    is never a toast or anything that fades, and "✓ Saved" stays for as long as
+    the state is settled. */
+function SaveStatus({ state }: { state: SaveState | null }) {
+  if (state === null) return null;
+  return (
+    <p
+      data-testid="save-status"
+      aria-live="polite"
+      className="text-sm text-neutral-500"
+    >
+      {state === "saving" ? "Saving…" : "✓ Saved"}
+    </p>
   );
 }
