@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 47
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 48
 
 ---
 
@@ -48,7 +48,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F05 | Validators & coach shell | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F06 | Review, submit & lock | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F07 | Individual OPSP | P1 | Done | 2026-08-17 | 2026-08-17 | Unblocked — Part B mapping now available |
-| F08 | Print & PDF export | P1 | Not started | — | — | |
+| F08 | Print & PDF export | P1 | In progress | 2026-08-17 | — | |
 | F09 | Admin gate & dashboard | P1 | Not started | — | — | |
 | F10 | Comparison & divergence | P1 | Not started | — | — | |
 | F11 | Release gates & test harness | P1 | Not started | — | — | **P1 gate** |
@@ -145,7 +145,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F08-T01 | Print stylesheet | Not started | |
+| F08-T01 | Print stylesheet | Done | |
 | F08-T02 | Print route and client save-as-PDF | Not started | |
 | F08-T03 | Server-side PDF rendering | Not started | |
 | F08-T04 | Private exclusion in export paths | Not started | |

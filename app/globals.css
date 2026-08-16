@@ -30,3 +30,69 @@
 .confidence[data-set="false"] input[type="range"]::-moz-range-thumb {
   opacity: 0;
 }
+
+/*
+ * F08-T01 — the print stylesheet (FR-27, tech_infrastructure.md §7, ui_ux.md
+ * §4.16). Print is the plan re-laid-out for a sheet, not the screen scaled
+ * down. The OPSP is a grid of sixteen sections; a page break may fall between
+ * sections but never through one, so every cell carries break-inside: avoid
+ * and the printer packs cells until the next would split — the break always
+ * lands on a section boundary. Two consequences fall out of that rule: a short
+ * plan fits on one sheet, and a long one flows onto a second without ever
+ * orphaning part of a row.
+ *
+ * Ink survives printing exactly the way it survives a grey screen (F07-T03):
+ * ink is solid weight with no left border, pencil is a lighter weight behind a
+ * dashed left border. Colour plays no part, so the distinction holds on
+ * black-and-white paper.
+ *
+ * Everything that lets the respondent edit or navigate the plan — the edit
+ * bar, per-cell Edit and "What's this?" buttons, the edit-mode controls, and
+ * the whole "How to read this" panel — is chrome, not content, and is hidden
+ * so the printed sheet carries only the plan.
+ */
+@media print {
+  /* A page break is allowed only between sections, never through one. */
+  [data-testid^="opsp-cell-"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* The plan spans the full sheet; the suppressed how-to panel leaves no gap. */
+  [data-testid="opsp-document"] {
+    display: block;
+  }
+  [data-testid="opsp-grid"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+  [data-testid^="opsp-cell-"] {
+    padding: 0.625rem;
+    border: 1px solid #d4d4d4;
+  }
+
+  /* Ink: solid weight, no border. Pencil: lighter weight, dashed left border. */
+  [data-testid^="opsp-content-"]:not(.border-dashed) {
+    font-weight: 500;
+    border-left: none;
+  }
+  [data-testid^="opsp-content-"].border-dashed {
+    font-weight: 300;
+    border-left: 4px dashed;
+    border-color: #737373;
+  }
+
+  /* Interactive chrome — nothing that edits or navigates prints. */
+  [data-testid="opsp-edit-bar"],
+  [data-testid^="opsp-cell-edit-"],
+  [data-testid^="opsp-howto-trigger-"],
+  [data-testid^="opsp-cell-input-"],
+  [data-testid^="opsp-mark-ink-"],
+  [data-testid^="opsp-mark-pencil-"],
+  [data-testid^="opsp-cell-cancel-"],
+  [data-testid^="opsp-cell-save-"],
+  [data-testid="opsp-howto-panel"],
+  [data-testid="opsp-howto-toggle"] {
+    display: none !important;
+  }
+}

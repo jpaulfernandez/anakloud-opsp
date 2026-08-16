@@ -155,7 +155,18 @@ export function OPSPView({
         </p>
       </header>
 
-      <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start">
+      {/*
+        F08-T01 — the print stylesheet targets this wrapper. On screen it is a
+        two-column grid (plan | how-to panel). In print the panel is suppressed,
+        so this wrapper is flattened to a single full-width block — the plan
+        spans the sheet rather than sitting in a half-width column beside a
+        column that no longer exists. The screen grid's lg: variant is a screen
+        concern; print re-lays-out the plan, it does not scale the screen down.
+      */}
+      <div
+        data-testid="opsp-document"
+        className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start"
+      >
         <div className="space-y-4">
           {/*
             F07-T05 — the persistent edit bar. It sits above the grid, is always
