@@ -4,15 +4,19 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   LONG_TEXT_QUESTION_IDS,
+  MATRIX_GRID_QUESTION_IDS,
   METRIC_TRIPLE_QUESTION_IDS,
   QUESTION_IDS,
   SENTENCE_COMPLETION_QUESTION_IDS,
   isLongTextQuestion,
+  isMatrixGridQuestion,
   isMetricTripleQuestion,
   isSentenceCompletionQuestion,
   type LongTextQuestionId,
   type LongTextValue,
+  type MatrixGridQuestionId,
   type MetricTripleQuestionId,
+  type Q5Value,
   type QuestionDefinition,
   type QuestionId,
   type SentenceCompletionQuestionId,
@@ -29,9 +33,11 @@ import {
   metricTripleIsAnswered,
   type MetricTripleDraft,
 } from "@/lib/metric-triple";
+import { matrixGridIsAnswered } from "@/lib/matrix-grid";
 import { LongTextInput } from "./LongTextInput";
 import { SentenceCompletionInput } from "./SentenceCompletionInput";
 import { MetricTripleInput } from "./MetricTripleInput";
+import { MatrixGridInput } from "./MatrixGridInput";
 
 // The question shell (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
 //
@@ -63,6 +69,7 @@ type SentenceCompletionAnswers = Partial<
   Record<SentenceCompletionQuestionId, SentenceCompletionValue>
 >;
 type MetricTripleDrafts = Partial<Record<MetricTripleQuestionId, MetricTripleDraft>>;
+type MatrixGridDrafts = Partial<Record<MatrixGridQuestionId, Q5Value>>;
 
 export function QuestionShell({
   question,
@@ -77,6 +84,7 @@ export function QuestionShell({
     useState<SentenceCompletionAnswers>({});
   const [metricTripleDrafts, setMetricTripleDrafts] =
     useState<MetricTripleDrafts>({});
+  const [matrixGridDrafts, setMatrixGridDrafts] = useState<MatrixGridDrafts>({});
 
   const answered: ReadonlySet<QuestionId> = useMemo(() => {
     const set = new Set<QuestionId>();
@@ -92,8 +100,17 @@ export function QuestionShell({
       const draft = metricTripleDrafts[id];
       if (draft && metricTripleIsAnswered(draft)) set.add(id);
     }
+    for (const id of MATRIX_GRID_QUESTION_IDS) {
+      const value = matrixGridDrafts[id];
+      if (value && matrixGridIsAnswered(value)) set.add(id);
+    }
     return set;
-  }, [longTextAnswers, sentenceAnswers, metricTripleDrafts]);
+  }, [
+    longTextAnswers,
+    sentenceAnswers,
+    metricTripleDrafts,
+    matrixGridDrafts,
+  ]);
 
   const blocked = canAdvance(question.id, answered);
   const prev = neighbors.prev;
@@ -143,6 +160,17 @@ export function QuestionShell({
             value={metricTripleDrafts[question.id]}
             onChange={(next) =>
               setMetricTripleDrafts((current) => ({
+                ...current,
+                [question.id]: next,
+              }))
+            }
+          />
+        )}
+        {isMatrixGridQuestion(question.id) && (
+          <MatrixGridInput
+            value={matrixGridDrafts[question.id]}
+            onChange={(next) =>
+              setMatrixGridDrafts((current) => ({
                 ...current,
                 [question.id]: next,
               }))

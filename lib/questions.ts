@@ -97,6 +97,19 @@ export function isMetricTripleQuestion(
   return (METRIC_TRIPLE_QUESTION_IDS as readonly QuestionId[]).includes(id);
 }
 
+/**
+ * The question rendered with the matrix-grid input (Q5, F03-T05). A type guard
+ * so the F03 shell can narrow a QuestionId before mounting the component — the
+ * same pattern as the other input guards above.
+ */
+export const MATRIX_GRID_QUESTION_IDS = ["q5"] as const;
+export type MatrixGridQuestionId = (typeof MATRIX_GRID_QUESTION_IDS)[number];
+export function isMatrixGridQuestion(
+  id: QuestionId,
+): id is MatrixGridQuestionId {
+  return (MATRIX_GRID_QUESTION_IDS as readonly QuestionId[]).includes(id);
+}
+
 export const Q5_ROLE_IDS = [
   "pediatrician", "center_owner", "occupational_therapist",
   "speech_pathologist", "parent", "school_sped", "child", "lgu_doh",
@@ -238,6 +251,12 @@ export type SentenceCompletionValue = QuestionAnswerValues[SentenceCompletionQue
  * `{ metric, value, unit, why }` — the four fields F03-T04 renders.
  */
 export type MetricTripleValue = QuestionAnswerValues[MetricTripleQuestionId];
+/**
+ * The stored answer value for the matrix-grid question (q5). The §3.1 shape
+ * `{ pays, decides, uses, benefits }` — the four role-id arrays the Q5 column
+ * pivot (F03-T05) writes, whichever presentation the respondent used.
+ */
+export type MatrixGridValue = QuestionAnswerValues[MatrixGridQuestionId];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The fifteen records. Section, text and helper are written verbatim from the
