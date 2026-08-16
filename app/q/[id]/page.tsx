@@ -54,6 +54,14 @@ export default async function QuestionPage({
   let roster: readonly { id: string; displayName: string }[] = [];
   try {
     const session = await requirePageSession(db);
+    // A submitted respondent is locked (PR5): the question shell renders an
+    // editable answer input, so a finished respondent is sent to the read-only
+    // view instead. This direct-URL redirect is what makes "no editable
+    // control is reachable after submit, including by direct URL" (F06-T06)
+    // hold — the API also refuses the write, but the controls must not render.
+    if (session.submittedAt !== null && session.submittedAt !== undefined) {
+      redirect("/");
+    }
     respondentId = session.respondentId;
     cohortId = session.cohortId;
     if (!(await groundRulesAcknowledged(db, session.respondentId))) {

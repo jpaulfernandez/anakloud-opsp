@@ -32,6 +32,14 @@ export default async function ReviewPage() {
   let respondentId = "";
   try {
     const session = await requirePageSession(db);
+    // A submitted respondent is locked (PR5): the review screen is an editable
+    // path (per-question edit links and a submit button), so a finished
+    // respondent is sent to the read-only view instead. "No editable control
+    // is reachable after submit, including by direct URL" (F06-T06) means this
+    // redirect is the gate, not a convenience.
+    if (session.submittedAt !== null && session.submittedAt !== undefined) {
+      redirect("/");
+    }
     respondentId = session.respondentId;
     cohortId = session.cohortId;
     if (!(await groundRulesAcknowledged(db, session.respondentId))) {

@@ -6,6 +6,8 @@ import { createDbClient } from "@/lib/db";
 import { resolveSession, SESSION_COOKIE } from "@/lib/session";
 import { withRespondentContext } from "@/lib/access";
 import { listOwnAnswers } from "@/lib/answers";
+import { listCohortTeammates } from "@/lib/cohort";
+import { buildReviewModel, type ReviewAnswerRow } from "@/lib/review";
 import {
   firstUnanswered,
   isRegisteredQuestion,
@@ -15,6 +17,7 @@ import {
 import { QUESTION_IDS, QUESTION_MAP, type QuestionId } from "@/lib/questions";
 import { groundRulesAcknowledged } from "@/lib/respondent";
 import { ResumeCodeForm } from "./ResumeCodeForm";
+import { SubmittedView } from "./submitted/SubmittedView";
 
 // The resume landing (F04-T05, FR-8, ui_ux.md §3.2). This is what every
 // returning respondent reaches after a claim — the session destination once a
@@ -70,10 +73,19 @@ export default async function HomePage() {
     );
     const name = rows[0]?.display_name ?? "there";
 
-    // A submitted respondent is locked (PR5): route away from the flow. Answers
-    // are not even loaded here — the read-only state needs no answered set.
+    // A submitted respondent is locked (PR5): route off the flow and into the
+    // read-only view of their answers (F06-T06). No Continue, no jump-back
+    // list — the answers are immutable now, so the only truthful frame is
+    // finished, not editable (ui_ux.md §6 "Already submitted"). The view is
+    // served regardless of cohort status (readOnly admits, never refuses), so
+    // a closing cohort never takes it away.
     if (session.submittedAt !== null && session.submittedAt !== undefined) {
-      return <SubmittedLanding name={name} />;
+      const { questions, rosterNames } = await readOnlyViewModel(
+        db,
+        session.respondentId,
+        session.cohortId,
+      );
+      return <SubmittedView name={name} questions={questions} rosterNames={rosterNames} />;
     }
 
     // All of the caller's own answers (listOwnAnswers is the one read path that
@@ -161,18 +173,35 @@ function ResumeLanding({
 }
 
 /**
- * The submitted state (F04-T05, F06-T06 forward reference). No Continue, no
- * jump-back links — a locked respondent must not re-enter the question flow.
- * Presented as completion, not as an error: answers are in, the baseline is
- * fixed (PR5), and the read-only view F06-T06 builds will live here later.
+ * Load what the submitted read-only view (F06-T06) needs: the respondent's own
+ * answers shaped through the same review model the review screen uses, plus
+ * the cohort roster for q14(b)'s "thinks others own" names. Reads through the
+ * respondent's RLS context via listOwnAnswers (the one read that includes the
+ * owner's own q14d private row), so the finished view shows the owner their
+ * own note just as the review screen did.
  */
-function SubmittedLanding({ name }: { name: string }) {
-  return (
-    <main>
-      <h1>You&apos;re all set, {name}.</h1>
-      <p>Your answers are submitted and locked. You&apos;ll be able to review them here.</p>
-    </main>
+async function readOnlyViewModel(
+  db: ReturnType<typeof createDbClient>,
+  respondentId: string,
+  cohortId: string,
+): Promise<{
+  questions: ReturnType<typeof buildReviewModel>;
+  rosterNames: Record<string, string>;
+}> {
+  const roster = await listCohortTeammates(db, cohortId, respondentId);
+  const answers = await withRespondentContext(db, respondentId, (tx) =>
+    listOwnAnswers(tx),
   );
+  const rows: ReviewAnswerRow[] = answers.map((a) => ({
+    question_id: a.question_id,
+    value: a.value,
+    confidence: a.confidence,
+    is_private: a.is_private,
+  }));
+  return {
+    questions: buildReviewModel(rows),
+    rosterNames: Object.fromEntries(roster.map((m) => [m.id, m.displayName])),
+  };
 }
 
 /** The one-based "n of 15" position of a registered question. */

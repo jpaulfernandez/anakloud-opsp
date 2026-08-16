@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 41
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 42
 
 ---
 
@@ -46,7 +46,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F03 | Question engine & input types | P1 | Done | 2026-08-16 | 2026-08-17 | F03-T07 done against the placeholder app name (plan blocker 2) |
 | F04 | Autosave, resume & offline | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F05 | Validators & coach shell | P1 | Done | 2026-08-17 | 2026-08-17 | |
-| F06 | Review, submit & lock | P1 | In progress | 2026-08-17 | — | |
+| F06 | Review, submit & lock | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F07 | Individual OPSP | P1 | Not started | — | — | Unblocked — Part B mapping now available |
 | F08 | Print & PDF export | P1 | Not started | — | — | |
 | F09 | Admin gate & dashboard | P1 | Not started | — | — | |
@@ -129,7 +129,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F06-T03 | Submit, snapshot and OPSP generation | Done | |
 | F06-T04 | Lock enforcement | Done | |
 | F06-T05 | Facilitator unlock with audit | Done | |
-| F06-T06 | Submitted read-only view | Not started | |
+| F06-T06 | Submitted read-only view | Done | |
 
 ## F07 — Individual OPSP
 
