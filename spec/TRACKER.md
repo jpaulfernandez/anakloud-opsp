@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 13
+**Last updated:** 2026-08-16 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 14
 
 ---
 
@@ -43,7 +43,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 |---|---|---|---|---|---|---|
 | F01 | Foundation & data model | P1 | Done | 2026-08-16 | 2026-08-16 | |
 | F02 | Invite, session & onboarding | P1 | Done | 2026-08-16 | 2026-08-16 | |
-| F03 | Question engine & input types | P1 | Not started | — | — | Q8 content blocked on 4th app name |
+| F03 | Question engine & input types | P1 | In progress | 2026-08-16 | — | Q8 content blocked on 4th app name |
 | F04 | Autosave, resume & offline | P1 | Not started | — | — | |
 | F05 | Validators & coach shell | P1 | Not started | — | — | |
 | F06 | Review, submit & lock | P1 | Not started | — | — | |
@@ -86,7 +86,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F03-T01 | Question shell and navigation | Not started | |
+| F03-T01 | Question shell and navigation | Done | |
 | F03-T02 | Long text (Q1, Q13, Q15) | Not started | |
 | F03-T03 | Sentence completion (Q2) | Not started | |
 | F03-T04 | Metric triple (Q3) | Not started | |

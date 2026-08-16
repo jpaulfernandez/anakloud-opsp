@@ -1,31 +1,37 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
 import { createDbClient } from "@/lib/db";
 import { requirePageSession } from "@/lib/auth";
 import { groundRulesAcknowledged } from "@/lib/respondent";
+import { questionNeighbors, toQuestionId } from "@/lib/navigation";
+import { QUESTION_MAP } from "@/lib/questions";
+import { QuestionShell } from "./QuestionShell";
 
-// Question route gate (F02-T05, FR-5, ui_ux.md §4.2).
+// Question route (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
 //
-// The ground-rules acknowledgement is a hard gate in front of every question:
-// "IF a respondent navigates directly to a question URL without having
-// acknowledged the ground rules, THEN the system SHALL redirect to the
-// ground-rules screen" (FR-5). That whole gate lives here: requirePageSession
-// (F02-T06) bounces an unauthenticated visitor to the claim screen and an
-// unacknowledged respondent bounces to /ground-rules, and only an acknowledged
-// respondent proceeds.
-//
-// F03-T01 replaces this page's body with the real question shell. The route
-// gate — resolve the session, then acknowledged? proceed or bounce — is what
-// F02-T05 owns and is kept as the whole of this page so the acceptance test
-// (direct navigation to /q/7 before acknowledgement redirects) can run before
-// the question engine exists. The id is treated opaquely and not validated,
-// because the question shell defines what a valid id is; the gate is
-// independent of it.
+// The route gate is unchanged from F02-T05: requirePageSession bounces an
+// unauthenticated visitor to the claim screen and an unacknowledged respondent
+// to /ground-rules. What changed is the body — this page now renders the real
+// question shell, one question per screen (FR-6). A URL outside q1..q15 404s
+// before any database work: the registry is the whole definition of a valid
+// question id, and an unknown route must never render a half-shell. The shell
+// itself is a client component because forward/back navigation and the
+// Continue block are interactions, not render-time decisions.
+export const metadata: Metadata = {
+  title: "Questionnaire",
+};
+
 export default async function QuestionPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  // The URL segment is the plain number ("/q/3" → "3"); the registry key is
+  // "q3". Map one to the other so an out-of-range URL 404s before any DB work.
+  const qid = toQuestionId(id);
+  if (qid === null) notFound();
 
   const db = createDbClient();
   await db.connect();
@@ -39,9 +45,9 @@ export default async function QuestionPage({
   }
 
   return (
-    <main>
-      <h1>{id}</h1>
-      <p>The question shell lands here in F03-T01.</p>
-    </main>
+    <QuestionShell
+      question={QUESTION_MAP[qid]}
+      neighbors={questionNeighbors(qid)!}
+    />
   );
 }
