@@ -2,6 +2,7 @@
 // by construction: importing this module from a client component would fail the
 // "AI key stays server-side" rule, so it is only ever imported from server code
 // paths.
+import { bootDebug } from "./log";
 
 export const CONFIG_ENV_NAMES = [
   "DATABASE_URL",
@@ -144,10 +145,9 @@ export function loadConfig(): BootConfig {
 
   if (values.ANTHROPIC_API_KEY === undefined) {
     // An unset key is the normal degraded state (PR3), not an error: the whole
-    // product must run deterministic-only. Nothing above debug may surface it.
-    console.debug(
-      "[config] ANTHROPIC_API_KEY is not set; running deterministic-only.",
-    );
+    // product must run deterministic-only. Nothing above debug may surface it;
+    // every log sink is behind lib/log.ts (F11-T06).
+    bootDebug("[config] ANTHROPIC_API_KEY is not set; running deterministic-only.");
   }
 
   const env = resolveAppEnvironment(

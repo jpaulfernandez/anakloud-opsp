@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 67
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 68
 
 ---
 
@@ -51,7 +51,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F08 | Print & PDF export | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F09 | Admin gate & dashboard | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F10 | Comparison & divergence | P1 | Done | 2026-08-17 | 2026-08-17 | |
-| F11 | Release gates & test harness | P1 | In progress | 2026-08-17 | — | **P1 gate** |
+| F11 | Release gates & test harness | P1 | Done | 2026-08-17 | 2026-08-17 | **P1 gate** |
 | F12 | AI gateway & degradation | P2 | Not started | — | — | Do not start before F11 green |
 | F13 | AI coach | P2 | Not started | — | — | |
 | F14 | Facilitator analysis | P3 | Not started | — | — | |
@@ -180,7 +180,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F11-T03 | T3 lock integrity property test | Done | |
 | F11-T04 | T1 coach containment harness | Done | Offline half in the unit suite; `npm run test:coach-containment` gates P2 release |
 | F11-T05 | Client bundle key check | Done | Build-time scan of `.next/static` for the AI key; wired into `npm run build` |
-| F11-T06 | Log redaction test | Not started | |
+| F11-T06 | Log redaction test | Done | No answer/code/token/cookie in any log; AI calls logged as five-field records |
 
 ## F12 — AI gateway & degradation
 
