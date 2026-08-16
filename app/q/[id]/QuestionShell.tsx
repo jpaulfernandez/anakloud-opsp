@@ -372,6 +372,30 @@ export function QuestionShell({
     control?.focus();
   }
 
+  // F05-T05 interaction logging. Fire-and-forget on purpose: a failed
+  // interaction POST must never disturb the questionnaire (PR4 — the coach
+  // nudges but never gates, and its unaudited telemetry is even lighter weight
+  // than a nudge). Only coach content is sent — question id, attempt number,
+  // verdict and the static hint — never answer text, so "no answer text in
+  // application logs" holds even on this the only coach-content write path.
+  function logInteraction(body: Record<string, unknown>) {
+    void fetch("/api/interactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => {
+      // A dropped log (e.g. a network failure) is not a respondent-faced
+      // event; the nudge already rendered and the session is unaffected.
+      return;
+    });
+  }
+
+  function handleShowExample() {
+    // Requested against the nudge currently on screen; the server flips
+    // example_shown on that nudge's row (F05-T05).
+    logInteraction({ kind: "example", question_id: question.id });
+  }
+
   function handleContinue() {
     // Always keep the button live: a refusal is the line rendered from
     // `blockedReason` below, never a disabled control (F03-T01).
@@ -433,6 +457,16 @@ export function QuestionShell({
     const nudge = shownNudges + 1;
     setShownNudges(nudge);
     setCoachUI({ kind: "nudge", nudge, hint, example });
+    // Log the nudge as one interaction row (F05-T05, FR-20): the attempt
+    // number, the needs_work verdict and the hint text, at the deterministic
+    // L2 level, before focus returns to the field.
+    logInteraction({
+      kind: "coach",
+      question_id: question.id,
+      attempt_no: nudge,
+      verdict: "needs_work",
+      hint_text: hint,
+    });
     // The card must not take focus from the field (D2); return focus to the
     // answer so the respondent can revise in place (acceptance criterion).
     focusAnswerField();
@@ -623,6 +657,7 @@ export function QuestionShell({
             example={coachUI.example}
             nudge={coachUI.nudge}
             onRevise={handleRevise}
+            onShowExample={handleShowExample}
             onKeepAsIs={handleKeepAsIs}
           />
         )}

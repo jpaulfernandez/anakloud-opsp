@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { ClientBase } from "pg";
+import { markCoachAnswerChanged } from "./interactions";
 
 // Answer persistence and read paths, with the Q14(d) private-row separation
 // (F01-T03). Q14's `private_note` is written to its own `is_private = true`
@@ -65,15 +66,21 @@ export async function upsertAnswer(
 ): Promise<void> {
   if (input.question_id === Q14) {
     await upsertQ14(db, input);
-    return;
+  } else {
+    await upsertOne(db, {
+      respondent_id: input.respondent_id,
+      question_id: input.question_id,
+      value: input.value,
+      confidence: input.confidence ?? null,
+      is_private: false,
+    });
   }
-  await upsertOne(db, {
-    respondent_id: input.respondent_id,
-    question_id: input.question_id,
-    value: input.value,
-    confidence: input.confidence ?? null,
-    is_private: false,
-  });
+  // The respondent edited this answer, so any coach nudge on this question that
+  // still reads as unchanged is now a nudge whose answer did change — flip it
+  // (F05-T05, FR-20). Every edit flows through this single write path, so no
+  // added mutation route can skip the flag. A no-op when there are no coach
+  // rows (non-coachable questions, or no nudge yet on this one).
+  await markCoachAnswerChanged(db, input.respondent_id, input.question_id);
 }
 
 async function upsertQ14(
