@@ -154,7 +154,9 @@ test("completing only block one passes the required check", async ({ page }) => 
   const continueButton = page.getByRole("button", { name: "Continue" });
 
   // Blocks two and three are optional: a single well-formed first rock is a
-  // full Q11 answer, so Continue advances past /q/12.
+  // full Q11 answer, so Continue reads it as answered. But Q11 also carries a
+  // required confidence ring (F03-T11, FR-11): an answered rock with no ring
+  // is still refused, with its own explanatory line.
   await group
     .getByRole("textbox", { name: "What" })
     .nth(0)
@@ -164,6 +166,12 @@ test("completing only block one passes the required check", async ({ page }) => 
     .nth(0)
     .fill("8 centers have each logged 20+ real sessions");
   await expect(continueButton).toBeEnabled();
+  await continueButton.click();
+  await expect(page.getByText("Let us know how confident you are, from 1 to 5, before moving on.")).toBeVisible();
+  await expect(page).toHaveURL(/\/q\/11$/);
+
+  // Setting the ring lets Continue advance past /q/12.
+  await page.getByLabel("Confidence (number)").fill("2");
   await continueButton.click();
   await expect(page).toHaveURL(/\/q\/12$/);
 });

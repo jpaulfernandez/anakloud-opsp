@@ -137,7 +137,9 @@ test("1,500 with thousands separators counts as a value and unblocks Continue", 
   await expect(page).toHaveURL(/\/q\/3$/);
 
   // Complete the three text parts; the "1,500" is accepted as a value and the
-  // answer unblocks Continue (the normalisation to 1500 is unit-tested).
+  // answer unblocks the generic block. But Q3 also carries a required
+  // confidence ring (F03-T11, FR-11): a complete metric triple with no ring is
+  // still refused, with its own explanatory line.
   await page.getByLabel("What would you count?").fill(
     "Children with an active therapy plan",
   );
@@ -147,6 +149,12 @@ test("1,500 with thousands separators counts as a value and unblocks Continue", 
   );
 
   await expect(continueButton).toBeEnabled();
+  await continueButton.click();
+  await expect(page.getByText("Let us know how confident you are, from 1 to 5, before moving on.")).toBeVisible();
+  await expect(page).toHaveURL(/\/q\/3$/);
+
+  // Setting the confidence ring lets Continue advance.
+  await page.getByLabel("Confidence (number)").fill("4");
   await continueButton.click();
   await expect(page).toHaveURL(/\/q\/4$/);
 });

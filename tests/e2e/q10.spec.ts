@@ -128,9 +128,15 @@ test("selecting 'not sure yet' on Q10(b) is a complete, valid answer", async ({
 
   // Payer "parent" + model "not sure yet": no amount and no month demanded —
   // the acceptance that "not sure yet … passes validation and produces no
-  // nudge". The shell advances straight on to the next question.
+  // nudge". The one thing Q10 still requires is the confidence ring (F03-T11,
+  // FR-11), so the shell refuses with its own line before advancing.
   await page.getByLabel("parent", { exact: true }).check();
   await page.getByLabel("not sure yet", { exact: true }).check();
+  await continueButton.click();
+  await expect(page.getByText("Let us know how confident you are, from 1 to 5, before moving on.")).toBeVisible();
+  await expect(page).toHaveURL(/\/q\/10$/);
+
+  await page.getByLabel("Confidence (number)").fill("3");
   await continueButton.click();
   await expect(page).toHaveURL(/\/q\/11$/);
 });
@@ -154,11 +160,17 @@ test("a concrete model requires an amount and a YYYY-MM month", async ({
   await continueButton.click();
   await expect(page.getByText("Answer this before moving on.")).toBeVisible();
 
-  // The month picker produces YYYY-MM and unblocks Continue.
+  // The month picker produces YYYY-MM and unblocks the generic block.
   const month = page.getByTestId("q10-month-picker");
   await month.fill("2026-11");
   await expect(month).toHaveValue("2026-11");
 
+  // Q10 still requires its confidence ring (F03-T11, FR-11) before advancing.
+  await continueButton.click();
+  await expect(page.getByText("Let us know how confident you are, from 1 to 5, before moving on.")).toBeVisible();
+  await expect(page).toHaveURL(/\/q\/10$/);
+
+  await page.getByLabel("Confidence (number)").fill("4");
   await continueButton.click();
   await expect(page).toHaveURL(/\/q\/11$/);
 });

@@ -197,7 +197,15 @@ test("the ranking is completable with one thumb at 360px", async ({ page }) => {
   // Complete the collapsed predicted-ranking control.
   await completePredicted(page);
 
+  // Q8 also carries a required confidence ring (F03-T11, FR-11): a complete
+  // ranking with no ring is still refused, with its own explanatory line.
   await expect(continueButton).toBeEnabled();
+  await continueButton.click();
+  await expect(page.getByText("Let us know how confident you are, from 1 to 5, before moving on.")).toBeVisible();
+  await expect(page).toHaveURL(/\/q\/8$/);
+
+  // Setting the ring lets Continue advance.
+  await page.getByLabel("Confidence (number)").fill("3");
   await continueButton.click();
   await expect(page).toHaveURL(/\/q\/9$/);
 });
@@ -262,6 +270,12 @@ test("the ranking is completable with keyboard only", async ({ page }) => {
     await predicted.getByRole("button").nth(0).focus();
     await page.keyboard.press("Enter");
   }
+
+  // The confidence ring is also required (F03-T11, FR-11), set by keyboard.
+  const confidenceNumber = page.getByLabel("Confidence (number)");
+  await confidenceNumber.focus();
+  await page.keyboard.type("4");
+  await expect(page.getByRole("slider", { name: "Confidence" })).toHaveValue("4");
 
   await expect(page.getByRole("button", { name: "Continue" })).toBeEnabled();
   await page.getByRole("button", { name: "Continue" }).focus();

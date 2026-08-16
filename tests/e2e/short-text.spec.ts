@@ -104,10 +104,18 @@ test("a capped short-text answer unblocks Continue", async ({ page }) => {
   await expect(page.getByText("Answer this before moving on.")).toBeVisible();
   await expect(page).toHaveURL(/\/q\/4$/);
 
-  // A single non-blank line is an answer, and it advances.
+  // A single non-blank line is an answer, but Q4 also carries a required
+  // confidence ring (F03-T11, FR-11): an answered line with no ring is still
+  // refused with its own line.
   await page.getByTestId("capped-short-text-input").fill(
     "Every child with a developmental delay is identified before age five.",
   );
+  await continueButton.click();
+  await expect(page.getByText("Let us know how confident you are, from 1 to 5, before moving on.")).toBeVisible();
+  await expect(page).toHaveURL(/\/q\/4$/);
+
+  // Setting the ring lets Continue advance.
+  await page.getByLabel("Confidence (number)").fill("5");
   await continueButton.click();
   await expect(page).toHaveURL(/\/q\/5$/);
 });

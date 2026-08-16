@@ -75,6 +75,12 @@ import {
   shortTextIsAnswered,
 } from "@/lib/short-text";
 import { type Q10Draft, q10IsAnswered } from "@/lib/q10";
+import {
+  CONFIDENCE_REQUIRED_MESSAGE,
+  confidenceIsSet,
+  isConfidenceQuestion,
+  type ConfidenceQuestionId,
+} from "@/lib/confidence";
 import { LongTextInput } from "./LongTextInput";
 import { SentenceCompletionInput } from "./SentenceCompletionInput";
 import { MetricTripleInput } from "./MetricTripleInput";
@@ -86,6 +92,7 @@ import { Q14Input } from "./Q14Input";
 import { ShortTextInput } from "./ShortTextInput";
 import { Q9Input } from "./Q9Input";
 import { Q10Input } from "./Q10Input";
+import { ConfidenceSlider } from "./ConfidenceSlider";
 
 // The question shell (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
 //
@@ -129,6 +136,7 @@ type CappedShortTextAnswers = Partial<
 >;
 type Q9Drafts = Partial<Record<Q9QuestionId, Q9ValueType>>;
 type Q10Drafts = Partial<Record<Q10QuestionId, Q10Draft>>;
+type ConfidenceAnswers = Partial<Record<ConfidenceQuestionId, number>>;
 
 export function QuestionShell({
   question,
@@ -159,6 +167,14 @@ export function QuestionShell({
     useState<CappedShortTextAnswers>({});
   const [q9Drafts, setQ9Drafts] = useState<Q9Drafts>({});
   const [q10Drafts, setQ10Drafts] = useState<Q10Drafts>({});
+  // The FR-11 confidence rings. Each question's shell holds its own value for
+  // the current screen (like every other draft — there is no cross-page
+  // persistence until F04); the F04 ticket writes it to the `answers.confidence`
+  // column. Held separately from the input drafts because §3.1 keeps confidence
+  // in its own smallint column, not inside the question's `value` jsonb.
+  const [confidenceAnswers, setConfidenceAnswers] = useState<ConfidenceAnswers>(
+    {},
+  );
 
   const answered: ReadonlySet<QuestionId> = useMemo(() => {
     const set = new Set<QuestionId>();
@@ -221,15 +237,30 @@ export function QuestionShell({
     q10Drafts,
   ]);
 
-  const blocked = canAdvance(question.id, answered);
+  const inputBlocked = canAdvance(question.id, answered);
+  // FR-11: the six confidence questions also require a ring before continuing.
+  // `confidence` is not part of the input `answered` set (it lives in its own
+  // column), so the shell gates it separately the same way it special-cases
+  // Q6's required reason.
+  const confidenceValue = isConfidenceQuestion(question.id)
+    ? confidenceAnswers[question.id] ?? null
+    : null;
+  const confidenceMissing =
+    question.confidence && !confidenceIsSet(confidenceValue);
+  const canContinue = inputBlocked.kind === "advance" && !confidenceMissing;
   // Q6's required half is the reason: a blocked Continue there says so in the
   // specific words §4.9 names instead of the shell's generic unanswered line.
+  // A confidence question whose input is complete but whose ring is unset gets
+  // its own line telling the respondent what is missing (F03-T11 acceptance:
+  // refused "with an explanation").
   const blockedReason =
-    blocked.kind === "blocked"
+    inputBlocked.kind === "blocked"
       ? isSingleChoiceReasonQuestion(question.id)
         ? SINGLE_CHOICE_REASON_BLOCKED_MESSAGE
-        : blocked.reason
-      : null;
+        : inputBlocked.reason
+      : confidenceMissing
+        ? CONFIDENCE_REQUIRED_MESSAGE
+        : null;
   const prev = neighbors.prev;
   const next = neighbors.next;
 
@@ -389,7 +420,19 @@ export function QuestionShell({
           aria-label="Confidence"
           data-slot="confidence"
           className="mt-6"
-        />
+        >
+          {isConfidenceQuestion(question.id) && (
+            <ConfidenceSlider
+              value={confidenceAnswers[question.id] ?? null}
+              onChange={(next) =>
+                setConfidenceAnswers((current) => ({
+                  ...current,
+                  [question.id]: next ?? undefined,
+                }))
+              }
+            />
+          )}
+        </section>
       )}
 
       <section aria-label="Save status" data-slot="save" className="mt-6" />
@@ -412,8 +455,8 @@ export function QuestionShell({
               type="button"
               onClick={() => {
                 // Always keep the button live: a refusal is the line rendered
-                // from `blocked` below, never a disabled control (F03-T01).
-                if (blocked.kind === "advance") {
+                // from `blockedReason` below, never a disabled control (F03-T01).
+                if (canContinue) {
                   router.push(`/q/${questionRouteSegment(next)}`);
                 }
               }}
