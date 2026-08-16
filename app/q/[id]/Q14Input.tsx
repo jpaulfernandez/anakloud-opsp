@@ -48,8 +48,14 @@ const chipClass =
   "min-h-11 rounded-md border border-neutral-300 bg-white px-3 py-2 text-base font-medium text-neutral-800 hover:border-neutral-500";
 const chipSelectedClass =
   "min-h-11 rounded-md border border-neutral-900 bg-neutral-900 px-3 py-2 text-base font-medium text-white";
+// The dimmed chip stays a fully real, tappable control (F03-T09: dimming is
+// visual only — a tap still explains itself instead of silently no-oping), so
+// its label must keep the 4.5:1 contrast floor rather than relying on a
+// disabled-control exemption. Text is muted to neutral-600 on neutral-100
+// (≈7:1) and the border thinned to neutral-200, which reads as "dimmed" next
+// to a white chip whose text is neutral-800, without dropping illegible.
 const chipDimmedClass =
-  "min-h-11 cursor-not-allowed rounded-md border border-neutral-200 bg-neutral-100 px-3 py-2 text-base font-medium text-neutral-400";
+  "min-h-11 cursor-not-allowed rounded-md border border-neutral-200 bg-neutral-100 px-3 py-2 text-base font-medium text-neutral-600";
 
 const fieldClass =
   "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-400";

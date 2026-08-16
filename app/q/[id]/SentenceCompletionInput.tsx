@@ -25,8 +25,10 @@ import {
 // trimmed non-empty), so this component never blocks or decides navigation
 // itself (PR4, D2).
 
+// The two underlined runs sit in 44px-tall hit areas (ui_ux §7) so a thumb
+// lands inside a blank even when it misses the narrow underline.
 const inputRunClass =
-  "border-b-2 border-neutral-400 bg-transparent px-1 py-0.5 text-base text-neutral-900 focus:border-neutral-900 focus:outline-none";
+  "min-h-11 border-b-2 border-neutral-400 bg-transparent px-1 py-0.5 text-base text-neutral-900 focus:border-neutral-900 focus:outline-none";
 
 export function SentenceCompletionInput({
   value,

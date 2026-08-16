@@ -29,6 +29,10 @@ const fieldClass =
 
 const radioClass =
   "flex flex-wrap items-center gap-x-5 gap-y-2 text-base text-neutral-800";
+// Each option's label is a 44px-tall hit area (ui_ux §7), not just the bare
+// radio dot, so a thumb on mobile lands inside the target even when it misses
+// the dot itself.
+const radioLabelClass = "inline-flex min-h-11 items-center";
 
 export function Q10Input({
   value,
@@ -54,7 +58,7 @@ export function Q10Input({
         </legend>
         <div className={`${radioClass} mt-2`}>
           {Q10_PAYER_ID_LIST.map((option) => (
-            <label key={option}>
+            <label key={option} className={radioLabelClass}>
               <input
                 type="radio"
                 name="q10-payer"
@@ -75,7 +79,7 @@ export function Q10Input({
         </legend>
         <div className={`${radioClass} mt-2`}>
           {Q10_MODEL_ID_LIST.map((option) => (
-            <label key={option}>
+            <label key={option} className={radioLabelClass}>
               <input
                 type="radio"
                 name="q10-model"

@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 24
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 25
 
 ---
 
@@ -43,7 +43,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 |---|---|---|---|---|---|---|
 | F01 | Foundation & data model | P1 | Done | 2026-08-16 | 2026-08-16 | |
 | F02 | Invite, session & onboarding | P1 | Done | 2026-08-16 | 2026-08-16 | |
-| F03 | Question engine & input types | P1 | In progress | 2026-08-16 | — | Q8 content blocked on 4th app name |
+| F03 | Question engine & input types | P1 | Done | 2026-08-16 | 2026-08-17 | F03-T07 done against the placeholder app name (plan blocker 2) |
 | F04 | Autosave, resume & offline | P1 | Not started | — | — | |
 | F05 | Validators & coach shell | P1 | Not started | — | — | |
 | F06 | Review, submit & lock | P1 | Not started | — | — | |
@@ -97,7 +97,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F03-T09 | Capped multi-select, hours, private field (Q14) | Done | |
 | F03-T10 | Remaining input types (Q4, Q7, Q9, Q10, Q12) | Done | |
 | F03-T11 | Confidence slider | Done | |
-| F03-T12 | Accessibility conformance | Not started | |
+| F03-T12 | Accessibility conformance | Done | |
 
 ## F04 — Autosave, resume & offline
 

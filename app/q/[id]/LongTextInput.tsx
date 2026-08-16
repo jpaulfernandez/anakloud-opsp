@@ -103,7 +103,7 @@ export function LongTextInput({
             {Q13_CAUSES.map((option) => (
               <label
                 key={option}
-                className="flex items-start gap-2 rounded-md px-1 py-1 text-neutral-700"
+                className="flex min-h-11 items-center gap-2 rounded-md px-1 py-1 text-neutral-700"
               >
                 <input
                   type="radio"
