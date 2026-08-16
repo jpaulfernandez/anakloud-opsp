@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  ATTRIBUTED_CONFIRM_MESSAGE,
   comparisonAnswerText,
   divergenceBadgeLabel,
+  shuffleAnswers,
 } from "../../lib/comparison-screen";
 
 // F10-T03 — the comparison screen's pure model. The screen renders the
@@ -62,5 +64,44 @@ describe("comparisonAnswerText (F10-T03)", () => {
     // The attribution is still present, just without identity.
     expect(anonymised).toContain("Wants to own");
     expect(anonymised).toContain("backend");
+  });
+});
+
+describe("ATTRIBUTED_CONFIRM_MESSAGE (F10-T04)", () => {
+  it("pins the confirmation wording verbatim", () => {
+    // ui_ux.md §4.18 fixes the string; anyone editing it changes the product
+    // behaviour and this test.
+    expect(ATTRIBUTED_CONFIRM_MESSAGE).toBe(
+      "This shows names. Don't use this while projecting.",
+    );
+  });
+});
+
+describe("shuffleAnswers (F10-T04)", () => {
+  it("is driven deterministically by the supplied random pivots", () => {
+    // Fisher–Yates with a fixed pivot sequence: () => 0 swaps the last index
+    // with index 0 at every step, () => 0.5 reaches a distinct permutation.
+    expect(shuffleAnswers(["a", "b", "c", "d"], () => 0)).toEqual([
+      "b", "c", "d", "a",
+    ]);
+    expect(shuffleAnswers(["a", "b", "c", "d"], () => 0.5)).toEqual([
+      "a", "d", "b", "c",
+    ]);
+  });
+
+  it("always returns a full permutation and never mutates the input", () => {
+    const input = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"];
+    const frozen = [...input];
+    const out = shuffleAnswers(input);
+
+    // Every element present exactly once, and the source array untouched.
+    expect(out).toHaveLength(input.length);
+    expect([...out].sort()).toEqual([...input].sort());
+    expect(input).toEqual(frozen);
+  });
+
+  it("leaves length-zero and length-one arrays unchanged", () => {
+    expect(shuffleAnswers([])).toEqual([]);
+    expect(shuffleAnswers(["only"], () => 0)).toEqual(["only"]);
   });
 });

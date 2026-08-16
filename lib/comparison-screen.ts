@@ -23,6 +23,33 @@ import type { QuestionId } from "./questions";
 const ANONYMISED_TEAMMATE_LABEL = "a teammate";
 
 /**
+ * The exact wording of the confirmation required to enter attributed mode
+ * (F10-T04, ui_ux.md §4.18). Kept here so the component and its test share one
+ * string — the requirement is that the dialog reads exactly this, verbatim.
+ */
+export const ATTRIBUTED_CONFIRM_MESSAGE =
+  "This shows names. Don't use this while projecting.";
+
+/**
+ * Randomise card order (F10-T04, ui_ux.md §4.18): in anonymised mode position
+ * must not be able to infer identity across sessions, so every load draws a
+ * fresh permutation. Fisher–Yates over a copy, driven by `random` so the pivot
+ * is controllable and the function stays pure and unit-testable — the default
+ * source is all a page reload needs for per-load variety.
+ */
+export function shuffleAnswers<T>(
+  answers: readonly T[],
+  random: () => number = Math.random,
+): T[] {
+  const out = [...answers];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/**
  * The badge text for a divergence verdict, or null when there is none (a
  * closed, non-confidence question reports agreement but is never
  * aligned/soft/hard — FR-31). Empty answers that score nothing also yield

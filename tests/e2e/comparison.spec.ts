@@ -145,11 +145,13 @@ test("long answers are readable in full without opening a modal", async ({
   await expect(page.getByTestId("divergence-badge")).toHaveText("Manual review");
 
   // Both complete answers are present in the DOM, verbatim and untruncated —
-  // the whole point of "readable without opening a modal" (F10-T03).
-  const texts = page.getByTestId("answer-text");
-  await expect(texts).toHaveCount(2);
-  await expect(texts.first()).toContainText(ANA_Q1);
-  await expect(texts.nth(1)).toContainText(BEN_Q1);
+  // the whole point of "readable without opening a modal" (F10-T03). Card
+  // order is randomised in anonymised mode (F10-T04), so assert membership,
+  // never position.
+  const texts = await page.getByTestId("answer-text").allTextContents();
+  expect(texts).toHaveLength(2);
+  expect(texts.some((t) => t.includes(ANA_Q1))).toBe(true);
+  expect(texts.some((t) => t.includes(BEN_Q1))).toBe(true);
 });
 
 test("cards align to equal height across a row", async ({ page }) => {
@@ -171,9 +173,10 @@ test("each answer's confidence is shown where the question carries one", async (
   await setSession(page, FACILITATOR);
   await page.goto("/admin/question/q3");
 
-  // Q3 is confidence-bearing (FR-11); each card shows its stored value.
-  const confidences = page.getByTestId("answer-confidence");
-  await expect(confidences).toHaveCount(2);
-  await expect(confidences.first()).toContainText("Confidence 2");
-  await expect(confidences.nth(1)).toContainText("Confidence 3");
+  // Q3 is confidence-bearing (FR-11); each card shows its stored value. Order
+  // is randomised (F10-T04), so assert the set of values, not their position.
+  const confidences = await page.getByTestId("answer-confidence").allTextContents();
+  expect(confidences).toHaveLength(2);
+  expect(confidences.some((c) => c.includes("Confidence 2"))).toBe(true);
+  expect(confidences.some((c) => c.includes("Confidence 3"))).toBe(true);
 });
