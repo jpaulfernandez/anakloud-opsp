@@ -24,6 +24,10 @@ import { SEED_RESPONDENTS } from "../../lib/seed";
 //   F07-T03 — ink/pencil/empty treatment survives greyscale (weight, dashed
 //     left border and text tag, never colour); low-confidence and empty cells
 //     carry their notes; no cell is auto-filled.
+//   F07-T04 — the "How to read this" panel is a persistent right-hand column at
+//     desktop and a bottom sheet on mobile, with a static, repository-authored
+//     explanation for every cell; tapping a cell scrolls the panel to that
+//     cell's explanation on both layouts.
 //
 // This spec seeds a respondent with the full seeded answer set (SEED_RESPONDENTS
 // [0]), runs real submit (F06-T03) so every one of the sixteen cells derives to
@@ -290,4 +294,96 @@ test("low-confidence and empty cells carry their respective notes", async ({
     OPSP_REVISIT_TAG,
   );
   await expect(page.getByTestId("opsp-note-brand_promise")).toHaveCount(0);
+});
+
+// F07-T04 — the "How to read this" panel (FR-25, ui_ux.md §4.14). The panel's
+// content is the static, repository-authored text from lib/opsp-howto.ts
+// (never generated or fetched at runtime, which the unit test in
+// opsp-howto.test.ts pins); these tests exercise the two interactive claims:
+// every cell has an explanation rendered in the panel, and activating a cell
+// moves the panel to that entry on both the desktop right-hand column and the
+// mobile bottom sheet.
+
+test("every cell has an explanation in the static how-to panel", async ({
+  page,
+}) => {
+  await setSession(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/opsp");
+
+  const panel = page.getByTestId("opsp-howto-panel");
+  await expect(panel).toBeVisible();
+  await expect(page.getByTestId("opsp-howto-title")).toContainText(
+    "How to read this",
+  );
+
+  // The panel renders one explanation per Part B cell, and each entry covers
+  // the three §4.14 aspects — the panel is a static guide, not a stub.
+  for (const id of OPSP_CELL_IDS) {
+    const entry = page.getByTestId(`opsp-howto-${id}`);
+    await expect(entry).toBeVisible();
+    await expect(entry.getByText("Strong:", { exact: false })).toBeVisible();
+    await expect(entry.getByText("Weak:", { exact: false })).toBeVisible();
+  }
+});
+
+test("tapping a cell scrolls the how-to panel to its explanation (desktop)", async ({
+  page,
+}) => {
+  await setSession(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/opsp");
+  await expect(page.getByTestId("opsp-howto-panel")).toBeVisible();
+
+  // Activating a low cell (Capacity) brings its authored explanation into view
+  // inside the persistent right-hand panel. The panel is sticky, so the entry
+  // entering the panel's scroll area is visible in the viewport.
+  await page.getByTestId("opsp-howto-trigger-capacity").click();
+  await expect(page.getByTestId("opsp-howto-capacity")).toBeInViewport();
+  await expect(page.getByTestId("opsp-howto-capacity")).toContainText(
+    "weekly hours",
+  );
+
+  // A different cell re-targets the panel to its own entry.
+  await page.getByTestId("opsp-howto-trigger-purpose").click();
+  await expect(page.getByTestId("opsp-howto-purpose")).toBeInViewport();
+  await expect(page.getByTestId("opsp-howto-purpose")).toContainText(
+    "the company exists",
+  );
+});
+
+test("tapping a cell reveals the bottom sheet and scrolls to its explanation (mobile)", async ({
+  page,
+}) => {
+  await setSession(page);
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page.goto("/opsp");
+
+  // On mobile the panel is a bottom sheet: collapsed to a header bar until a
+  // cell is activated, then expanded so the matching entry is reachable.
+  const panel = page.getByTestId("opsp-howto-panel");
+  await expect(panel).toBeVisible();
+  await expect(page.getByTestId("opsp-howto-title")).toContainText(
+    "How to read this",
+  );
+  // The toggle is a mobile affordance; the sheet starts collapsed.
+  await expect(page.getByTestId("opsp-howto-toggle")).toBeVisible();
+  await expect(page.getByTestId("opsp-howto-body")).toBeHidden();
+
+  // Scroll the target cell to the middle of the viewport so its trigger is not
+  // obscured by the collapsed sheet, then activate it.
+  await page.evaluate(() => {
+    const el = document.querySelector(
+      '[data-testid="opsp-howto-trigger-quarterly_rocks"]',
+    );
+    el?.scrollIntoView({ block: "center", behavior: "instant" });
+  });
+  await page.getByTestId("opsp-howto-trigger-quarterly_rocks").click();
+
+  // The sheet expands and scrolls to that cell's explanation.
+  await expect(page.getByTestId("opsp-howto-body")).toBeVisible();
+  const entry = page.getByTestId("opsp-howto-quarterly_rocks");
+  await expect(entry).toBeVisible();
+  await expect(entry).toBeInViewport();
+  await expect(entry).toContainText("done-when");
 });
