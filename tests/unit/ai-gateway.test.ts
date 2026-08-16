@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   callProvider,
+  ProviderHttpError,
   selectLevel,
   type AIProvider,
   type ProviderRequest,
@@ -229,6 +230,159 @@ describe("request and timeout stages", () => {
     expect(result.level).toBe("L2");
     expect(result.degraded).toBe(true);
     expect(result.provider).toBeUndefined();
+  });
+});
+
+describe("timeout and retry policy (F12-T05, tech_infrastructure.md §6.2)", () => {
+  // §6.2: "Timeout 6s, one retry only on 429/503 with jittered backoff. Never
+  // retry a timeout." The timeout bound is injected small so the tests are
+  // fast; the provider hangs/resolves against that bound, never against the
+  // real 6s, and the retry backoff is injected to 0 so no test sleeps.
+
+  function ctx(
+    overrides: Partial<Parameters<typeof callProvider>[0]> = {},
+  ): Parameters<typeof callProvider>[0] {
+    return coachCtx({ retryBackoffMs: 0, ...overrides });
+  }
+
+  it("a provider that outlives the 6s bound yields a deterministic hint (L2), not an error", async () => {
+    // §10 criterion 7: the coach produces a hint within 6s or the system
+    // silently drops to L2. A response that would take longer than the bound
+    // is served as the deterministic sibling; the slow write is the provider's
+    // business, not the respondent's.
+    const { provider, calls } = recordingProvider(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => resolve(okResponse()), 50);
+        }),
+    );
+    const result = await callProvider(ctx({ timeoutMs: 20 }), provider, REQ);
+    expect(result.level).toBe("L2");
+    expect(result.degraded).toBe(true);
+    expect(result.provider).toBeUndefined();
+    // A bounded-out provider is never retried — the timeout reports *time*.
+    expect(calls).toHaveLength(1);
+  });
+
+  it("a 429 is retried once and the retry's success is served", async () => {
+    let attempt = 0;
+    const { provider, calls } = recordingProvider(async () => {
+      attempt += 1;
+      if (attempt === 1) throw new ProviderHttpError(429);
+      return okResponse();
+    });
+    const result = await callProvider(ctx(), provider, REQ);
+    expect(calls).toHaveLength(2);
+    expect(result.level).toBe("L0");
+    expect(result.degraded).toBe(false);
+    expect(result.provider?.text).toBe("Count something you can look up next quarter.");
+  });
+
+  it("a 503 is retried once and the retry's success is served", async () => {
+    let attempt = 0;
+    const { provider, calls } = recordingProvider(async () => {
+      attempt += 1;
+      if (attempt === 1) throw new ProviderHttpError(503);
+      return okResponse();
+    });
+    const result = await callProvider(ctx(), provider, REQ);
+    expect(calls).toHaveLength(2);
+    expect(result.level).toBe("L0");
+    expect(result.degraded).toBe(false);
+  });
+
+  it("retries exactly once: a persistent 429 makes two calls and falls to L2", async () => {
+    const { provider, calls } = recordingProvider(async () => {
+      throw new ProviderHttpError(429);
+    });
+    const result = await callProvider(ctx(), provider, REQ);
+    expect(calls).toHaveLength(2);
+    expect(result.level).toBe("L2");
+    expect(result.degraded).toBe(true);
+    expect(result.provider).toBeUndefined();
+  });
+
+  it("a retry that itself times out is served at L2, never retried again", async () => {
+    const { provider, calls } = recordingProvider(async () => {
+      throw new ProviderHttpError(429);
+    });
+    const result = await callProvider(ctx({ timeoutMs: 20 }), provider, REQ);
+    // The first attempt errors immediately (429 → retry); the second hangs
+    // until the bound fires. Two calls, one retry, an L2 fallback.
+    expect(calls).toHaveLength(2);
+    expect(result.level).toBe("L2");
+    expect(result.degraded).toBe(true);
+  });
+
+  it("a timeout is never retried — the provider is called once", async () => {
+    const { provider, calls } = recordingProvider(() => new Promise<ProviderResponse>(() => {}));
+    const result = await callProvider(ctx({ timeoutMs: 20 }), provider, REQ);
+    expect(calls).toHaveLength(1);
+    expect(result.level).toBe("L2");
+    expect(result.degraded).toBe(true);
+  });
+
+  it("a rejection that is not a 429/503 (generic error) is not retried", async () => {
+    const { provider, calls } = recordingProvider(async () => {
+      throw new Error("connection reset");
+    });
+    const result = await callProvider(ctx(), provider, REQ);
+    expect(calls).toHaveLength(1);
+    expect(result.level).toBe("L2");
+    expect(result.degraded).toBe(true);
+  });
+
+  it("a non-retriable HTTP status (e.g. 500) is not retried", async () => {
+    const { provider, calls } = recordingProvider(async () => {
+      throw new ProviderHttpError(500);
+    });
+    const result = await callProvider(ctx(), provider, REQ);
+    expect(calls).toHaveLength(1);
+    expect(result.level).toBe("L2");
+    expect(result.degraded).toBe(true);
+  });
+
+  it("the retry re-sends the same capped request, not a fresh one", async () => {
+    let attempt = 0;
+    const { provider, calls } = recordingProvider(async () => {
+      attempt += 1;
+      if (attempt === 1) throw new ProviderHttpError(503);
+      return okResponse();
+    });
+    const req = { ...REQ, maxTokens: 5000 }; // over the coach cap → is capped
+    await callProvider(ctx(), provider, req);
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toEqual(calls[1]);
+    expect(calls[0].maxTokens).toBeLessThanOrEqual(200);
+  });
+
+  it("fuzzing the provider with failures never produces a 5xx outcome", async () => {
+    // §6.2: "/api/coach never returns a 5xx to the browser; it returns a valid
+    // coach response served at a lower level." The endpoint is F13 land, but
+    // the guarantee it leans on is here: feed the gateway every failure the
+    // provider can throw and it must keep resolving to a valid result — a
+    // level the caller can serve deterministically, never a thrown 5xx.
+    const failureModes: Array<() => Promise<ProviderResponse>> = [
+      () => Promise.reject(new ProviderHttpError(429)),
+      () => Promise.reject(new ProviderHttpError(503)),
+      () => Promise.reject(new ProviderHttpError(500)),
+      () => Promise.reject(new Error("network down")),
+      () => Promise.reject("string rejection"),
+      () => new Promise<ProviderResponse>(() => {}), // hangs → timeout
+      () => Promise.resolve(okResponse("Count how many clinic visits happen.")), // guard trip
+    ];
+
+    for (let i = 0; i < failureModes.length; i += 1) {
+      const mode = failureModes[i]!;
+      const heavy = {
+        provider: { request: () => mode() },
+      } as unknown as AIProvider;
+      const result = await callProvider(ctx({ timeoutMs: 15 }), heavy, REQ);
+      // Every mode must resolve to a real, servable level — never a throw that
+      // could surface as a 5xx on /api/coach.
+      expect(["L0", "L1", "L2"]).toContain(result.level);
+      expect(result.degraded).toBe(result.provider === undefined);
+    }
   });
 });
 

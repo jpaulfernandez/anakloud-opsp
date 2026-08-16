@@ -20,6 +20,7 @@
 
 import {
   PROVIDER_TIMEOUT_MS,
+  ProviderHttpError,
   type AIProvider,
   type ProviderRequest,
   type ProviderResponse,
@@ -34,7 +35,40 @@ export type {
   ProviderRequest,
   ProviderResponse,
 } from "./provider";
-export { PROVIDER_TIMEOUT_MS } from "./provider";
+export {
+  PROVIDER_TIMEOUT_MS,
+  ProviderHttpError,
+} from "./provider";
+
+// Timeout and retry policy (tech_infrastructure.md §6.2, F12-T05): a 6s bound
+// on every provider call, with at most one retry — and only on a genuine HTTP
+// 429 or 503, never on a timeout. The respondent is waiting, so a timeout is
+// served as an immediate lower-level fallback; and the retry backoff is
+// jittered so that a cohort full of simultaneous coach calls does not all fire
+// their retries in lockstep.
+
+/** The HTTP statuses §6.2 considers worth a retry. */
+const RETRIABLE_STATUSES: readonly number[] = [429, 503];
+
+/** Base of the jittered retry backoff (§6.2 "with jittered backoff"). */
+const RETRY_BACKOFF_BASE_MS = 100;
+
+/** Random spread on top of the base backoff (jitter). */
+const RETRY_BACKOFF_JITTER_MS = 200;
+
+function isRetriableStatus(err: unknown): boolean {
+  return err instanceof ProviderHttpError && RETRIABLE_STATUSES.includes(err.status);
+}
+
+/** A jittered retry delay; an injected override removes the jitter for tests. */
+function retryBackoffMs(override: number | undefined): number {
+  if (override !== undefined) return override;
+  return RETRY_BACKOFF_BASE_MS + Math.floor(Math.random() * RETRY_BACKOFF_JITTER_MS);
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * The target level for a request. `auto` (or undefined) lets the runtime pick
@@ -61,6 +95,8 @@ export interface GatewayContext {
   latencyDegraded: boolean;
   /** Override the per-request timeout (tests); defaults to §6.2's 6s. */
   timeoutMs?: number;
+  /** Override the jittered retry backoff (tests); defaults to §6.2 jitter. */
+  retryBackoffMs?: number;
 }
 
 /**
@@ -138,6 +174,10 @@ interface Run {
   ctx: GatewayContext;
   provider: AIProvider;
   req: ProviderRequest;
+  /** The request actually sent, with the per-request output cap applied. */
+  sentReq: ProviderRequest;
+  /** True once the one permitted 429/503 retry has been made. */
+  retried: boolean;
   level: AICallLevel;
   startedAt: number;
   elapsedMs: number;
@@ -190,50 +230,86 @@ async function circuitStage(run: Run): Promise<StageDecision> {
 
 // 4. Request — hand the self-contained prompt to the provider. The call is
 // started but not awaited here; the timeout stage owns bounding it, so the two
-// are distinct stages in the ticket's order.
+// are distinct stages in the ticket's order. The capped request is kept so a
+// 429/503 retry re-sends exactly what would have been sent the first time.
 async function requestStage(run: Run): Promise<StageDecision> {
   // F12-T04 — the per-request output caps (200 coach, 1500 analysis, §6.4) are
   // a hard ceiling, so even a caller that over-allocates `maxTokens` can never
   // ask the model for more than its purpose allows.
   const capped = Math.min(run.req.maxTokens, perRequestOutputCap(run.ctx.purpose));
-  run.pending = run.provider.request(
-    capped === run.req.maxTokens ? run.req : { ...run.req, maxTokens: capped },
-  );
+  run.sentReq = capped === run.req.maxTokens ? run.req : { ...run.req, maxTokens: capped };
+  run.pending = run.provider.request(run.sentReq);
   return CONTINUE;
 }
 
-// 5. Timeout — bound the in-flight request (tech_infrastructure.md §6.2; F12-T05
-// owns the retry policy). A timeout or a provider rejection both fall through
-// to L2: the respondent is waiting, so nothing is retried here.
+// 5. Timeout and retry — bound the in-flight request (tech_infrastructure
+// §6.2; F12-T05 owns the retry policy). A timeout or any non-retriable failure
+// falls straight to L2; only a genuine HTTP 429/503 earns one retry, with
+// jittered backoff. A timeout is never retried — the respondent is waiting, so
+// the first straggler is enough to drop the level. Only one retry happens, and
+// a retry that itself times out or fails is also served as L2.
 async function timeoutStage(run: Run): Promise<StageDecision> {
   const pending = run.pending;
   if (pending === null) {
+    run.elapsedMs = Date.now() - run.startedAt;
     return { kind: "stop", level: "L2", degraded: true };
   }
   const timeoutMs = run.ctx.timeoutMs ?? PROVIDER_TIMEOUT_MS;
-  const timedOut = await new Promise<boolean>((resolve) => {
-    const timer = setTimeout(() => resolve(true), timeoutMs);
+
+  const attempt = await boundAttempt(pending, timeoutMs);
+  if (
+    attempt.kind === "error" &&
+    isRetriableStatus(attempt.error) &&
+    !run.retried
+  ) {
+    // One permitted retry for 429/503, after a jittered backoff.
+    run.retried = true;
+    await delay(retryBackoffMs(run.ctx.retryBackoffMs));
+    const retry = await boundAttempt(run.provider.request(run.sentReq), timeoutMs);
+    if (retry.kind === "success") {
+      run.providerResult = retry.response;
+      run.elapsedMs = Date.now() - run.startedAt;
+      return CONTINUE;
+    }
+    run.elapsedMs = Date.now() - run.startedAt;
+    return { kind: "stop", level: "L2", degraded: true };
+  }
+
+  if (attempt.kind === "success") {
+    run.providerResult = attempt.response;
+    run.elapsedMs = Date.now() - run.startedAt;
+    return CONTINUE;
+  }
+  run.elapsedMs = Date.now() - run.startedAt;
+  return { kind: "stop", level: "L2", degraded: true };
+}
+
+/** The bounded outcome of one provider call under the §6.2 timeout. */
+type BoundAttempt =
+  | { kind: "success"; response: ProviderResponse }
+  | { kind: "timeout" }
+  | { kind: "error"; error: unknown };
+
+/** Run one provider call under the timeout, resolving — never rejecting — to
+    its bounded outcome. A timeout is reported as its own case so the retry
+    policy can tell "no time left" apart from "the provider refused". */
+async function boundAttempt(
+  pending: Promise<ProviderResponse>,
+  timeoutMs: number,
+): Promise<BoundAttempt> {
+  return new Promise<BoundAttempt>((resolve) => {
+    const timer = setTimeout(() => resolve({ kind: "timeout" }), timeoutMs);
     pending.then(
-      () => {
+      (response) => {
         clearTimeout(timer);
-        resolve(false);
+        resolve({ kind: "success", response });
       },
-      () => {
+      (error) => {
         clearTimeout(timer);
-        resolve(false);
+        resolve({ kind: "error", error });
       },
     );
   });
-  run.elapsedMs = Date.now() - run.startedAt;
-  if (timedOut) {
-    return { kind: "stop", level: "L2", degraded: true };
-  }
-  try {
-    run.providerResult = await pending;
-  } catch {
-    return { kind: "stop", level: "L2", degraded: true };
-  }
-  return CONTINUE;
 }
 
 // 6. Output guard (tech_infrastructure.md §5.4). Coach output is scanned for
@@ -313,6 +389,8 @@ export async function callProvider(
     ctx,
     provider,
     req,
+    sentReq: req,
+    retried: false,
     level: "L0",
     startedAt: Date.now(),
     elapsedMs: 0,

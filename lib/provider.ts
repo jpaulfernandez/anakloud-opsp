@@ -15,6 +15,21 @@
 /** Hard per-request timeout for a provider call (tech_infrastructure.md §6.2). */
 export const PROVIDER_TIMEOUT_MS = 6000;
 
+/**
+ * A provider call that reached the vendor and got a non-2xx HTTP status. The
+ * gateway's retry policy (F12-T05, §6.2) keys on this shape: only a real 429 or
+ * 503 is retried, once, with jittered backoff. Carrying the status as a typed
+ * field instead of a scraped string is what lets the gateway tell a retriable
+ * "rate limited / service unavailable" apart from a permanent 4xx or a 5xx it
+ * should not burn a retry on.
+ */
+export class ProviderHttpError extends Error {
+  constructor(readonly status: number) {
+    super(`provider responded ${status}`);
+    this.name = "ProviderHttpError";
+  }
+}
+
 /** Everything the gateway's request stage hands a provider. */
 export interface ProviderRequest {
   /** The full prompt, already assembled by the caller (F13/F14). */
@@ -63,7 +78,7 @@ export function anthropicProvider(apiKey: string): AIProvider {
         }),
       });
       if (!res.ok) {
-        throw new Error(`provider responded ${res.status}`);
+        throw new ProviderHttpError(res.status);
       }
       const body = (await res.json()) as {
         content?: Array<{ text?: string }>;
