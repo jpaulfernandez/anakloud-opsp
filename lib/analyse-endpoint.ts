@@ -73,6 +73,20 @@ export type AnalyseScope = "question" | "cohort";
 export type AnalyseServedLevel = "L0" | "L1" | "L2" | "L3";
 
 /**
+ * The model and generation timestamp that label an output (FR-35, ui_ux.md
+ * §4.19). The panel footer renders this verbatim; F14-T06 persists it with the
+ * output. `model` is the pinned model id that served the read, or empty when
+ * no model was used (the deterministic branch) — never an alias and never an
+ * "unavailable" affordance.
+ */
+export interface AnalysisLabel {
+  /** The pinned model id (AI_MODEL) that produced the output, or "". */
+  model: string;
+  /** ISO-8601 timestamp of this output's generation, for the panel footer. */
+  generatedAt: string;
+}
+
+/**
  * One question's deterministic divergence result as the L2/L3 fallback serves
  * it. A lean, serialisable mirror of DivergenceResult — the facilitator reads
  * where the team aligns and where it doesn't, without a model.
@@ -115,6 +129,7 @@ export type AnalysisServeBody =
       scope: AnalyseScope;
       questionId: QuestionId | null;
       analysis: AnalysisOutput;
+      label: AnalysisLabel;
     }
   | {
       ok: true;
@@ -123,6 +138,7 @@ export type AnalysisServeBody =
       questionId: QuestionId | null;
       queued: true;
       scoring: AnalysisScoring;
+      label: AnalysisLabel;
     }
   | {
       ok: true;
@@ -130,6 +146,7 @@ export type AnalysisServeBody =
       scope: AnalyseScope;
       questionId: QuestionId | null;
       scoring: AnalysisScoring;
+      label: AnalysisLabel;
     };
 
 /**
@@ -227,6 +244,14 @@ export async function serveAnalysis(
 ): Promise<AnalysisServeBody> {
   const attempt = await runAnalysisAttempt(ctx, gateway, provider, model);
 
+  // FR-35: every output carries the model id and a generation timestamp. The
+  // deterministic branch still gets a label — the model clears to "" so the
+  // footer shows only the timestamp there, never a fabricated model name.
+  const label: AnalysisLabel = {
+    model,
+    generatedAt: new Date().toISOString(),
+  };
+
   if (attempt.served === "L0" && attempt.analysis !== null) {
     return {
       ok: true,
@@ -234,6 +259,7 @@ export async function serveAnalysis(
       scope: ctx.scope,
       questionId: ctx.questionId,
       analysis: attempt.analysis,
+      label,
     };
   }
 
@@ -250,6 +276,7 @@ export async function serveAnalysis(
       questionId: ctx.questionId,
       queued: true,
       scoring,
+      label,
     };
   }
 
@@ -259,6 +286,7 @@ export async function serveAnalysis(
     scope: ctx.scope,
     questionId: ctx.questionId,
     scoring,
+    label,
   };
 }
 

@@ -6,7 +6,7 @@ import { adminPageView } from "@/lib/admin";
 import { fetchQuestionComparison } from "@/lib/comparison";
 import { QUESTION_IDS, QUESTION_MAP, type QuestionId } from "@/lib/questions";
 import { divergenceBadgeLabel } from "@/lib/comparison-screen";
-import ComparisonBoard from "./ComparisonBoard";
+import QuestionComparison from "./QuestionComparison";
 
 // F10-T03/F10-T04 — the admin comparison screen (FR-30, ui_ux.md §4.18). The
 // workhorse screen: all six answers to one question side by side, with the
@@ -71,7 +71,7 @@ export default async function AdminQuestionComparisonPage({
             Admin
           </Link>
         </div>
-        <ComparisonBoard
+        <QuestionComparison
           questionId={qid}
           section={definition.section}
           questionText={definition.text}
