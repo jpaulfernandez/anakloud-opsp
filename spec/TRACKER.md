@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 62
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 63
 
 ---
 
@@ -51,7 +51,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F08 | Print & PDF export | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F09 | Admin gate & dashboard | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F10 | Comparison & divergence | P1 | Done | 2026-08-17 | 2026-08-17 | |
-| F11 | Release gates & test harness | P1 | Not started | — | — | **P1 gate** |
+| F11 | Release gates & test harness | P1 | In progress | 2026-08-17 | — | **P1 gate** |
 | F12 | AI gateway & degradation | P2 | Not started | — | — | Do not start before F11 green |
 | F13 | AI coach | P2 | Not started | — | — | |
 | F14 | Facilitator analysis | P3 | Not started | — | — | |
@@ -175,7 +175,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F11-T01 | Verification script and npm scripts | Not started | |
+| F11-T01 | Verification script and npm scripts | Done | |
 | F11-T02 | T2 key-removal E2E | Not started | **P1 gate** |
 | F11-T03 | T3 lock integrity property test | Not started | |
 | F11-T04 | T1 coach containment harness | Not started | Gates P2 release |
