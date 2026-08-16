@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 69
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 70
 
 ---
 
@@ -187,7 +187,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
 | F12-T01 | Gateway module | Done | |
-| F12-T02 | Level selection | Not started | |
+| F12-T02 | Level selection | Done | |
 | F12-T03 | Circuit breaker | Not started | |
 | F12-T04 | Budget accounting | Not started | |
 | F12-T05 | Timeout and retry policy | Not started | |

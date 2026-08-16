@@ -24,6 +24,7 @@ import {
   type ProviderRequest,
   type ProviderResponse,
 } from "./provider";
+import { isLatencyDegraded, LATENCY_WINDOW } from "./latency-health";
 import { hintViolations } from "./coach-containment";
 import { logAICall, type AICallLevel, type AICallPurpose } from "./log";
 
@@ -91,6 +92,44 @@ export function selectLevel(
   if (ctx.circuitOpen) return "L2";
   if (ctx.latencyDegraded) return "L1";
   return "L0";
+}
+
+// F12-T02 — the gateway is also the natural owner of the "recent call latency"
+// signal that rule 4 reads. It measures every call that actually reached the
+// provider, so a caller building the next GatewayContext can derive
+// `latencyDegraded` from real provider latency rather than a flag from nowhere.
+// Only calls that invoked the provider count as latency samples: a call stopped
+// by level/budget/circuit/gate never contacted the model, so its 0ms is not a
+// provider latency and would poison the p95 toward healthy.
+
+/** The most recent provider-call latencies, capped at `LATENCY_WINDOW`. */
+const recentProviderLatencies: number[] = [];
+
+/** Forget recorded latencies (tests only — health state starts empty at boot). */
+export function resetLatencyHealth(): void {
+  recentProviderLatencies.length = 0;
+}
+
+/** How many provider latencies are currently recorded (tests only). */
+export function providerLatencySampleCount(): number {
+  return recentProviderLatencies.length;
+}
+
+function recordProviderLatency(elapsedMs: number): void {
+  recentProviderLatencies.push(elapsedMs);
+  if (recentProviderLatencies.length > LATENCY_WINDOW) {
+    recentProviderLatencies.shift();
+  }
+}
+
+/**
+ * Whether the p95 latency of the last `LATENCY_WINDOW` provider calls exceeds
+ * the 6s threshold — the flag that slots into `GatewayContext.latencyDegraded`
+ * for the next request. The recording side is in `callProvider`, so this stays
+ * in step with the calls the gateway has actually made.
+ */
+export function isCurrentLatencyDegraded(): boolean {
+  return isLatencyDegraded(recentProviderLatencies);
 }
 
 /** State threaded through the pipeline stages. */
@@ -274,12 +313,14 @@ export async function callProvider(
   };
   try {
     const result = await runPipeline(run);
+    if (run.pending !== null) recordProviderLatency(run.elapsedMs);
     logRun(run, result);
     return result;
   } catch {
     // An unexpected failure anywhere must never reach a caller (F12-T01).
     // Serve L2, and log it as a guard trip so the §11 metric still counts.
     run.elapsedMs = Date.now() - run.startedAt;
+    if (run.pending !== null) recordProviderLatency(run.elapsedMs);
     const result: GatewayResult = {
       level: "L2",
       degraded: true,
