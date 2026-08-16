@@ -136,6 +136,19 @@ export function isRankingQuestion(
   return (RANKING_QUESTION_IDS as readonly QuestionId[]).includes(id);
 }
 
+/**
+ * The question rendered with the paired-rows + star input (Q11, F03-T08). A
+ * type guard so the F03 shell can narrow a QuestionId before mounting the
+ * component — the same pattern as the other input guards above.
+ */
+export const PAIRED_ROWS_QUESTION_IDS = ["q11"] as const;
+export type PairedRowsQuestionId = (typeof PAIRED_ROWS_QUESTION_IDS)[number];
+export function isPairedRowsQuestion(
+  id: QuestionId,
+): id is PairedRowsQuestionId {
+  return (PAIRED_ROWS_QUESTION_IDS as readonly QuestionId[]).includes(id);
+}
+
 export const Q5_ROLE_IDS = [
   "pediatrician", "center_owner", "occupational_therapist",
   "speech_pathologist", "parent", "school_sped", "child", "lgu_doh",
@@ -296,6 +309,12 @@ export type SingleChoiceReasonValue = QuestionAnswerValues[SingleChoiceReasonQue
  * F03-T07 collects below.
  */
 export type RankingValue = QuestionAnswerValues[RankingQuestionId];
+/**
+ * The stored answer value for the paired-rows + star question (q11). The §3.1
+ * shape `{ rocks, starred }` — three what/done-when pairs plus the index of
+ * the one starred as the #1 priority that F03-T08 renders.
+ */
+export type PairedRowsValue = QuestionAnswerValues[PairedRowsQuestionId];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The fifteen records. Section, text and helper are written verbatim from the
