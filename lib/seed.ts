@@ -1,6 +1,7 @@
 import type { ClientBase } from "pg";
 import { withRespondentContext } from "./access";
 import { upsertAnswer, type Q14AnswerValue } from "./answers";
+import { createBudgetForCohort } from "./budget";
 
 // Seed data and the `db:seed` insert path (F01-T05, tech_infrastructure.md §8).
 //
@@ -487,6 +488,10 @@ export async function seedCohort(db: ClientBase): Promise<void> {
      on conflict (id) do nothing`,
     [SEED_COHORT_ID],
   );
+
+  // Every cohort carries a token budget from creation (F12-T04), so the cap
+  // exists before the first AI call can spend against it.
+  await createBudgetForCohort(db, SEED_COHORT_ID);
 
   for (const respondent of SEED_RESPONDENTS) {
     await db.query(

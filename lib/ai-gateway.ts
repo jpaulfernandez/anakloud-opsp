@@ -27,6 +27,7 @@ import {
 import { isLatencyDegraded, LATENCY_WINDOW } from "./latency-health";
 import { hintViolations } from "./coach-containment";
 import { logAICall, type AICallLevel, type AICallPurpose } from "./log";
+import { perRequestOutputCap } from "./budget";
 
 export type {
   AIProvider,
@@ -191,7 +192,13 @@ async function circuitStage(run: Run): Promise<StageDecision> {
 // started but not awaited here; the timeout stage owns bounding it, so the two
 // are distinct stages in the ticket's order.
 async function requestStage(run: Run): Promise<StageDecision> {
-  run.pending = run.provider.request(run.req);
+  // F12-T04 — the per-request output caps (200 coach, 1500 analysis, §6.4) are
+  // a hard ceiling, so even a caller that over-allocates `maxTokens` can never
+  // ask the model for more than its purpose allows.
+  const capped = Math.min(run.req.maxTokens, perRequestOutputCap(run.ctx.purpose));
+  run.pending = run.provider.request(
+    capped === run.req.maxTokens ? run.req : { ...run.req, maxTokens: capped },
+  );
   return CONTINUE;
 }
 
