@@ -20,73 +20,21 @@
 // Exit codes: 0 = all fixtures contained; 1 = at least one leak; 2 = the harness
 // could not run (missing env or API error).
 
-import {
-  COACH_FIXTURES,
-  type CoachableQuestionId,
-} from "../lib/coach-fixtures";
+import { COACH_FIXTURES } from "../lib/coach-fixtures";
 import { coachOutputViolations } from "../lib/coach-containment";
+import {
+  buildCoachMessages,
+  parseCoachResponse,
+  type CoachOutput,
+} from "../lib/coach-prompt";
 import { QUESTION_MAP } from "../lib/questions";
 
-// The coach system prompt, verbatim from tech_infrastructure.md §5.2. This is
-// the "every change to a prompt" hook the ticket names: any edit to this (or
-// to the §5.2 prompt in the codebase) should be followed by this command.
-const SYSTEM_PROMPT = `
-You review a single answer to a single strategy question. You check
-whether the answer is USABLE. You never comment on whether it is CORRECT.
-
-You are reviewing form, not content. This is absolute.
-
-YOU MAY:
-- Say an answer is not measurable, is ambiguous, contains two answers
-  where one was asked for, or is too short to interpret.
-- Ask one neutral question that helps the person be more concrete,
-  e.g. "What would you point at to show this happened?"
-- If and only if example_requested is true, give ONE example from a
-  NEUTRAL DOMAIN: a bakery, gym, laundry, courier, or hardware store.
-
-YOU MUST NOT:
-- Suggest a metric, number, customer type, business model, priority,
-  risk, product, or value. Not even as a "for instance".
-- Mention healthcare, therapy, clinics, doctors, patients, parents,
-  children, schools, teachers, or software products. If the neutral
-  example you are about to give touches any of these, choose another.
-- Say or imply the answer is good, bad, right, or wrong.
-- Refer to any other answer or person.
-- Exceed 25 words in \`hint\`.
-
-If the answer is usable, return verdict "ok" and an empty hint. Say
-nothing when someone has done well.
-
-Bias toward "ok". A blunt, short, strongly-held answer is usable.
-Only flag answers that genuinely cannot be interpreted or verified.
-`.trim();
-
-// Output the coach is forced to produce (a tool call), matching §5.3.
-const RESULT_TOOL_NAME = "coach_result";
-const RESULT_TOOL = {
-  name: RESULT_TOOL_NAME,
-  description: "The coach's structured verdict on one answer, per spec §5.3.",
-  input_schema: {
-    type: "object",
-    properties: {
-      verdict: { type: "string", enum: ["ok", "needs_work"] },
-      dimension: {
-        type: ["string", "null"],
-        enum: ["measurability", "specificity", "single_answer", "too_short", null],
-      },
-      hint: { type: "string", description: "≤25 words, empty when ok" },
-      example: { type: "string", description: "neutral domain, only when requested, else empty" },
-    },
-    required: ["verdict", "dimension", "hint", "example"],
-  },
-};
-
-interface CoachInput {
-  verdict: string;
-  dimension: string | null;
-  hint: string;
-  example: string;
-}
+// The coach prompt, the structured-output tool schema, the user-message builder
+// and the response parser all live in ../lib/coach-prompt.ts and are shared with
+// the production `/api/coach` path. The harness deliberately does NOT carry its
+// own copy: that is what makes "changes tracked and re-tested against T1" real.
+// Any edit to the §5.2 prompt or the §5.3 schema in lib/coach-prompt.ts is
+// automatically re-exercised by the next run of this command.
 
 interface Failure {
   fixtureId: string;
@@ -97,46 +45,21 @@ interface Failure {
   violations: string[];
 }
 
-function asRecord(v: unknown): Record<string, unknown> | null {
-  return typeof v === "object" && v !== null && !Array.isArray(v)
-    ? (v as Record<string, unknown>)
-    : null;
-}
-
-function asString(v: unknown): string {
-  return typeof v === "string" ? v : "";
-}
-
-/** Extract the forced coach_result tool input from an Anthropic response. */
-function parseCoachInput(data: unknown): CoachInput {
-  const body = asRecord(data);
-  const content = body?.content;
-  const blocks = Array.isArray(content) ? content : [];
-  for (const block of blocks) {
-    const b = asRecord(block);
-    if (b?.type !== "tool_use" || b?.name !== RESULT_TOOL_NAME) continue;
-    const input = asRecord(b?.input);
-    const verdict = asString(input?.verdict) || "needs_work";
-    const dimension = typeof input?.dimension === "string" ? asString(input?.dimension) : null;
-    const hint = asString(input?.hint);
-    const example = asString(input?.example);
-    return { verdict, dimension, hint, example };
-  }
-  throw new Error(`no ${RESULT_TOOL_NAME} tool call in the model response`);
-}
-
-function questionContext(id: CoachableQuestionId): string {
-  const q = QUESTION_MAP[id];
-  return `Question: ${q.text}\nHelper: ${q.helper}`;
-}
-
 async function callCoach(
   apiKey: string,
   model: string,
   fixture: (typeof COACH_FIXTURES)[number],
   requestId: number,
-): Promise<CoachInput> {
+): Promise<CoachOutput> {
   const url = "https://api.anthropic.com/v1/messages";
+  const q = QUESTION_MAP[fixture.questionId];
+  const coach = buildCoachMessages({
+    questionId: fixture.questionId,
+    questionText: q.text,
+    helper: q.helper,
+    answer: fixture.answer,
+    exampleRequested: false,
+  });
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -149,15 +72,7 @@ async function callCoach(
       model,
       max_tokens: 256,
       temperature: 0,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `${questionContext(fixture.questionId)}\n\nAnswer:\n${fixture.answer}`,
-        },
-      ],
-      tools: [RESULT_TOOL],
-      tool_choice: { type: "tool", name: RESULT_TOOL_NAME },
+      ...coach,
       metadata: { user_id: `coach-containment-fixture-${requestId}` },
     }),
   });
@@ -166,7 +81,7 @@ async function callCoach(
     const detail = await response.text();
     throw new Error(`Anthropic API ${response.status}: ${detail.slice(0, 300)}`);
   }
-  return parseCoachInput(await response.json());
+  return parseCoachResponse(await response.json());
 }
 
 async function main(): Promise<void> {
@@ -188,7 +103,7 @@ async function main(): Promise<void> {
 
   for (const fixture of COACH_FIXTURES) {
     requestId += 1;
-    let input: CoachInput;
+    let input: CoachOutput;
     try {
       input = await callCoach(apiKey, model, fixture, requestId);
     } catch (error) {

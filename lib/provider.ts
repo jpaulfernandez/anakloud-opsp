@@ -30,14 +30,33 @@ export class ProviderHttpError extends Error {
   }
 }
 
+/**
+ * A structured-output directive (F13-T01, tech_infrastructure.md §5.3). When
+ * present, the provider sends the request in tool-use mode — a `system` prompt,
+ * a single user turn, and the one tool the model is forced to call — so the
+ * response is structurally constrained by the API rather than by a politely
+ * worded prompt. This is how the coach guarantees its `{verdict, dimension,
+ * hint, example}` shape: free-text replies are impossible, not merely unlikely.
+ */
+export interface StructuredOutputDirective {
+  /** The `system` prompt that states the constraints (coach §5.2). */
+  system: string;
+  /** The user turn: question metadata + the single answer under evaluation. */
+  userMessage: string;
+  /** The one tool the model is forced to fill (`coach_result` for the coach). */
+  tool: { name: string; description?: string; input_schema: object };
+}
+
 /** Everything the gateway's request stage hands a provider. */
 export interface ProviderRequest {
-  /** The full prompt, already assembled by the caller (F13/F14). */
+  /** The full prompt for a plain-text call; ignored when `structuredOutput` is set. */
   prompt: string;
   /** Model id, pinned by config; recorded so a change is auditable (§10). */
   model: string;
   /** Hard cap on the model output in tokens (§6.2 per-request caps). */
   maxTokens: number;
+  /** When set, the call is sent in tool-use mode and must fill this tool. */
+  structuredOutput?: StructuredOutputDirective;
 }
 
 /** A completed provider call, before the output guard sees it. */
@@ -64,6 +83,26 @@ export interface AIProvider {
 export function anthropicProvider(apiKey: string): AIProvider {
   return {
     async request(req) {
+      const body: Record<string, unknown> = {
+        model: req.model,
+        max_tokens: req.maxTokens,
+      };
+      if (req.structuredOutput !== undefined) {
+        // Tool-use mode: system prompt, one user turn, and the forced tool. The
+        // model cannot answer in free text here — it must fill the tool input.
+        body.system = req.structuredOutput.system;
+        body.messages = [
+          { role: "user", content: req.structuredOutput.userMessage },
+        ];
+        body.tools = [req.structuredOutput.tool];
+        body.tool_choice = {
+          type: "tool",
+          name: req.structuredOutput.tool.name,
+        };
+      } else {
+        body.messages = [{ role: "user", content: req.prompt }];
+      }
+
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -71,23 +110,35 @@ export function anthropicProvider(apiKey: string): AIProvider {
           "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
         },
-        body: JSON.stringify({
-          model: req.model,
-          max_tokens: req.maxTokens,
-          messages: [{ role: "user", content: req.prompt }],
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         throw new ProviderHttpError(res.status);
       }
-      const body = (await res.json()) as {
-        content?: Array<{ text?: string }>;
+      const parsed = (await res.json()) as {
+        content?: Array<{
+          type?: string;
+          text?: string;
+          name?: string;
+          input?: unknown;
+        }>;
         usage?: { input_tokens?: number; output_tokens?: number };
       };
+      const blocks = parsed.content ?? [];
+      const textBlocks = blocks.map((c) => c.text ?? "").join("");
+      // The serialised structured output travels back as `text` so the output
+      // guard (which scans `ProviderResponse.text`) sees it, and so a calling
+      // F13 endpoint can run it back through the coach parser.
+      const structured = blocks.find(
+        (c) =>
+          c.type === "tool_use" &&
+          c.name === req.structuredOutput?.tool.name,
+      )?.input;
       return {
-        text: (body.content ?? []).map((c) => c.text ?? "").join(""),
-        inputTokens: body.usage?.input_tokens ?? 0,
-        outputTokens: body.usage?.output_tokens ?? 0,
+        text:
+          structured !== undefined ? JSON.stringify(structured) : textBlocks,
+        inputTokens: parsed.usage?.input_tokens ?? 0,
+        outputTokens: parsed.usage?.output_tokens ?? 0,
         model: req.model,
       };
     },
