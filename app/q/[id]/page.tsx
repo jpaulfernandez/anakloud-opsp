@@ -6,6 +6,7 @@ import { groundRulesAcknowledged } from "@/lib/respondent";
 import { questionNeighbors, toQuestionId } from "@/lib/navigation";
 import { QUESTION_MAP, isQ14Question } from "@/lib/questions";
 import { listCohortTeammates } from "@/lib/cohort";
+import { loadConfig } from "@/lib/config";
 import { QuestionShell } from "./QuestionShell";
 
 // Question route (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
@@ -33,6 +34,11 @@ export default async function QuestionPage({
   // "q3". Map one to the other so an out-of-range URL 404s before any DB work.
   const qid = toQuestionId(id);
   if (qid === null) notFound();
+
+  // The degradation level actually served (F05-T06, spec.md §7). It is
+  // resolved from the facilitator pin at request time and drives whether the
+  // coach runs: at L3 the questionnaire becomes a plain form with none of it.
+  const { aiLevel } = loadConfig();
 
   const db = createDbClient();
   await db.connect();
@@ -64,6 +70,7 @@ export default async function QuestionPage({
       // keeps a stable one across reloads.
       poolSeed={respondentId}
       roster={roster}
+      level={aiLevel}
     />
   );
 }

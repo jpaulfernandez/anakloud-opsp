@@ -61,6 +61,10 @@ import {
   metricTripleIsAnswered,
   type MetricTripleDraft,
 } from "@/lib/metric-triple";
+import {
+  coachActiveAtLevel,
+  type ResolvedLevel,
+} from "@/lib/levels";
 import { matrixGridIsAnswered } from "@/lib/matrix-grid";
 import {
   SINGLE_CHOICE_REASON_BLOCKED_MESSAGE,
@@ -170,6 +174,7 @@ export function QuestionShell({
   neighbors,
   poolSeed,
   roster = [],
+  level,
 }: {
   question: QuestionDefinition;
   neighbors: QuestionNeighbors;
@@ -177,6 +182,11 @@ export function QuestionShell({
   poolSeed: string;
   /** The cohort roster minus the respondent, pre-filling Q14's (b) rows. */
   roster: readonly CohortMember[];
+  /** The served degradation level (F05-T06). At L3 the coach is switched off
+      entirely and the questionnaire becomes a plain form (spec.md §7).
+      Resolved server-side by the pin; this prop is the whole of the
+      respondent's exposure to it. */
+  level: ResolvedLevel;
 }) {
   const router = useRouter();
   const [longTextAnswers, setLongTextAnswers] = useState<LongTextAnswers>({});
@@ -401,6 +411,15 @@ export function QuestionShell({
     // `blockedReason` below, never a disabled control (F03-T01).
     if (!canContinue) return;
     if (!next) return;
+
+    // At L3 (plain-form mode) every answer is accepted without evaluation and
+    // the coach never runs (F05-T06, spec.md §7) — the questionnaire advances
+    // exactly as if it had been designed without a coach, with nothing to
+    // nudge past (PR6, ui_ux D3).
+    if (!coachActiveAtLevel(level)) {
+      advance();
+      return;
+    }
 
     // Non-coachable questions and questions the coach already retired on
     // advance straight through with no evaluation (FR-21, FR-17).
@@ -642,31 +661,37 @@ export function QuestionShell({
         )}
       </section>
 
-      <section
-        aria-label="Coach"
-        aria-live="polite"
-        data-slot="coach"
-        className="mt-6"
-      >
-        {coachUI?.kind === "nudge" && (
-          <CoachCard
-            // Re-mount per nudge so an example that was opened on a previous
-            // nudge collapses when the card re-appears for the new one.
-            key={coachUI.nudge}
-            hint={coachUI.hint}
-            example={coachUI.example}
-            nudge={coachUI.nudge}
-            onRevise={handleRevise}
-            onShowExample={handleShowExample}
-            onKeepAsIs={handleKeepAsIs}
-          />
-        )}
-        {coachUI?.kind === "closed" && (
-          <p data-testid="coach-closed" className="text-sm text-neutral-600">
-            Fair enough — going with yours.
-          </p>
-        )}
-      </section>
+      {/* The four §4.3 slots, in order: input, coach, confidence, save. The
+        coach slot is omitted entirely at L3 (F05-T06): a plain form is one
+        without a coach, and an empty region labelled "Coach" would be a
+        reference to a feature that is deliberately absent (PR6, ui_ux D3). */}
+      {coachActiveAtLevel(level) && (
+        <section
+          aria-label="Coach"
+          aria-live="polite"
+          data-slot="coach"
+          className="mt-6"
+        >
+          {coachUI?.kind === "nudge" && (
+            <CoachCard
+              // Re-mount per nudge so an example that was opened on a previous
+              // nudge collapses when the card re-appears for the new one.
+              key={coachUI.nudge}
+              hint={coachUI.hint}
+              example={coachUI.example}
+              nudge={coachUI.nudge}
+              onRevise={handleRevise}
+              onShowExample={handleShowExample}
+              onKeepAsIs={handleKeepAsIs}
+            />
+          )}
+          {coachUI?.kind === "closed" && (
+            <p data-testid="coach-closed" className="text-sm text-neutral-600">
+              Fair enough — going with yours.
+            </p>
+          )}
+        </section>
+      )}
 
       {question.confidence && (
         <section
