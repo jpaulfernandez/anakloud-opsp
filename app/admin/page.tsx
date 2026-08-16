@@ -130,10 +130,35 @@ function AdminDashboard({
         Admin
       </h1>
       <LevelStrip data={strip} />
+      <ExportNav />
       <ComparisonNav />
       <RosterTable roster={roster} />
       {cohort !== null ? <CohortLifecycle initial={cohort} /> : null}
     </main>
+  );
+}
+
+/**
+ * The one export surface required by F10-T06 (FR-34): the projection sheet.
+ * Opened at its own gated route, it is unconditionally anonymised, so adding
+ * it as a plain link here never reaches an attributed view. It is an export
+ * the facilitator runs before or during the session, at the dashboard's tight
+ * density.
+ */
+function ExportNav() {
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-3">
+      <span className="text-xs uppercase tracking-wide text-neutral-500">
+        Exports
+      </span>
+      <Link
+        href="/admin/projection"
+        data-testid="projection-link"
+        className="rounded-md border border-neutral-300 px-2.5 py-1 text-sm text-neutral-700 hover:bg-neutral-50"
+      >
+        Projection sheet
+      </Link>
+    </div>
   );
 }
 

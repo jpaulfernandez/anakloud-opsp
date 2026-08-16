@@ -101,3 +101,30 @@
     display: none !important;
   }
 }
+
+/*
+ * F10-T06 — the projection sheet's print stylesheet (FR-34, ui_ux.md §4.18,
+ * reusing the F08-T01 convention: "a page break may fall between sections but
+ * never through one"). On the projection sheet the atomic unit is one answer
+ * card, so each card carries break-inside: avoid — a break can land between
+ * cards, never through one. The screen chrome (the back-to-admin bar and the
+ * projection hint) is not content and does not print. Font sizes already live
+ * at a projector-legible size on screen (ProjectionSheet renders at text-lg+),
+ * so paper keeps the same legibility without a print-only re-scaling.
+ */
+@media print {
+  [data-testid="projection-card"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* The navigation and hint bar is chrome, not sheet content. */
+  [data-testid="projection-back"] {
+    display: none !important;
+  }
+
+  /* Each question block stays whole for projection; cards never split. */
+  [data-testid^="projection-question-"] {
+    break-inside: avoid;
+  }
+}

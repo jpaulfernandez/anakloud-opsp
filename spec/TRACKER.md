@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 61
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 62
 
 ---
 
@@ -50,7 +50,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F07 | Individual OPSP | P1 | Done | 2026-08-17 | 2026-08-17 | Unblocked — Part B mapping now available |
 | F08 | Print & PDF export | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F09 | Admin gate & dashboard | P1 | Done | 2026-08-17 | 2026-08-17 | |
-| F10 | Comparison & divergence | P1 | Not started | — | — | |
+| F10 | Comparison & divergence | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F11 | Release gates & test harness | P1 | Not started | — | — | **P1 gate** |
 | F12 | AI gateway & degradation | P2 | Not started | — | — | Do not start before F11 green |
 | F13 | AI coach | P2 | Not started | — | — | |
@@ -169,7 +169,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F10-T03 | Comparison screen | Done | |
 | F10-T04 | Anonymised and attributed modes | Done | |
 | F10-T05 | CSV export | Done | |
-| F10-T06 | Projection sheet export | Not started | |
+| F10-T06 | Projection sheet export | Done | |
 
 ## F11 — Release gates & test harness
 
