@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 65
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 66
 
 ---
 
@@ -178,7 +178,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F11-T01 | Verification script and npm scripts | Done | |
 | F11-T02 | T2 key-removal E2E | Done | **P1 gate** |
 | F11-T03 | T3 lock integrity property test | Done | |
-| F11-T04 | T1 coach containment harness | Not started | Gates P2 release |
+| F11-T04 | T1 coach containment harness | Done | Offline half in the unit suite; `npm run test:coach-containment` gates P2 release |
 | F11-T05 | Client bundle key check | Not started | |
 | F11-T06 | Log redaction test | Not started | |
 

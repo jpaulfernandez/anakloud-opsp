@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest",
+    "test:coach-containment": "tsx scripts/coach-containment.ts",
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {

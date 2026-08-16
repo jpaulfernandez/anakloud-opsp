@@ -159,6 +159,14 @@ The P1 gate — full E2E with the key removed:
 env -u ANTHROPIC_API_KEY npx playwright test --reporter=line
 ```
 
+The P2 gate — T1 coach containment at L0 (30 fixtures, live model). Separate command by design, so it needs a key and costs money — run it on every prompt or static-hint change:
+
+```bash
+npm run test:coach-containment
+```
+
+Its offline half (the same §5.4 assertions over `lib/static-hints.ts`, plus the fixture-set checks) runs inside the normal unit suite; only the live-model call is kept out of `./verify.sh`.
+
 ---
 
 ## Environment
