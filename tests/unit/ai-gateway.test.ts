@@ -4,12 +4,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   callProvider,
+  gatewayCallRecord,
   ProviderHttpError,
   selectLevel,
   type AIProvider,
+  type GatewayRecord,
+  type GatewayResult,
   type ProviderRequest,
   type ProviderResponse,
 } from "../../lib/ai-gateway";
+import type { ClientBase } from "pg";
 
 // F12-T01 — the gateway module (tech_infrastructure.md §2).
 //
@@ -487,6 +491,92 @@ describe("logging stage emits exactly one structured record per call", () => {
     expect(record.level).toBe("L2");
     expect(record.tokens).toEqual({ input: 0, output: 0 });
     expect(record.guardResult).toContain("banned term");
+  });
+
+  it("structured log lines for a call never contain the answer text it rode in on", async () => {
+    // §11: "application logs never contain answer text". The gateway only
+    // logs purpose/level/latency/tokens/guard — the prompt (which holds the
+    // answer) travels to the provider, never into a log line. Assert this
+    // directly against a call whose request carries a distinctive marker.
+    const marker = "PLUMBINGALIGN79 NEARESTWAREHOUSE";
+    const { provider } = recordingProvider(async () => okResponse());
+    const { lines } = await withLog(() =>
+      callProvider(coachCtx(), provider, { ...REQ, prompt: `The answer was ${marker}.` }),
+    );
+    expect(lines).toHaveLength(1);
+    const parsed = JSON.parse(lines[0]) as Record<string, unknown>;
+    expect(JSON.stringify(parsed)).not.toContain(marker);
+    expect(Object.keys(parsed).sort()).toEqual(["guardResult", "latencyMs", "level", "purpose", "tokens"]);
+  });
+});
+
+describe("interaction-row capture (F12-T06, tech_infrastructure.md §3)", () => {
+  // The gateway maps each served call onto the ai_interactions row through the
+  // pure gatewayCallRecord function; recordModelCall persists it in one
+  // transaction with the token counters. These tests prove the mapping — the
+  // two audit acceptances that hold without (and even survive) a database:
+  //  1. a served L0 call records non-zero token counts and the model used;
+  //  2. a degraded (L1/L2) call records zero tokens at the level that served it.
+
+  function record(overrides: Partial<GatewayRecord> = {}): GatewayRecord {
+    return {
+      db: {} as unknown as ClientBase,
+      cohortId: "cohort-1",
+      respondentId: "resp-1",
+      questionId: "q7",
+      attemptNo: 2,
+      verdict: "needs_work",
+      hintText: "Make it countable.",
+      exampleShown: true,
+      ...overrides,
+    };
+  }
+
+  it("returns null for a call with no audit wiring", () => {
+    const result: GatewayResult = { level: "L0", degraded: false, provider: okResponse() };
+    expect(gatewayCallRecord({ purpose: "coach", record: undefined }, REQ, result)).toBeNull();
+  });
+
+  it("a served L0 call records non-zero tokens and the model that produced it", () => {
+    const result: GatewayResult = {
+      level: "L0",
+      degraded: false,
+      provider: { ...okResponse(), model: "claude-sonnet-5" },
+    };
+    const row = gatewayCallRecord({ purpose: "coach", record: record() }, REQ, result);
+    expect(row).not.toBeNull();
+    expect(row!.cohortId).toBe("cohort-1");
+    expect(row!.respondentId).toBe("resp-1");
+    expect(row!.questionId).toBe("q7");
+    expect(row!.purpose).toBe("coach");
+    expect(row!.attemptNo).toBe(2);
+    expect(row!.level).toBe("L0");
+    expect(row!.model).toBe("claude-sonnet-5");
+    expect(row!.inputTokens).toBe(120);
+    expect(row!.outputTokens).toBe(30);
+    expect(row!.guardTripped).toBeNull();
+    expect(row!.answerChanged).toBe(false);
+  });
+
+  it("a degraded L2 call records zero tokens but the level stored for the audit", () => {
+    const result: GatewayResult = { level: "L2", degraded: true };
+    const row = gatewayCallRecord({ purpose: "coach", record: record() }, REQ, result);
+    expect(row!.level).toBe("L2");
+    expect(row!.inputTokens).toBe(0);
+    expect(row!.outputTokens).toBe(0);
+    // The pinned model the call was aimed at is still recorded, so a mid-cohort
+    // model change is visible even when the model never ran (FR-35).
+    expect(row!.model).toBe(REQ.model);
+  });
+
+  it("records a tripped guard and, for analysis, no guard", () => {
+    const tripped: GatewayResult = { level: "L2", degraded: true, guardTripped: "banned term: clinic" };
+    const t = gatewayCallRecord({ purpose: "coach", record: record() }, REQ, tripped);
+    expect(t!.guardTripped).toBe("banned term: clinic");
+
+    const analysis: GatewayResult = { level: "L0", degraded: false, provider: okResponse() };
+    const a = gatewayCallRecord({ purpose: "analysis", record: record() }, REQ, analysis);
+    expect(a!.guardTripped).toBeNull();
   });
 });
 

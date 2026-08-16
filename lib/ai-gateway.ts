@@ -28,7 +28,12 @@ import {
 import { isLatencyDegraded, LATENCY_WINDOW } from "./latency-health";
 import { hintViolations } from "./coach-containment";
 import { logAICall, type AICallLevel, type AICallPurpose } from "./log";
-import { perRequestOutputCap } from "./budget";
+import {
+  perRequestOutputCap,
+  recordModelCall,
+  type RecordedModelCall,
+} from "./budget";
+import type { ClientBase } from "pg";
 
 export type {
   AIProvider,
@@ -77,7 +82,29 @@ function delay(ms: number): Promise<void> {
 export type TargetLevel = "L0" | "L1" | "L2" | "auto";
 
 /**
- * Everything the gateway needs to serve one call. The health flags are read
+ * The audit-row metadata a gateway call may carry (F12-T06,
+ * tech_infrastructure.md §3). Everything the `ai_interactions` row records
+ * beyond what the pipeline itself determines — identity, attempt number, and
+ * the coach content fields — comes from here, supplied by the caller that
+ * built the prompt (F13 owns the coach content). The gateway only has a db for
+ * the write when `record` is present; purely-formed calls (the unit tests) run
+ * without one and still emit the structured log line.
+ */
+export interface GatewayRecord {
+  /** The db handle for the row + token-counter write (F12-T04). */
+  db: ClientBase;
+  /** The cohort whose token budget the call consumes. */
+  cohortId: string;
+  respondentId?: string | null;
+  questionId?: string | null;
+  attemptNo?: number | null;
+  verdict?: string | null;
+  hintText?: string | null;
+  exampleShown?: boolean;
+}
+
+/**
+ * What the gateway needs to serve one call. The health flags are read
  * by the caller from server state (cohort rows, ai_budget, recent-call
  * latency) — F12-T02/T03/T04 own how they are computed; this module only
  * reads them in the fixed precedence.
@@ -97,6 +124,8 @@ export interface GatewayContext {
   timeoutMs?: number;
   /** Override the jittered retry backoff (tests); defaults to §6.2 jitter. */
   retryBackoffMs?: number;
+  /** Audit-row metadata; when present the gateway writes one row per call. */
+  record?: GatewayRecord;
 }
 
 /**
@@ -343,6 +372,60 @@ function logRun(run: Run, result: GatewayResult): void {
   });
 }
 
+// F12-T06 — the `ai_interactions` row (tech_infrastructure.md §3, FR-20). This
+// is the second audit leg, alongside the structured log line above: a served
+// L0 call records its model, verdict, hint text and real token counts; a
+// degraded L2 call records zero tokens but still the level, purpose and model
+// the call was aimed at — so the facilitator sees exactly one row per gateway
+// call and can audit both the live-model spend and the mid-cohort model pin.
+// The mapping is pure (no I/O) so "tokens non-zero for L0, zero for L2" is
+// unit-testable without a database; recordModelCall writes the row and the
+// token counters in one transaction (F12-T04).
+export function gatewayCallRecord(
+  ctx: Pick<GatewayContext, "purpose" | "record">,
+  req: ProviderRequest,
+  result: GatewayResult,
+): RecordedModelCall | null {
+  const record = ctx.record;
+  if (record === undefined) return null;
+  return {
+    cohortId: record.cohortId,
+    respondentId: record.respondentId ?? null,
+    questionId: record.questionId ?? null,
+    purpose: ctx.purpose,
+    attemptNo: record.attemptNo ?? null,
+    level: result.level,
+    // The model that actually produced the output when one did, or the pinned
+    // model the call was aimed at when it was served deterministically — so the
+    // audit shows a mid-cohort model change whether or not the model ran.
+    model: result.provider?.model ?? req.model,
+    verdict: record.verdict ?? null,
+    hintText: record.hintText ?? null,
+    exampleShown: record.exampleShown ?? false,
+    answerChanged: false,
+    inputTokens: result.provider?.inputTokens ?? 0,
+    outputTokens: result.provider?.outputTokens ?? 0,
+    guardTripped: result.guardTripped ?? null,
+  };
+}
+
+/** Persist one `ai_interactions` row for the call, when a row is wired. */
+async function recordRun(run: Run, result: GatewayResult): Promise<void> {
+  const record = gatewayCallRecord(run.ctx, run.sentReq, result);
+  if (record === null) return;
+  try {
+    // `record` is non-null exactly when the call carries audit metadata, so
+    // `rule.db` is always set here.
+    await recordModelCall(run.ctx.record!.db, record);
+  } catch {
+    // The audit write must never fail the served call — the respondent already
+    // has their result and the pipeline guarantee (F12-T01 "never throws")
+    // outranks the log row. A lost row surfaces to the facilitator as missing
+    // audit data, not as a broken coach; the structured log line above already
+    // went out regardless, so §11's signals survive even a db failure here.
+  }
+}
+
 const STAGES: Stage[] = [
   levelStage,
   budgetStage,
@@ -396,22 +479,24 @@ export async function callProvider(
     elapsedMs: 0,
     pending: null,
   };
+  let result: GatewayResult;
   try {
-    const result = await runPipeline(run);
-    if (run.pending !== null) recordProviderLatency(run.elapsedMs);
-    logRun(run, result);
-    return result;
+    result = await runPipeline(run);
   } catch {
     // An unexpected failure anywhere must never reach a caller (F12-T01).
     // Serve L2, and log it as a guard trip so the §11 metric still counts.
     run.elapsedMs = Date.now() - run.startedAt;
-    if (run.pending !== null) recordProviderLatency(run.elapsedMs);
-    const result: GatewayResult = {
+    result = {
       level: "L2",
       degraded: true,
       guardTripped: "gateway_failed",
     };
-    logRun(run, result);
-    return result;
   }
+  if (run.pending !== null) recordProviderLatency(run.elapsedMs);
+  // Both audit legs — the structured log line and the ai_interactions row —
+  // run exactly once, after the served result is final. The row write is
+  // best-effort (F12-T06): a db failure must not undo the result.
+  logRun(run, result);
+  await recordRun(run, result);
+  return result;
 }
