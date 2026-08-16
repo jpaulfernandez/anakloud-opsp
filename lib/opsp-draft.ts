@@ -11,17 +11,26 @@ import type { OpspCell, OpspCellId } from "./opsp";
 // versions, never mutate prior ones, so a read ordered by version descending
 // is stable against that contract.
 
+/** A respondent's own latest individual OPSP draft row. */
+export interface IndividualDraft {
+  id: string;
+  version: number;
+  cells: Record<OpspCellId, OpspCell>;
+}
+
 /**
- * The caller's latest individual OPSP draft cells, or null when none exists.
- * A submitted respondent always has version 1 (created by performSubmit), so a
+ * The caller's latest individual OPSP draft, or null when none exists. A
+ * submitted respondent always has version 1 (created by performSubmit), so a
  * null result only arises for a respondent who never went through submit —
- * which the /opsp route treats as a redirect, not an error.
+ * which the /opsp route treats as a redirect, not an error. F07-T05 surfaces
+ * the draft id so the edit route targets the draft the respondent is looking
+ * at.
  */
-export async function latestIndividualDraftCells(
+export async function latestIndividualDraft(
   db: ClientBase,
-): Promise<Record<OpspCellId, OpspCell> | null> {
-  const { rows } = await db.query<{ cells: unknown }>(
-    `select cells
+): Promise<IndividualDraft | null> {
+  const { rows } = await db.query<{ id: string; version: number; cells: unknown }>(
+    `select id, version, cells
        from opsp_drafts
       where owner_type = 'individual' and owner_id = app_current_respondent()
       order by version desc
@@ -29,5 +38,16 @@ export async function latestIndividualDraftCells(
   );
   const row = rows[0];
   if (!row || row.cells === null || row.cells === undefined) return null;
-  return row.cells as Record<OpspCellId, OpspCell>;
+  return { id: row.id, version: row.version, cells: row.cells as Record<OpspCellId, OpspCell> };
+}
+
+/**
+ * The caller's latest individual OPSP draft cells, or null when none exists.
+ * Convenience over latestIndividualDraft for callers that only need the cells.
+ */
+export async function latestIndividualDraftCells(
+  db: ClientBase,
+): Promise<Record<OpspCellId, OpspCell> | null> {
+  const draft = await latestIndividualDraft(db);
+  return draft ? draft.cells : null;
 }

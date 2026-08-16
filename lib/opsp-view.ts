@@ -170,6 +170,10 @@ export function formatOpspCellValue(
   value: unknown,
   nameOf?: DisplayNameResolver,
 ): string {
+  // An edited cell (F07-T05) holds plain text — the respondent's own rewrite —
+  // rather than the structured fragment map the mapping derives. Return it
+  // verbatim; nothing is re-derived or invented.
+  if (typeof value === "string") return value;
   const rec = asRecord(value);
   const lines: string[] = [];
   for (const [id, fragment] of Object.entries(rec)) {

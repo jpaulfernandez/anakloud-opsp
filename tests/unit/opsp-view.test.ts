@@ -45,6 +45,13 @@ describe("F07-T02 OPSP view helpers", () => {
     expect(isOpspCellEmpty({ value: { q1: { text: "x" } } })).toBe(false);
   });
 
+  it("formats an edited cell's plain text verbatim (F07-T05)", () => {
+    // An OPSP edit stores the respondent's own rewritten text as a string;
+    // the renderer returns it unchanged rather than re-deriving or inventing.
+    expect(formatOpspCellValue("Our purpose now.")).toBe("Our purpose now.");
+    expect(formatOpspCellValue("")).toBe("");
+  });
+
   it("formats a multi-source purpose cell from its fragments", () => {
     const purpose = {
       q1: { text: "Waiting stops being the reason a child misses care." },

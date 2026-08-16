@@ -12,13 +12,25 @@
 // (§2, §7). The *state* is resolved here; the CSS classes that realise it live
 // in the view component.
 
-import type { OpspCell } from "./opsp";
+import type { OpspCell, OpspMark } from "./opsp";
 
 /** The rendered state of an OPSP cell, resolved from marking and value. */
 export type OpspCellState =
   | { kind: "empty" }
   | { kind: "ink" }
   | { kind: "pencil"; lowConfidence: boolean };
+
+/**
+ * The mark the cell currently carries, as a single ink/pencil value. A whole-
+ * cell single mark returns itself; the split 3-Year Targets cell always carries
+ * a pencil part and so reads as pencil. F07-T05 uses this as the starting value
+ * for the per-cell mark toggle, so the respondent's toggle reflects what they
+ * are looking at before they change it.
+ */
+export function currentCellMark(cell: Pick<OpspCell, "marking">): OpspMark {
+  if (cell.marking.type === "single") return cell.marking.mark;
+  return "pencil";
+}
 
 /** The short text tag every pencil cell carries (ui_ux.md §2). */
 export const OPSP_REVISIT_TAG = "revisit";

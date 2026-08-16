@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { OPSP_CELL_IDS, type OpspCell, type OpspCellId } from "@/lib/opsp";
+import {
+  OPSP_CELL_IDS,
+  type OpspCell,
+  type OpspCellId,
+  type OpspMark,
+} from "@/lib/opsp";
 import type { DisplayNameResolver } from "@/lib/review";
 import {
   OPSP_CELL_LABELS,
@@ -10,6 +15,7 @@ import {
 } from "@/lib/opsp-view";
 import {
   OPSP_REVISIT_TAG,
+  currentCellMark,
   opspCellNote,
   resolveOpspCellState,
   showsRevisitTag,
@@ -17,49 +23,54 @@ import {
 import { OPSP_HOWTO } from "@/lib/opsp-howto";
 
 // F07-T02 — the individual OPSP view and draft labelling (FR-23,
-// ui_ux.md §4.14). This is the plan a respondent gets back after submit: the
-// sixteen cells derived deterministically from their own answers (F07-T01),
-// served from the draft frozen at submit (F06-T03) and read back here (F07
-// later lets them edit it into a different version — that is F07-T05, not
-// this screen).
+// ui_ux.md §4.14).
 //
-// The unmissable draft label is the first thing on the screen and is rendered
-// unconditionally, by construction: it is a static header with no dismiss,
-// collapse or skip control, placed above the cells, so a respondent can never
-// trade the honesty label away to reach the grid faster. This is the FR-23
-// requirement kept whole — the plan is explicitly "not the company's plan".
+// F07-T03 — ink, pencil and empty cells (FR-24, §2, §7). The state and note
+// decisions are resolved in lib/opsp-state.ts; this component only turns that
+// deterministic state into classes and text.
 //
-// Layout follows §4.14: a single-column stack of cards on a phone (360px is
-// one column), fanning out into the classic OPSP columns once the viewport is
-// wide. The same DOM renders both, so grid and stacked show identical content.
+// F07-T04 — the "How to read this" panel (FR-25, §4.14).
 //
-// The ink/pencil and empty-cell treatment (F07-T03, FR-24, §2, §7) is this
-// screen's second job: content derived from confident, complete answers
-// renders as ink (solid text at full contrast); content whose source was blank
-// or low-confidence renders as pencil — lighter weight, a dashed left border
-// and a "revisit" tag, never colour — so the distinction survives printing in
-// greyscale. Pencil cells that are pencil because the respondent was unsure
-// carry the low-confidence note; empty cells carry the empty note and are never
-// auto-filled. The state and note decisions are resolved in lib/opsp-state.ts;
-// this component only turns that deterministic state into classes and text.
+// F07-T05 — inline editing and versioning (FR-26, PR5, ui_ux.md §4.15). The
+// respondent edits their own OPSP cells inline, one at a time, and manually
+// toggles each cell's ink/pencil mark. Saving writes a new opsp_drafts version
+// via PATCH /api/opsp/:id and never touches the answers (PR5); the component
+// adopts the returned cells so the screen reflects the new version without a
+// reload. A persistent edit bar carries the exact §4.15 note — it is always
+// present, so the note is visible throughout editing, never once.
 //
-// F07-T04 — the "How to read this" panel (FR-25, §4.14) — is this screen's
-// third job: a persistent guide rendered on the right at desktop and as a
-// bottom sheet on mobile, whose content is the static, repository-authored text
-// in lib/opsp-howto.ts (never generated or fetched at runtime). Activating a
-// cell scrolls the panel to that cell's explanation. This is the only part of
-// the screen that is interactive, so the component is a client component; the
-// cells and roster it renders are still the pure, serializable data the page
-// server loaded.
+// Editing a cell turns its content block into a textarea pre-filled with the
+// current rendered text (or empty for a blank cell) plus a two-way Ink/Pencil
+// toggle. The respondent's rewrite is stored as plain text; clearing the field
+// leaves the cell blank (never auto-filled back). On a save failure the cell
+// stays in edit mode with the text intact rather than losing the respondent's
+// typing.
 export function OPSPView({
-  cells,
+  cells: initialCells,
   rosterNames,
+  draftId,
 }: {
   cells: Record<OpspCellId, OpspCell>;
   /** cohort mate id → display name, for q14(b)'s "thinks others own" lines. */
   rosterNames: Record<string, string>;
+  /** The draft id being viewed, targeted by the OPSP edit route (F07-T05). */
+  draftId: string;
 }) {
   const nameOf: DisplayNameResolver = (rid) => rosterNames[rid];
+
+  // The draft cells as they currently read. Editing creates a new version and
+  // the route returns the updated cells, which replace this state so the view
+  // stays in sync without a reload.
+  const [cells, setCells] = useState<Record<OpspCellId, OpspCell>>(initialCells);
+
+  // F07-T05 edit state: which cell is being edited, the in-progress text and
+  // the mark the toggle is set to. Nothing is written back to `cells` until
+  // the respondent saves, so cancelling loses nothing and a failed save leaves
+  // the draft box intact.
+  const [editingId, setEditingId] = useState<OpspCellId | null>(null);
+  const [draftText, setDraftText] = useState("");
+  const [draftMark, setDraftMark] = useState<OpspMark>("pencil");
+  const [saving, setSaving] = useState(false);
 
   // The "How to read this" panel (F07-T04): which cell's explanation is active,
   // which entry to scroll to, and whether the mobile bottom sheet is expanded.
@@ -95,6 +106,43 @@ export function OPSPView({
     setMobileOpen(true);
   }
 
+  /** Enter edit mode for a cell, pre-filling it from its current rendering. */
+  function beginEdit(id: OpspCellId) {
+    const cell = cells[id];
+    setEditingId(id);
+    setDraftText(cell ? formatOpspCellValue(cell.value, nameOf) : "");
+    setDraftMark(cell ? currentCellMark(cell) : "pencil");
+  }
+
+  /** Save the in-progress edit as a new OPSP draft version. */
+  async function saveEdit() {
+    if (editingId === null || saving) return;
+    const id = editingId;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/opsp/${draftId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cellId: id, content: draftText, mark: draftMark }),
+      });
+      if (!res.ok) {
+        // Stay in edit mode so nothing the respondent typed is lost.
+        return;
+      }
+      const data = (await res.json()) as {
+        version: number;
+        cells: Record<OpspCellId, OpspCell>;
+      };
+      setCells(data.cells);
+      setEditingId(null);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const editBarNote =
+    "Editing this doesn't change your survey answers — those stay as you submitted them.";
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 text-base lg:pb-10">
       <header data-testid="opsp-draft-label" className="max-w-2xl">
@@ -108,82 +156,172 @@ export function OPSPView({
       </header>
 
       <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start">
-        <section
-          data-testid="opsp-grid"
-          aria-label="Your draft One-Page Strategic Plan"
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2"
-        >
-          {OPSP_CELL_IDS.map((id) => {
-            const cell = cells[id];
-            if (!cell) return null;
-            const state = resolveOpspCellState(cell);
-            const ink = state.kind === "ink";
-            const content =
-              state.kind === "empty"
-                ? ""
-                : formatOpspCellValue(cell.value, nameOf);
-            const provenance =
-              state.kind === "empty" ? null : formatOpspProvenance(cell.sources);
-            const note = opspCellNote(state);
-            const revisit = showsRevisitTag(state);
-            return (
-              <article
-                key={id}
-                data-testid={`opsp-cell-${id}`}
-                className="rounded-lg border border-neutral-200 bg-white p-4"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h2 className="text-sm font-semibold tracking-wide text-neutral-500 uppercase">
-                    {OPSP_CELL_LABELS[id]}
-                  </h2>
-                  <button
-                    type="button"
-                    data-testid={`opsp-howto-trigger-${id}`}
-                    onClick={() => activateCell(id)}
-                    aria-label={`How to read ${OPSP_CELL_LABELS[id]}`}
-                    className="shrink-0 rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
-                  >
-                    What&apos;s this?
-                  </button>
-                </div>
-                <div
-                  data-testid={`opsp-content-${id}`}
-                  className={`mt-2 whitespace-pre-wrap text-[15px] leading-relaxed ${
-                    ink
-                      ? "font-normal text-neutral-900"
-                      : "border-l-4 border-dashed border-neutral-400 pl-3 font-light text-neutral-700"
-                  }`}
+        <div className="space-y-4">
+          {/*
+            F07-T05 — the persistent edit bar. It sits above the grid, is always
+            present, and carries the §4.15 note verbatim. Because it does not
+            depend on edit mode, the note is visible throughout editing rather
+            than flashed once.
+          */}
+          <div
+            data-testid="opsp-edit-bar"
+            className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3"
+          >
+            <p className="text-sm leading-relaxed text-neutral-700">{editBarNote}</p>
+          </div>
+
+          <section
+            data-testid="opsp-grid"
+            aria-label="Your draft One-Page Strategic Plan"
+            className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2"
+          >
+            {OPSP_CELL_IDS.map((id) => {
+              const cell = cells[id];
+              if (!cell) return null;
+              const state = resolveOpspCellState(cell);
+              const editing = editingId === id;
+              const ink = state.kind === "ink";
+              const content =
+                state.kind === "empty"
+                  ? ""
+                  : formatOpspCellValue(cell.value, nameOf);
+              const provenance =
+                state.kind === "empty" ? null : formatOpspProvenance(cell.sources);
+              const note = opspCellNote(state);
+              const revisit = showsRevisitTag(state);
+              return (
+                <article
+                  key={id}
+                  data-testid={`opsp-cell-${id}`}
+                  className="rounded-lg border border-neutral-200 bg-white p-4"
                 >
-                  {content || ""}
-                </div>
-                {revisit ? (
-                  <span
-                    data-testid={`opsp-revisit-${id}`}
-                    className="mt-3 inline-block rounded-full border border-neutral-300 px-2 py-0.5 text-[11px] font-medium tracking-wide text-neutral-500 uppercase"
-                  >
-                    {OPSP_REVISIT_TAG}
-                  </span>
-                ) : null}
-                {note !== null ? (
-                  <p
-                    data-testid={`opsp-note-${id}`}
-                    className="mt-3 text-xs italic text-neutral-500"
-                  >
-                    {note}
-                  </p>
-                ) : null}
-                {provenance !== null ? (
-                  <p
-                    data-testid={`opsp-provenance-${id}`}
-                    className="mt-3 text-xs text-neutral-400"
-                  >
-                    {provenance}
-                  </p>
-                ) : null}
-              </article>
-            );
-          })}
-        </section>
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="text-sm font-semibold tracking-wide text-neutral-500 uppercase">
+                      {OPSP_CELL_LABELS[id]}
+                    </h2>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        data-testid={`opsp-cell-edit-${id}`}
+                        onClick={() => (editing ? undefined : beginEdit(id))}
+                        aria-label={`Edit ${OPSP_CELL_LABELS[id]}`}
+                        className="rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        data-testid={`opsp-howto-trigger-${id}`}
+                        onClick={() => activateCell(id)}
+                        aria-label={`How to read ${OPSP_CELL_LABELS[id]}`}
+                        className="rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
+                      >
+                        What&apos;s this?
+                      </button>
+                    </div>
+                  </div>
+
+                  {editing ? (
+                    <div className="mt-2">
+                      <textarea
+                        data-testid={`opsp-cell-input-${id}`}
+                        value={draftText}
+                        onChange={(e) => setDraftText(e.target.value)}
+                        aria-label={OPSP_CELL_LABELS[id]}
+                        rows={4}
+                        className="w-full resize-y rounded border border-neutral-300 bg-white p-2 text-[15px] leading-relaxed text-neutral-900 focus:border-neutral-500 focus:outline-none"
+                      />
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-neutral-500">Mark:</span>
+                        <button
+                          type="button"
+                          data-testid={`opsp-mark-ink-${id}`}
+                          onClick={() => setDraftMark("ink")}
+                          aria-pressed={draftMark === "ink"}
+                          className={`rounded border px-2 py-0.5 text-[11px] font-medium ${
+                            draftMark === "ink"
+                              ? "border-neutral-400 bg-neutral-100 text-neutral-900"
+                              : "border-neutral-200 text-neutral-500"
+                          }`}
+                        >
+                          Ink
+                        </button>
+                        <button
+                          type="button"
+                          data-testid={`opsp-mark-pencil-${id}`}
+                          onClick={() => setDraftMark("pencil")}
+                          aria-pressed={draftMark === "pencil"}
+                          className={`rounded border px-2 py-0.5 text-[11px] font-medium ${
+                            draftMark === "pencil"
+                              ? "border-neutral-400 bg-neutral-100 text-neutral-900"
+                              : "border-neutral-200 text-neutral-500"
+                          }`}
+                        >
+                          Pencil
+                        </button>
+                        <span className="flex-1" />
+                        <button
+                          type="button"
+                          data-testid={`opsp-cell-cancel-${id}`}
+                          onClick={() => setEditingId(null)}
+                          className="rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          data-testid={`opsp-cell-save-${id}`}
+                          onClick={saveEdit}
+                          disabled={saving}
+                          className="rounded border border-neutral-900 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
+                        >
+                          {saving ? "Saving…" : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div
+                        data-testid={`opsp-content-${id}`}
+                        className={`mt-2 whitespace-pre-wrap text-[15px] leading-relaxed ${
+                          ink
+                            ? "font-normal text-neutral-900"
+                            : "border-l-4 border-dashed border-neutral-400 pl-3 font-light text-neutral-700"
+                        }`}
+                      >
+                        {content || ""}
+                      </div>
+                      {revisit ? (
+                        <span
+                          data-testid={`opsp-revisit-${id}`}
+                          className="mt-3 inline-block rounded-full border border-neutral-300 px-2 py-0.5 text-[11px] font-medium tracking-wide text-neutral-500 uppercase"
+                        >
+                          {OPSP_REVISIT_TAG}
+                        </span>
+                      ) : null}
+                      {note !== null ? (
+                        <p
+                          data-testid={`opsp-note-${id}`}
+                          className="mt-3 text-xs italic text-neutral-500"
+                        >
+                          {note}
+                        </p>
+                      ) : null}
+                      {provenance !== null ? (
+                        <p
+                          data-testid={`opsp-provenance-${id}`}
+                          className="mt-3 text-xs text-neutral-400"
+                        >
+                          {provenance}
+                        </p>
+                      ) : null}
+                    </>
+                  )}
+                </article>
+              );
+            })}
+          </section>
+        </div>
 
         {/*
           F07-T04 — the "How to read this" panel. Persistent: on desktop it

@@ -4,9 +4,8 @@ import { createDbClient } from "@/lib/db";
 import { requirePageSession } from "@/lib/auth";
 import { groundRulesAcknowledged } from "@/lib/respondent";
 import { withRespondentContext } from "@/lib/access";
-import { latestIndividualDraftCells } from "@/lib/opsp-draft";
+import { latestIndividualDraft, type IndividualDraft } from "@/lib/opsp-draft";
 import { listCohortTeammates } from "@/lib/cohort";
-import type { OpspCell, OpspCellId } from "@/lib/opsp";
 import { OPSPView } from "./OPSPView";
 
 // The individual OPSP route (F07-T02, FR-22/23, ui_ux.md §4.14) — the draft
@@ -37,7 +36,7 @@ export default async function OpspPage() {
   await db.connect();
 
   let rosterNames: Record<string, string> = {};
-  let cells: Record<OpspCellId, OpspCell> | null = null;
+  let draft: IndividualDraft | null = null;
   try {
     const session = await requirePageSession(db);
     if (session.submittedAt === null || session.submittedAt === undefined) {
@@ -48,14 +47,14 @@ export default async function OpspPage() {
     }
     const roster = await listCohortTeammates(db, session.cohortId, session.respondentId);
     rosterNames = Object.fromEntries(roster.map((m) => [m.id, m.displayName]));
-    cells = await withRespondentContext(db, session.respondentId, (tx) =>
-      latestIndividualDraftCells(tx),
+    draft = await withRespondentContext(db, session.respondentId, (tx) =>
+      latestIndividualDraft(tx),
     );
   } finally {
     await db.end();
   }
 
-  if (!cells) redirect("/");
+  if (!draft) redirect("/");
 
-  return <OPSPView cells={cells} rosterNames={rosterNames} />;
+  return <OPSPView cells={draft.cells} rosterNames={rosterNames} draftId={draft.id} />;
 }

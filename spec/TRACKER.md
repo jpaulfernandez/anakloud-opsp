@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 46
+**Last updated:** 2026-08-17 · **Current phase:** P1 · **Tickets:** 94 · **Done:** 47
 
 ---
 
@@ -47,7 +47,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F04 | Autosave, resume & offline | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F05 | Validators & coach shell | P1 | Done | 2026-08-17 | 2026-08-17 | |
 | F06 | Review, submit & lock | P1 | Done | 2026-08-17 | 2026-08-17 | |
-| F07 | Individual OPSP | P1 | In progress | 2026-08-17 | — | Unblocked — Part B mapping now available |
+| F07 | Individual OPSP | P1 | Done | 2026-08-17 | 2026-08-17 | Unblocked — Part B mapping now available |
 | F08 | Print & PDF export | P1 | Not started | — | — | |
 | F09 | Admin gate & dashboard | P1 | Not started | — | — | |
 | F10 | Comparison & divergence | P1 | Not started | — | — | |
@@ -139,7 +139,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F07-T02 | OPSP view and draft labelling | Done | |
 | F07-T03 | Ink, pencil and empty cells | Done | |
 | F07-T04 | "How to read this" panel | Done | |
-| F07-T05 | OPSP editing and versioning | Not started | |
+| F07-T05 | OPSP editing and versioning | Done | |
 
 ## F08 — Print & PDF export
 
