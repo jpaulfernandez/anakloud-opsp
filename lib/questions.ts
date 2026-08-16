@@ -110,6 +110,19 @@ export function isMatrixGridQuestion(
   return (MATRIX_GRID_QUESTION_IDS as readonly QuestionId[]).includes(id);
 }
 
+/**
+ * The question rendered with the single-choice + required-reason input (Q6,
+ * F03-T06). A type guard so the F03 shell can narrow a QuestionId before
+ * mounting the component — the same pattern as the other input guards above.
+ */
+export const SINGLE_CHOICE_REASON_QUESTION_IDS = ["q6"] as const;
+export type SingleChoiceReasonQuestionId = (typeof SINGLE_CHOICE_REASON_QUESTION_IDS)[number];
+export function isSingleChoiceReasonQuestion(
+  id: QuestionId,
+): id is SingleChoiceReasonQuestionId {
+  return (SINGLE_CHOICE_REASON_QUESTION_IDS as readonly QuestionId[]).includes(id);
+}
+
 export const Q5_ROLE_IDS = [
   "pediatrician", "center_owner", "occupational_therapist",
   "speech_pathologist", "parent", "school_sped", "child", "lgu_doh",
@@ -257,6 +270,12 @@ export type MetricTripleValue = QuestionAnswerValues[MetricTripleQuestionId];
  * pivot (F03-T05) writes, whichever presentation the respondent used.
  */
 export type MatrixGridValue = QuestionAnswerValues[MatrixGridQuestionId];
+/**
+ * The stored answer value for the single-choice + required-reason question
+ * (q6). The §3.1 shape `{ choice, why }` — the four-option radio selection and
+ * the one-line reason F03-T06 renders below it.
+ */
+export type SingleChoiceReasonValue = QuestionAnswerValues[SingleChoiceReasonQuestionId];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The fifteen records. Section, text and helper are written verbatim from the

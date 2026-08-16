@@ -8,10 +8,12 @@ import {
   METRIC_TRIPLE_QUESTION_IDS,
   QUESTION_IDS,
   SENTENCE_COMPLETION_QUESTION_IDS,
+  SINGLE_CHOICE_REASON_QUESTION_IDS,
   isLongTextQuestion,
   isMatrixGridQuestion,
   isMetricTripleQuestion,
   isSentenceCompletionQuestion,
+  isSingleChoiceReasonQuestion,
   type LongTextQuestionId,
   type LongTextValue,
   type MatrixGridQuestionId,
@@ -21,6 +23,7 @@ import {
   type QuestionId,
   type SentenceCompletionQuestionId,
   type SentenceCompletionValue,
+  type SingleChoiceReasonQuestionId,
 } from "@/lib/questions";
 import {
   canAdvance,
@@ -34,10 +37,16 @@ import {
   type MetricTripleDraft,
 } from "@/lib/metric-triple";
 import { matrixGridIsAnswered } from "@/lib/matrix-grid";
+import {
+  SINGLE_CHOICE_REASON_BLOCKED_MESSAGE,
+  type SingleChoiceReasonDraft,
+  singleChoiceReasonIsAnswered,
+} from "@/lib/single-choice-reason";
 import { LongTextInput } from "./LongTextInput";
 import { SentenceCompletionInput } from "./SentenceCompletionInput";
 import { MetricTripleInput } from "./MetricTripleInput";
 import { MatrixGridInput } from "./MatrixGridInput";
+import { SingleChoiceReasonInput } from "./SingleChoiceReasonInput";
 
 // The question shell (F03-T01, FR-6, FR-8, FR-9, ui_ux.md §4.3, D1).
 //
@@ -70,6 +79,9 @@ type SentenceCompletionAnswers = Partial<
 >;
 type MetricTripleDrafts = Partial<Record<MetricTripleQuestionId, MetricTripleDraft>>;
 type MatrixGridDrafts = Partial<Record<MatrixGridQuestionId, Q5Value>>;
+type SingleChoiceReasonDrafts = Partial<
+  Record<SingleChoiceReasonQuestionId, SingleChoiceReasonDraft>
+>;
 
 export function QuestionShell({
   question,
@@ -85,6 +97,8 @@ export function QuestionShell({
   const [metricTripleDrafts, setMetricTripleDrafts] =
     useState<MetricTripleDrafts>({});
   const [matrixGridDrafts, setMatrixGridDrafts] = useState<MatrixGridDrafts>({});
+  const [singleChoiceReasonDrafts, setSingleChoiceReasonDrafts] =
+    useState<SingleChoiceReasonDrafts>({});
 
   const answered: ReadonlySet<QuestionId> = useMemo(() => {
     const set = new Set<QuestionId>();
@@ -104,15 +118,28 @@ export function QuestionShell({
       const value = matrixGridDrafts[id];
       if (value && matrixGridIsAnswered(value)) set.add(id);
     }
+    for (const id of SINGLE_CHOICE_REASON_QUESTION_IDS) {
+      const draft = singleChoiceReasonDrafts[id];
+      if (draft && singleChoiceReasonIsAnswered(draft)) set.add(id);
+    }
     return set;
   }, [
     longTextAnswers,
     sentenceAnswers,
     metricTripleDrafts,
     matrixGridDrafts,
+    singleChoiceReasonDrafts,
   ]);
 
   const blocked = canAdvance(question.id, answered);
+  // Q6's required half is the reason: a blocked Continue there says so in the
+  // specific words §4.9 names instead of the shell's generic unanswered line.
+  const blockedReason =
+    blocked.kind === "blocked"
+      ? isSingleChoiceReasonQuestion(question.id)
+        ? SINGLE_CHOICE_REASON_BLOCKED_MESSAGE
+        : blocked.reason
+      : null;
   const prev = neighbors.prev;
   const next = neighbors.next;
 
@@ -177,6 +204,17 @@ export function QuestionShell({
             }
           />
         )}
+        {isSingleChoiceReasonQuestion(question.id) && (
+          <SingleChoiceReasonInput
+            value={singleChoiceReasonDrafts[question.id]}
+            onChange={(next) =>
+              setSingleChoiceReasonDrafts((current) => ({
+                ...current,
+                [question.id]: next,
+              }))
+            }
+          />
+        )}
       </section>
 
       <section
@@ -223,8 +261,8 @@ export function QuestionShell({
             >
               Continue
             </button>
-            {blocked.kind === "blocked" && (
-              <p className="text-sm text-neutral-600">{blocked.reason}</p>
+            {blockedReason && (
+              <p className="text-sm text-neutral-600">{blockedReason}</p>
             )}
           </div>
         )}
