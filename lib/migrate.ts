@@ -11,8 +11,11 @@ export interface Migration {
 /**
  * The full list of migrations, applied in order. 0001 is generated from
  * SCHEMA so the up SQL always matches the schema under test; 0002 is hand
- * written because row-level security is a policy, not a table shape. Every
- * migration has a reversible down. Later features append their own.
+ * written because row-level security is a policy, not a table shape. 0003
+ * adds the invite-revocation column on top of the already-applied 0001, so it
+ * is added defensively (`if not exists`) to stay a no-op on the fresh-schema
+ * path where 0001 already carries the column. Every migration has a reversible
+ * down. Later features append their own.
  */
 export const MIGRATIONS: Migration[] = [
   {
@@ -24,6 +27,11 @@ export const MIGRATIONS: Migration[] = [
     version: "0002_access_policy",
     up: ACCESS_UP_SQL,
     down: ACCESS_DOWN_SQL,
+  },
+  {
+    version: "0003_invite_revocation",
+    up: `alter table respondents add column if not exists invite_revoked_at timestamptz;`,
+    down: `alter table respondents drop column if exists invite_revoked_at;`,
   },
 ];
 

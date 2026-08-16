@@ -92,7 +92,9 @@ describe.skipIf(!enabled)("migrations against a real Postgres", () => {
 
   it("rolls the migration back cleanly", async () => {
     await migrate(db!);
-    // Reversed order: undo the policies before dropping the tables they sit on.
+    // Reversed order: undo the invite-revocation column (0003) and the policies
+    // (0002) before dropping the tables they sit on (0001).
+    await rollbackMigration(db!, "0003_invite_revocation");
     await rollbackMigration(db!, "0002_access_policy");
     await rollbackMigration(db!, "0001_core_schema");
 

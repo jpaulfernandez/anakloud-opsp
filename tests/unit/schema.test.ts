@@ -30,6 +30,7 @@ const EXPECTED: Record<
     display_name: { type: "text", nullable: false },
     email: { type: "text", nullable: true },
     invite_token: { type: "text", nullable: false },
+    invite_revoked_at: { type: "timestamptz", nullable: true },
     resume_code: { type: "text", nullable: false },
     is_facilitator: { type: "bool", nullable: false },
     started_at: { type: "timestamptz", nullable: true },
