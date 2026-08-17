@@ -63,6 +63,30 @@ describe.skipIf(!enabled)("migrations against a real Postgres", () => {
     expect(rows[0].n).toBe(MIGRATIONS.length);
   });
 
+  it("two concurrent migration runs on separate connections serialise", async () => {
+    // F17-T01: concurrent runs must serialise through the session-scoped
+    // advisory lock. Each run needs its own connection (own session), so the
+    // lock — not query sharing — is what protects them. Both must complete and
+    // the schema must end up with exactly MIGRATIONS.length rows, no duplicate
+    // from a race. This is the property Neon's direct endpoint must preserve.
+    const a = createDbClient();
+    const b = createDbClient();
+    await a.connect();
+    await b.connect();
+    await a.query(`set search_path = ${schemaName}, public`);
+    await b.query(`set search_path = ${schemaName}, public`);
+    try {
+      await Promise.all([migrate(a), migrate(b)]);
+    } finally {
+      await a.end();
+      await b.end();
+    }
+    const { rows } = await db!.query(
+      "select count(*)::int as n from schema_migrations",
+    );
+    expect(rows[0].n).toBe(MIGRATIONS.length);
+  });
+
   it("rejects a second answer with the same (respondent_id, question_id)", async () => {
     await db!.query(
       "insert into cohorts (id, name, quarter_label, status) values ($1, 'Test', 'Q4 2026', 'open')",

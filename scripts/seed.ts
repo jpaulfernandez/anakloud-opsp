@@ -1,4 +1,4 @@
-import { createDbClient } from "../lib/db";
+import { createMigrationClient } from "../lib/db";
 import { migrate } from "../lib/migrate";
 import { seedCohort, SEED_COHORT_ID, SEED_RESPONDENTS } from "../lib/seed";
 
@@ -7,11 +7,15 @@ import { seedCohort, SEED_COHORT_ID, SEED_RESPONDENTS } from "../lib/seed";
 // humans. Idempotent: re-running upserts the same fixture instead of adding a
 // second cohort. Run it with the same privileged role the migrations use.
 //
+// Runs through the migration (direct) endpoint: seeding runs migrations, and
+// migrate() relies on a session-scoped advisory lock that is unreliable
+// through Neon's pooled (PgBouncer) endpoint.
+//
 // The fixture data (names, emails, invite tokens) is deliberately fake; nothing
 // here is read into logs beyond the counts below — answer text never prints.
 
 async function main(): Promise<void> {
-  const db = createDbClient();
+  const db = createMigrationClient();
   try {
     await db.connect();
     // Seeds are a developer convenience on a schema the migrations manage; a

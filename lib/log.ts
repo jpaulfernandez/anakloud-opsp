@@ -70,3 +70,19 @@ export function logAICall(record: AICallLogRecord): void {
 export function bootDebug(message: string): void {
   console.debug(message);
 }
+
+/**
+ * Diagnostic warning for a misconfigured migration environment (a fixed
+ * literal, never content). Emitted when `DATABASE_URL_UNPOOLED` is absent, so
+ * migrations fall back to the pooled `DATABASE_URL`, where the session-scoped
+ * advisory lock protecting concurrent runs is unreliable.
+ */
+export function logMigrationWarning(): void {
+  console.warn(
+    "DATABASE_URL_UNPOOLED is not set; falling back to DATABASE_URL for " +
+      "migrations. pg_advisory_lock is session-scoped, so through a Neon " +
+      "pooled (PgBouncer) endpoint the lock and its release can land on " +
+      "different backends and concurrent migration runs may not serialise. " +
+      "Set DATABASE_URL_UNPOOLED to the Neon direct endpoint before deploying.",
+  );
+}

@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 97
+**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 98
 
 ---
 
@@ -58,7 +58,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F14 | Facilitator analysis | P3 | Done | 2026-08-17 | 2026-08-17 | |
 | F15 | Official OPSP canvas | P4 | Done | 2026-08-17 | 2026-08-17 | |
 | F16 | Gemini configuration guardrails | M | Done | 2026-08-17 | 2026-08-17 | M09–M11; do before the provider migration |
-| F17 | Neon runtime | M | Not started | | | M01–M03 |
+| F17 | Neon runtime | M | In progress | 2026-08-17 | | M01–M03 |
 | F18 | Gemini provider | M | Not started | | | M06–M08; may proceed alongside F17 after F16 |
 | F19 | Neon environments | M | Not started | | | M04–M05; follows F17 |
 | F20 | Migration release gate | M | Not started | | | M12; final migration gate |
@@ -248,7 +248,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F17-T01 | Separate pooled and direct connections | Not started | M01; migrations require the direct endpoint |
+| F17-T01 | Separate pooled and direct connections | Done | M01; migrations require the direct endpoint |
 | F17-T02 | Use the Neon serverless driver behind the database boundary | Not started | M02 |
 | F17-T03 | Guarantee connection release | Not started | M03 |
 
