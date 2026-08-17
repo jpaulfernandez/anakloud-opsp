@@ -29,7 +29,7 @@ export const ANALYSIS_QUEUE_RETRY_DELAY_MS = 2000;
 export const ANALYSIS_QUEUE_MAX_ATTEMPTS = 3;
 
 /** What one retry attempt reports back to the scheduler. */
-export interface AnalysisQueueWorkResult {
+export interface AnalysisQueueWorkResult<T = AnalysisOutput> {
   /**
    * True only when a real model-served analysis was produced (the level that
    * actually served the call was L0). A degraded round reports `done: false`
@@ -37,26 +37,31 @@ export interface AnalysisQueueWorkResult {
    */
   done: boolean;
   /** The produced analysis, present exactly when `done` is true. */
-  output: AnalysisOutput | null;
+  output: T | null;
 }
 
 /** The unit of queueable work: re-run one analysis, report whether it landed. */
-export type AnalysisQueueWork = () => Promise<AnalysisQueueWorkResult>;
+export type AnalysisQueueWork<T = AnalysisOutput> = () => Promise<AnalysisQueueWorkResult<T>>;
 
 /** A queued analysis job. The same key may only be queued once. */
-export interface AnalysisQueueJob {
+export interface AnalysisQueueJob<T = AnalysisOutput> {
   /** A cohort-scoped identity, e.g. "cohortId:questionId"; enqueued once. */
   key: string;
   /** Re-runs the analysis; the scheduler calls it once per attempt. */
-  work: AnalysisQueueWork;
+  work: AnalysisQueueWork<T>;
   /** Attempt ceiling for this job; defaults to ANALYSIS_QUEUE_MAX_ATTEMPTS. */
   maxAttempts?: number;
   /** Backoff between rounds for this job; defaults to the module constant. */
   retryDelayMs?: number;
 }
 
-/** Completed analyses, keyed by job key — read by the panel (F14-T03). */
-const completed = new Map<string, AnalysisOutput>();
+/**
+ * Completed job results, keyed by job key — read by the panel (F14-T03) and the
+ * test seams. The store is untyped at the boundary because different keys hold
+ * different output shapes (the cohort read, the individual-OPSP read); the
+ * generic `getCompletedAnalysis<T>` recovers the caller's shape on read.
+ */
+const completed = new Map<string, unknown>();
 /** Keys whose job is awaiting its next attempt. */
 const pending = new Set<string>();
 /** Outstanding attempt timers, so a terminal path can clear its own. */
@@ -89,7 +94,7 @@ function settle(key: string): void {
   trackEnd();
 }
 
-function runAttempt(key: string, job: AnalysisQueueJob, attempt: number): void {
+function runAttempt<T>(key: string, job: AnalysisQueueJob<T>, attempt: number): void {
   job.work().then((result) => {
     if (result.done) {
       if (result.output !== null) completed.set(key, result.output);
@@ -118,7 +123,7 @@ function runAttempt(key: string, job: AnalysisQueueJob, attempt: number): void {
  * or an L1 round while a round is in flight — never stacks jobs. Returns
  * immediately; the retries run off the event loop with no user action.
  */
-export function enqueueAnalysis(job: AnalysisQueueJob): void {
+export function enqueueAnalysis<T = AnalysisOutput>(job: AnalysisQueueJob<T>): void {
   if (pending.has(job.key) || completed.has(job.key)) return;
   pending.add(job.key);
   trackStart();
@@ -126,8 +131,8 @@ export function enqueueAnalysis(job: AnalysisQueueJob): void {
 }
 
 /** Read a completed analysis, when one has landed. */
-export function getCompletedAnalysis(key: string): AnalysisOutput | undefined {
-  return completed.get(key);
+export function getCompletedAnalysis<T = AnalysisOutput>(key: string): T | undefined {
+  return completed.get(key) as T | undefined;
 }
 
 /** How many jobs are still awaiting a retry round. */
