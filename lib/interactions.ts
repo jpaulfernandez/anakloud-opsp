@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 
 // Coach interaction logging (F05-T05, spec.md FR-20, tech_infrastructure.md §3).
 //

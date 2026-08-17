@@ -1,4 +1,4 @@
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { listPublicAnswers } from "./answers";
 import type { CoachRequestContext } from "./coach-prompt";
 import { QUESTION_MAP, type QuestionId } from "./questions";

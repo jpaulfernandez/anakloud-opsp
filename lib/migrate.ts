@@ -1,4 +1,4 @@
-import type { Client } from "pg";
+import type { ClientBase } from "./db";
 import { ACCESS_DOWN_SQL, ACCESS_UP_SQL } from "./access-policy";
 import {
   OWN_ANSWER_READ_FUNCTION_DROP_SQL,
@@ -226,7 +226,7 @@ export const MIGRATIONS: Migration[] = [
 ];
 
 async function withTransaction<T>(
-  client: Client,
+  client: ClientBase,
   run: () => Promise<T>,
 ): Promise<T> {
   await client.query("begin");
@@ -251,7 +251,7 @@ async function withTransaction<T>(
  * transactions because advisory locks are held by the session, not the
  * transaction.
  */
-export async function migrate(db: Client): Promise<void> {
+export async function migrate(db: ClientBase): Promise<void> {
   await db.query("select pg_advisory_lock(hashtext('align_migrations'))");
   try {
     await db.query(`
@@ -283,7 +283,7 @@ export async function migrate(db: Client): Promise<void> {
 /**
  * Reverse a single migration: run its down SQL and remove the version record.
  */
-export async function rollbackMigration(db: Client, version: string): Promise<void> {
+export async function rollbackMigration(db: ClientBase, version: string): Promise<void> {
   const migration = MIGRATIONS.find((m) => m.version === version);
   if (!migration) throw new Error(`unknown migration: ${version}`);
 

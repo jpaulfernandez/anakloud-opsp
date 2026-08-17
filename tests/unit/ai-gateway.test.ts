@@ -13,7 +13,7 @@ import {
   type ProviderRequest,
   type ProviderResponse,
 } from "../../lib/ai-gateway";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "@neondatabase/serverless";
 
 // F12-T01 — the gateway module (tech_infrastructure.md §2).
 //

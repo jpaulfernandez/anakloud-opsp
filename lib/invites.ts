@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 
 // Invite token lifecycle (F02-T01, FR-1, FR-3, tech_infrastructure.md §9).
 //

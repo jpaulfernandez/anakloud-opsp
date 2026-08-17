@@ -1,5 +1,13 @@
-import { Client } from "pg";
+import { Client } from "@neondatabase/serverless";
 import { logMigrationWarning } from "./log";
+
+// F17-T02: this module is the only place a database driver is constructed and,
+// value or type, the only application module that mentions the driver package.
+// The rest of lib/ and app/ reaches the database exclusively through
+// `createDbClient()` and through the `ClientBase` queryable type re-exported
+// here, so swapping the transport (now the Neon serverless driver; formerly
+// `pg`) never touches a call site.
+export type { ClientBase, Client } from "@neondatabase/serverless";
 
 /**
  * Neon's pooled and direct endpoints reject plaintext, so both connection

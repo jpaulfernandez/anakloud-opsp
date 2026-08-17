@@ -33,7 +33,7 @@ import {
   recordModelCall,
   type RecordedModelCall,
 } from "./budget";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 
 export type {
   AIProvider,

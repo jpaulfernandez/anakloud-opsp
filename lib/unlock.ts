@@ -1,4 +1,4 @@
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 
 // Facilitator unlock with audit (F06-T05, FR-14, tech_infrastructure.md §3).
 //

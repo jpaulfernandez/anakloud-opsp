@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { randomBytes, randomUUID } from "node:crypto";
-import { Client } from "pg";
+import { Client } from "@neondatabase/serverless";
 import { withRespondentContext } from "../../lib/access";
 import { migrate } from "../../lib/migrate";
 import { createSessionToken, SESSION_COOKIE } from "../../lib/session";

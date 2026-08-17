@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { randomBytes, randomUUID } from "node:crypto";
-import { Client } from "pg";
+import { Client } from "@neondatabase/serverless";
 import { createSessionToken } from "../../lib/session";
 import { migrate } from "../../lib/migrate";
 

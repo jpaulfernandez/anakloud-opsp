@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 98
+**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 99
 
 ---
 
@@ -249,7 +249,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
 | F17-T01 | Separate pooled and direct connections | Done | M01; migrations require the direct endpoint |
-| F17-T02 | Use the Neon serverless driver behind the database boundary | Not started | M02 |
+| F17-T02 | Use the Neon serverless driver behind the database boundary | Done | M02; serverless `Client` verified against Neon over WebSocket; driver confined to `lib/db.ts` (`pg` removed). Plain-Postgres (docker) is unreachable by the WebSocket transport → offline fallback becomes F19/M04's Neon branch |
 | F17-T03 | Guarantee connection release | Not started | M03 |
 
 ## F18 — Gemini provider

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
-import { Client } from "pg";
+import { Client } from "@neondatabase/serverless";
 import { migrate } from "../../lib/migrate";
 import { createSessionToken, SESSION_COOKIE } from "../../lib/session";
 import { OPSP_CELL_IDS } from "../../lib/opsp";

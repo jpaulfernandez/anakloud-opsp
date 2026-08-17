@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { withRespondentContext } from "./access";
 import { listOwnAnswers, type OwnAnswerRow } from "./answers";
 import { buildOpspCells, type OpspSourceAnswers } from "./opsp";

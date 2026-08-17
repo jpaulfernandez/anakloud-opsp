@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { markCoachAnswerChanged } from "./interactions";
 import { assertAnswersWritable } from "./lock";
 

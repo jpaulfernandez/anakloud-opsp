@@ -22,7 +22,7 @@
 // AI (FR-31), exactly as on the comparison screen.
 
 import { randomUUID } from "node:crypto";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { withRespondentContext } from "./access";
 import { classifyDivergence, type DivergenceCategory } from "./divergence";
 import { listAnswersForExport, type CohortAnswerRow } from "./answers";

@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { randomBytes, randomUUID } from "node:crypto";
-import { Client } from "pg";
+import { Client } from "@neondatabase/serverless";
 import { migrate } from "../../lib/migrate";
 import { createSessionToken, SESSION_COOKIE } from "../../lib/session";
 

@@ -23,7 +23,7 @@
 // and this module renders exactly that one answer into the provider request —
 // nothing else about the respondent travels.
 
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import type { QuestionId } from "./questions";
 import { callProvider } from "./ai-gateway";
 import type {

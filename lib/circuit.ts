@@ -20,7 +20,7 @@
 // to observe providers failing. A restarted process re-reads the open flag and
 // `until` from the database and picks back up from the base interval.
 
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 
 /** The base open interval (tech_infrastructure.md §6.1: "opens for 5 minutes"). */
 export const CIRCUIT_OPEN_BASE_MS = 5 * 60 * 1000;

@@ -24,7 +24,7 @@
 // visible under the facilitator's RLS policy. Stateless: the context is
 // resolved fresh from the stored rows on every call.
 
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { withRespondentContext } from "./access";
 import {
   listPublicAnswersForCohort,

@@ -1,4 +1,4 @@
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import type { OpspCell, OpspCellId } from "./opsp";
 
 // Reading a respondent's own individual OPSP draft (F07-T02, FR-22/23). The

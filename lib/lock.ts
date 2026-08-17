@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import type { ResolvedSession } from "./session";
 
 // Lock enforcement (F06-T04, PR5, tech_infrastructure.md §8 T3).

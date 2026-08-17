@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import type { AICallLevel, AICallPurpose } from "./log";
 
 // Budget accounting (F12-T04, spec.md §7.2, tech_infrastructure.md §6.4).

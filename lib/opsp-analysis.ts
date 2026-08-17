@@ -29,7 +29,7 @@
 // (F01-T04); a stranger's or a submitted-owner's draft that is not in the
 // cohort simply returns null and the route 404s.
 
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { withRespondentContext } from "./access";
 import { callProvider, type AIProvider, type GatewayContext, type ProviderRequest } from "./ai-gateway";
 import { ANALYSIS_PREP_LABEL } from "./analysis-panel";

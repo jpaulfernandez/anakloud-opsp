@@ -1,4 +1,4 @@
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import type { BudgetSnapshot } from "./level-strip";
 import {
   advanceBudgetAlerts,

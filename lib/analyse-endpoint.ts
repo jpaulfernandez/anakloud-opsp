@@ -28,7 +28,7 @@
 // boot default is L2, which is exactly why the key-removal case returns scoring
 // and a 200 rather than an error.
 
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { withRespondentContext } from "./access";
 import {
   listPublicAnswersForCohort,

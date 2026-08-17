@@ -1,4 +1,4 @@
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 
 // Row-level security context (F01-T04). Migration 0002 gates every row of
 // `answers`, `answer_snapshots` and `opsp_drafts` on the current respondent,

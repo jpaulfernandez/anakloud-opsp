@@ -1,4 +1,4 @@
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 
 // Cohort roster reads (F03-T09, ui_ux.md §4.11). Q14(b) asks the respondent to
 // name one function they think each teammate owns, one short field per person,

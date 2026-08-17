@@ -1,4 +1,4 @@
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { AI_LEVELS, type AiLevel, type ResolvedLevel } from "./config";
 import { withRespondentContext } from "./access";
 

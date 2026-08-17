@@ -1,4 +1,4 @@
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { upsertAnswer } from "./answers";
 
 // The registry of every route that can write to a respondent's `answers` rows

@@ -1,4 +1,4 @@
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { withRespondentContext } from "./access";
 import { upsertAnswer, type Q14AnswerValue } from "./answers";
 import { createBudgetForCohort } from "./budget";

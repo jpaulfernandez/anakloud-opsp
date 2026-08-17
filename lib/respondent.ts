@@ -1,4 +1,4 @@
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 
 // Respondent onboarding — the display name and optional email the welcome
 // screen persists on first claim (F02-T04, FR-2, ui_ux.md §4.1).

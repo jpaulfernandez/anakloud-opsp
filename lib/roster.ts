@@ -1,4 +1,4 @@
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { QUESTION_IDS } from "./questions";
 import { withRespondentContext } from "./access";
 

@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const pkg = JSON.parse(
@@ -74,5 +74,47 @@ describe("TypeScript strict mode", () => {
       readFileSync(resolve(process.cwd(), "tsconfig.json"), "utf8"),
     ) as { compilerOptions?: { strict?: unknown } };
     expect(tsconfig.compilerOptions?.strict).toBe(true);
+  });
+});
+
+describe("database driver boundary (F17-T02)", () => {
+  // F17-T02 (M02): the Neon serverless driver replaced `pg`. Only one
+  // production database driver may ship, and it is the serverless driver.
+
+  it("retires pg and keeps exactly the Neon serverless driver", () => {
+    expect(allDeps["@neondatabase/serverless"], "the Neon serverless driver is required").toBeDefined();
+    expect(allDeps["pg"], "the replaced pg driver SHALL be removed").toBeUndefined();
+  });
+
+  it("restricts the driver import to lib/db.ts in application modules", () => {
+    // Application modules are lib/ and app/ — the transport is chosen behind
+    // the database boundary, so no application module may reach for a driver
+    // package directly. Tests are free to construct a client as a fixture.
+    const root = resolve(process.cwd());
+    const offenders: string[] = [];
+    const walk = (dir: string): void => {
+      for (const name of readdirSync(dir)) {
+        if (name.startsWith(".")) continue;
+        const p = join(dir, name);
+        const st = statSync(p);
+        if (st.isDirectory()) walk(p);
+        else if (st.isFile() && /\.tsx?$/.test(name)) {
+          const src = readFileSync(p, "utf8");
+          // Only import *sources* count: a bare mention elsewhere is harmless.
+          if (/from "(pg|@neondatabase\/serverless)"/.test(src)) {
+            const rel = relative(root, p);
+            if (rel !== "lib/db.ts") offenders.push(rel);
+          }
+        }
+      }
+    };
+    walk(join(root, "lib"));
+    walk(join(root, "app"));
+    expect(offenders, "only lib/db.ts may import a database driver").toEqual([]);
+  });
+
+  it("lib/db.ts is the application module that selects the driver", () => {
+    const dbSrc = readFileSync(resolve(process.cwd(), "lib/db.ts"), "utf8");
+    expect(dbSrc).toMatch(/from "@neondatabase\/serverless"/);
   });
 });

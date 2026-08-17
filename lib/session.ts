@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 
 // The session cookie (F02-T02, FR-3, tech_infrastructure.md §4, §9).
 //

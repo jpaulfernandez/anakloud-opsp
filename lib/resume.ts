@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 
 // Resume code lifecycle (F02-T03, FR-4, tech_infrastructure.md §9).
 //

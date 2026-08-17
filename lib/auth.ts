@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { resolveSession, SESSION_COOKIE } from "@/lib/session";
 import type { ResolvedSession } from "@/lib/session";
 

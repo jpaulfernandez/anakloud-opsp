@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Client } from "pg";
+import type { Client } from "@neondatabase/serverless";
 import {
   createDbClient,
   createMigrationClient,
@@ -19,8 +19,9 @@ interface ConnectionParameters {
   ssl?: unknown;
 }
 
-// `connectionParameters` is not part of the public @types/pg type, so read it
-// through a minimal shape (it is a real, stable property on the pg Client).
+// F17-T02: the client is the Neon serverless driver's `Client` (a pg-compatible
+// drop-in). `connectionParameters` is not part of its public type, so read it
+// through a minimal shape (it is a real, stable property on the driver Client).
 function params(client: Client): ConnectionParameters {
   return (client as unknown as { connectionParameters: ConnectionParameters })
     .connectionParameters;

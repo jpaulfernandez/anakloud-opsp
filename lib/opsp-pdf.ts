@@ -1,5 +1,5 @@
 import { chromium } from "@playwright/test";
-import type { ClientBase } from "pg";
+import type { ClientBase } from "./db";
 import { SESSION_COOKIE } from "./session";
 import { listPublicAnswers } from "./answers";
 import { buildOpspCells, type OpspCell, type OpspCellId } from "./opsp";
