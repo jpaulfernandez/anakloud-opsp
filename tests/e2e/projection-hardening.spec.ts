@@ -105,6 +105,9 @@ test.afterAll(async () => {
       await db.query("delete from ai_interactions where respondent_id = any($1::uuid[])", [ids]);
       await db.query("delete from answers where respondent_id = any($1::uuid[])", [ids]);
     }
+    // F14-T06 — the analyse route retains outputs keyed by cohort; clear them
+    // before the cohort drops (FK).
+    await db.query("delete from analysis_outputs where cohort_id = $1", [COHORT]);
     await db.query("delete from respondents where cohort_id = $1", [COHORT]);
     await db.query("delete from cohorts where id = $1", [COHORT]);
     await db.end();

@@ -132,6 +132,51 @@ export const MIGRATIONS: Migration[] = [
     down: `alter table ai_budget drop column if exists warn90_fired;
            alter table ai_budget drop column if exists warn70_fired;`,
   },
+  {
+    version: "0010_analysis_outputs",
+    // F14-T06 — durable retention of facilitator-analysis outputs (FR-35). Each
+    // serve of POST /api/admin/analyse is recorded as its own row so a re-run
+    // never overwrites the previous output: a change in the read stays visible
+    // against what came before, across page loads and sessions. The row carries
+    // the exact fields FR-35 demands an output be labelled with — the pinned
+    // model id used and the generation timestamp — plus the serving level
+    // (L0..L3), recorded alongside every output. The whole serve body is kept
+    // as `body`, so the panel can re-render exactly what was served. This is
+    // facilitator prep material, so both write and read are gated on the
+    // cohort facilitator through the same RLS function the other admin tables
+    // use; only the cohort's facilitator can add or read a row.
+    //
+    // Operational history rather than a §3 data-model table, so it ships as a
+    // hand-written migration exactly like the export audit (0008) and the
+    // resume-code rate-limit ledger (0004).
+    up: `create table if not exists analysis_outputs (
+           id            uuid primary key,
+           cohort_id     uuid not null references cohorts (id),
+           scope         text not null,
+           question_id   text,
+           level         text not null,
+           model         text,
+           generated_at  timestamptz not null,
+           body          jsonb not null
+         );
+         create index if not exists analysis_outputs_cohort_question_idx
+           on analysis_outputs (cohort_id, question_id);
+         alter table analysis_outputs enable row level security;
+         alter table analysis_outputs force row level security;
+         create policy if not exists analysis_outputs_facilitator_insert
+           on analysis_outputs
+           for insert
+           with check (app_is_facilitator_of_cohort(cohort_id));
+         create policy if not exists analysis_outputs_facilitator_read
+           on analysis_outputs
+           for select
+           using (app_is_facilitator_of_cohort(cohort_id));`,
+    down: `drop policy if exists analysis_outputs_facilitator_read on analysis_outputs;
+           drop policy if exists analysis_outputs_facilitator_insert on analysis_outputs;
+           alter table analysis_outputs no force row level security;
+           alter table analysis_outputs disable row level security;
+           drop table if exists analysis_outputs;`,
+  },
 ];
 
 async function withTransaction<T>(

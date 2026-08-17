@@ -44,6 +44,7 @@ describe.skipIf(!enabled)("migrations against a real Postgres", () => {
     expect(tables).toEqual([
       "ai_budget",
       "ai_interactions",
+      "analysis_outputs",
       "answer_snapshots",
       "answers",
       "cohorts",

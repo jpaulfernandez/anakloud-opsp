@@ -113,6 +113,13 @@ test.afterAll(async () => {
       await db.query("delete from ai_interactions where respondent_id = any($1::uuid[])", [ids]);
       await db.query("delete from answers where respondent_id = any($1::uuid[])", [ids]);
     }
+    // F14-T06 — the analyse route retains outputs keyed by cohort, so clear
+    // them before the cohort drops (FK) and before any trial that asserts on
+    // retained history counts for this cohort.
+    await db.query(
+      "delete from analysis_outputs where cohort_id = any($1::uuid[])",
+      [[COHORT, COHORT_L1]],
+    );
     await db.query("delete from respondents where cohort_id = any($1::uuid[])", [[COHORT, COHORT_L1]]);
     await db.query("delete from cohorts where id = any($1::uuid[])", [[COHORT, COHORT_L1]]);
     await db.end();
@@ -167,6 +174,37 @@ test("a single-question analyse request returns scoring for that question", asyn
   expect(body.questionId).toBe("q8");
   expect(body.scoring.results).toHaveLength(1);
   expect(body.scoring.results[0].questionId).toBe("q8");
+});
+
+test("re-running retains the prior output, each with its serving level (F14-T06)", async ({
+  request,
+}) => {
+  // Two cohort-scope serves on the same cohort; the second must return a
+  // retained history that includes the first, newest last, with the serving
+  // level recorded on every output (FR-35). This asserts the durable store the
+  // route writes to, not a client-side append.
+  const first = await request.post("/api/admin/analyse", {
+    headers: { cookie: sessionCookie(SUB, COHORT) },
+    data: { question_id: "q8" },
+  });
+  expect(first.status()).toBe(200);
+  const firstBody = (await first.json()) as { level: string };
+
+  const second = await request.post("/api/admin/analyse", {
+    headers: { cookie: sessionCookie(SUB, COHORT) },
+    data: { question_id: "q8" },
+  });
+  expect(second.status()).toBe(200);
+  const body = (await second.json()) as {
+    level: string;
+    history: Array<{ level: string; ok: boolean }>;
+  };
+  expect(body.history.length).toBeGreaterThanOrEqual(2);
+  // The fresh serve rides last; every retained output records its level.
+  expect(body.history[body.history.length - 1].ok).toBe(true);
+  for (const output of body.history) {
+    expect(output.level).toBe(firstBody.level);
+  }
 });
 
 test("a cohort pinned to L1 returns a queued plus deterministic response", async ({

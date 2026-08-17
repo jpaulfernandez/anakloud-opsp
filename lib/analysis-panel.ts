@@ -1,7 +1,7 @@
-// F14-T03 — the facilitator-analysis side panel's pure display model (FR-32,
-// FR-35, ui_ux.md §4.19). The panel renders one or more labelled analysis runs
-// beside the raw answers, and — at L2/L3 — the deterministic divergence
-// breakdown as its own feature rather than as a downgrade.
+// F14-T03/F14-T06 — the facilitator-analysis side panel's pure display model
+// (FR-32, FR-35, ui_ux.md §4.19). The panel renders one or more labelled
+// analysis runs beside the raw answers, and — at L2/L3 — the deterministic
+// divergence breakdown as its own feature rather than as a downgrade.
 //
 // The same PR3 discipline as comparison-screen.ts and level-strip.ts: the
 // string transformations and the "which panel do I show" decision live here,
@@ -12,7 +12,9 @@
 //   - the footer timestamp formats deterministically from an ISO string
 //     (FR-35: every output is labelled with the model used and a timestamp),
 //   - the "model used" footer composes to timestamp-only when no model ran (the
-//     deterministic branch), never an "unavailable" affordance, and
+//     deterministic branch), never an "unavailable" affordance,
+//   - the serving level is recorded alongside the model and timestamp in every
+//     footer (F14-T06: level recorded per output), and
 //   - the read-vs-scoring decision reads only the served level.
 //
 // Client-safe by construction: only a `type` is imported, so nothing from the
@@ -51,13 +53,40 @@ export function formatAnalysisTimestamp(iso: string): string {
 }
 
 /**
- * The text in an output's footer label: the model name and the generation
- * timestamp (FR-35). When no model ran — the deterministic branch — the label
- * is the timestamp alone; a fabricated model name is never invented here.
+ * The text in an output's footer label: the serving level recorded alongside
+ * the model name and the generation timestamp (FR-35, F14-T06). When no model
+ * ran — the deterministic branch — the model word is omitted and the label is
+ * "level · timestamp"; a fabricated model name is never invented here.
  */
-export function runFooterText(model: string, generatedAt: string): string {
+export function runFooterText(
+  level: AnalysisServeBody["level"],
+  model: string,
+  generatedAt: string,
+): string {
   const timestamp = formatAnalysisTimestamp(generatedAt);
-  return model === "" ? timestamp : `${model} · ${timestamp}`;
+  const bits: string[] = [level];
+  if (model !== "") bits.push(model);
+  if (timestamp !== "") bits.push(timestamp);
+  return bits.join(" · ");
+}
+
+/**
+ * One retained output as the panel renders it — a stable key plus the fully
+ * labelled serve body, so model, timestamp and serving level ride with it.
+ */
+export interface LabelledRun {
+  key: string;
+  body: AnalysisServeBody;
+}
+
+/**
+ * Turn the retained history (F14-T06) into the list of runs the panel shows,
+ * in the given order — oldest first, so a re-run is always last. Pure, so the
+ * "re-running preserves the prior output and its label" acceptance is
+ * testable without a browser or a database.
+ */
+export function labelledRuns(history: readonly AnalysisServeBody[]): LabelledRun[] {
+  return history.map((body, i) => ({ key: `run-${i}`, body }));
 }
 
 /** True when the serve was a full model-served read (L0) rather than deterministic. */

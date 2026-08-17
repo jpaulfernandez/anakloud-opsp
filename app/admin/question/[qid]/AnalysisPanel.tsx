@@ -5,19 +5,21 @@ import {
   ANALYSIS_PANEL_TITLE,
   ANALYSIS_PREP_LABEL,
   isAnalysisRead,
+  labelledRuns,
   percentLabel,
   runFooterText,
   SCORING_PANEL_TITLE,
+  type LabelledRun,
 } from "@/lib/analysis-panel";
 import { divergenceBadgeLabel } from "@/lib/comparison-screen";
 import type { AnalysisServeBody } from "@/lib/analyse-endpoint";
 import { QUESTION_MAP, type QuestionId } from "@/lib/questions";
 
-// F14-T03 — the facilitator-analysis side panel (FR-32, FR-35, ui_ux.md §4.19).
-// It opens beside the raw answers and never replaces or obscures them; the
-// layout, not this component, keeps the answers on screen next to it at every
-// viewport width. It POSTs /api/admin/analyse for the current question and
-// renders whichever serve the level dictates:
+// F14-T03/F14-T06 — the facilitator-analysis side panel (FR-32, FR-35,
+// ui_ux.md §4.19). It opens beside the raw answers and never replaces or
+// obscures them; the layout, not this component, keeps the answers on screen
+// next to it at every viewport width. It POSTs /api/admin/analyse for the
+// current question and renders whichever serve the level dictates:
 //
 //   - L0: the model-served read — where they agree, where they don't, what to
 //     ask in the room — with the model name and timestamp in the footer;
@@ -29,18 +31,18 @@ import { QUESTION_MAP, type QuestionId } from "@/lib/questions";
 // Retry affordance (ui_ux.md §4.19 / spec.md §7) — at L2 the server already
 // returned a 200 with data, so there is nothing alarming to show.
 //
-// Re-run (FR-35) fetches a fresh output and appends it, never replacing the
-// earlier ones, so a changed read is visible against what came before. Each
-// run keeps its own labelled footer — model and generation timestamp —
-// satisfying "every output is labelled" and "no output is discarded".
-
-interface AnalysisRun {
-  key: string;
-  body: AnalysisServeBody;
-}
+// Re-run (FR-35, F14-T06) POSTs again and the endpoint returns the retained
+// history — every previous output alongside the fresh one, each a fully
+// labelled serve body. The panel renders that history, never replacing the
+// earlier outputs, so a changed read is visible against what came before across
+// page loads and sessions. Every run keeps its own footer — serving level,
+// model and generation timestamp — satisfying "every output is labelled" and
+// "the level is recorded per output". A response without a `history` array
+// (a mock or an older server) falls back to appending the single fresh body,
+// which keeps the F14-T03 client re-run behaviour intact.
 
 export default function AnalysisPanel({ questionId }: { questionId: QuestionId }) {
-  const [runs, setRuns] = useState<AnalysisRun[]>([]);
+  const [runs, setRuns] = useState<LabelledRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [reload, setReload] = useState(0);
@@ -57,14 +59,22 @@ export default function AnalysisPanel({ questionId }: { questionId: QuestionId }
     })
       .then((res) => {
         if (!res.ok) throw new Error("analyse failed");
-        return res.json() as Promise<AnalysisServeBody>;
+        return res.json() as Promise<AnalysisServeBody & { history?: AnalysisServeBody[] }>;
       })
       .then((body) => {
         if (cancelled) return;
-        setRuns((prev) => {
-          const key = `run-${keyRef.current++}`;
-          return [...prev, { key, body }];
-        });
+        if (body.history !== undefined) {
+          // The server retained every output for this scope; render them all,
+          // the fresh one last. Prior runs are preserved, not discarded.
+          setRuns(labelledRuns(body.history));
+        } else {
+          // No history in the response — append the single fresh serve (the
+          // F14-T03 re-run fallback), each run keeping its own label.
+          setRuns((prev) => {
+            const key = `run-${keyRef.current++}`;
+            return [...prev, { key, body }];
+          });
+        }
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
@@ -136,7 +146,11 @@ export default function AnalysisPanel({ questionId }: { questionId: QuestionId }
                 data-testid="analysis-run-label"
                 className="text-xs tabular-nums text-neutral-500"
               >
-                {runFooterText(run.body.label.model, run.body.label.generatedAt)}
+                {runFooterText(
+                  run.body.level,
+                  run.body.label.model,
+                  run.body.label.generatedAt,
+                )}
               </span>
             </footer>
           </li>

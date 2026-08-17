@@ -150,6 +150,17 @@ export type AnalysisServeBody =
     };
 
 /**
+ * The route's response: the fresh serve body plus the retained history for the
+ * same scope, oldest first, so the side panel (F14-T03/F14-T06, FR-35) can
+ * render every previous output alongside this one — re-running never discards
+ * an earlier read. Each history item is itself a fully-labelled serve body, so
+ * the model, timestamp and serving level ride with every output.
+ */
+export type AnalysisServeResponse = AnalysisServeBody & {
+  history: AnalysisServeBody[];
+};
+
+/**
  * Map the resolved served level to the gateway pin. L3 — the plain-form mode —
  * still produces a deterministic result, so it maps onto the gateway's L2
  * (the same mapping the coach uses); `auto` lets the runtime pick from health

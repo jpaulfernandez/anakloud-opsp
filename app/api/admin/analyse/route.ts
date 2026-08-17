@@ -11,13 +11,18 @@ import {
   loadAnalysisScoring,
   runAnalysisAttempt,
   serveAnalysis,
+  type AnalysisServeResponse,
 } from "@/lib/analyse-endpoint";
+import {
+  listAnalysisOutputs,
+  recordAnalysisOutput,
+} from "@/lib/analysis-output-store";
 import type { AnalysisQueueWork } from "@/lib/analysis-queue";
 import type { AnalysisRequestContext } from "@/lib/analysis-prompt";
 import type { QuestionId } from "@/lib/questions";
 
-// F14-T02 — the facilitator-analysis endpoint (tech_infrastructure.md §4:
-// `POST /api/admin/analyse`. AI analysis. Degrades to scoring-only).
+// F14-T02/F14-T06 — the facilitator-analysis endpoint (tech_infrastructure.md
+// §4: `POST /api/admin/analyse`. AI analysis. Degrades to scoring-only).
 //
 // Accepts a single question (`{ question_id: "q3" }`) or the whole cohort
 // (`{}`), behind the F09-T01 admin gate. It resolves the anonymised §5.5
@@ -26,6 +31,13 @@ import type { QuestionId } from "@/lib/questions";
 // at L1, and the deterministic divergence breakdown with export options at L2
 // and L3. The key-removed case is the L2 path, so the endpoint returns scoring
 // and a 200 rather than an error (spec.md §7, PR3).
+//
+// F14-T06 (FR-35): every serve is persisted to its own durable row and the
+// response carries the retained history alongside the fresh output, so a
+// re-run never overwrites the previous one and a change in the read stays
+// visible. The serve body already carries the level, model and generation
+// timestamp on every branch; the store records those and keeps the whole
+// output with them.
 //
 // The privacy posture has nowhere to leak. The payload context is built by
 // F14-T01 from the public read helpers (private rows excluded in SQL), and the
@@ -135,7 +147,24 @@ export async function POST(request: Request): Promise<Response> {
       worker,
       scoringLoader,
     );
-    return NextResponse.json(served);
+
+    // F14-T06 (FR-35): retain every serve, then return it alongside the kept
+    // history so a re-running facilitator sees the new output against the old
+    // ones — nothing is overwritten. The extract + append helpers factor the
+    // record shape (level, model, timestamp) and the append rule so they are
+    // unit-testable without a database; the writes and reads below are what
+    // make the retention durable.
+    await recordAnalysisOutput(db, respondentId, cohortId, served);
+    const history = await listAnalysisOutputs(
+      db,
+      respondentId,
+      cohortId,
+      served.scope,
+      served.questionId,
+    );
+
+    const response: AnalysisServeResponse = { ...served, history };
+    return NextResponse.json(response);
   } finally {
     await db.end();
   }
