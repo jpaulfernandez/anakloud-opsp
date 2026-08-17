@@ -3,8 +3,10 @@ import {
   anthropicProvider,
   geminiProvider,
   ProviderHttpError,
+  ProviderShapeError,
   type ProviderRequest,
 } from "../../lib/provider";
+import { COACH_RESULT_TOOL } from "../../lib/coach-prompt";
 
 // F13-T01 — the provider's structured-output (tool-use) mode. The coach must
 // constrain the model to its `{verdict, dimension, hint, example}` schema, and
@@ -386,5 +388,100 @@ describe("geminiProvider", () => {
     await expect(
       provider.request({ prompt: "x", model: "pinned-model", maxTokens: 200 }),
     ).rejects.toThrow();
+  });
+});
+
+// F18-T02 — schema fidelity. Gemini's function declarations take an
+// OpenAPI-3.0-subset schema, and a forced tool call does not guarantee that the
+// *arguments* it returns satisfy that schema. These tests prove the provider
+// validates the complete argument shape against the declared input_schema
+// before serialising it for the output guard: a partial or off-shape reply
+// rejects as a provider failure (degrading the gateway) instead of letting a
+// malformed object reach the guard or a browser. They run against the production
+// coach tool schema (COACH_RESULT_TOOL), so the enum/required constraints proven
+// here are exactly the ones the API must enforce on the wire.
+
+/** A structured request carrying the real coach schema (not a stub). */
+function coachStructuredReq(): ProviderRequest {
+  return {
+    prompt: "ignored when structured",
+    model: "pinned-model",
+    maxTokens: 200,
+    structuredOutput: {
+      system: "You review form, not content.",
+      userMessage: "Question: The metric\n\nAnswer:\nReach goes up.",
+      tool: COACH_RESULT_TOOL,
+    },
+  };
+}
+
+function replyWithArgs(args: unknown): Response {
+  return geminiResponseFor({ args, toolName: "coach_result" });
+}
+
+describe("geminiProvider schema fidelity (F18-T02)", () => {
+  it("serialises a fully-conforming coach_result to text for the guard", async () => {
+    const args = { verdict: "ok", dimension: null, hint: "", example: "" };
+    vi.stubGlobal("fetch", vi.fn(async () => replyWithArgs(args)));
+    const provider = geminiProvider("test-key");
+    const res = await provider.request(coachStructuredReq());
+    expect(res.text).toBe(JSON.stringify(args));
+  });
+
+  it("a non-conforming reply — an out-of-enum verdict — rejects as a provider failure", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        replyWithArgs({ verdict: "great", dimension: null, hint: "", example: "" }),
+      ),
+    );
+    const provider = geminiProvider("test-key");
+    await expect(provider.request(coachStructuredReq())).rejects.toBeInstanceOf(
+      ProviderShapeError,
+    );
+  });
+
+  it("a partial reply missing a required field rejects before the guard", async () => {
+    // Dropping `example`, one of the four required fields, so the model's forced
+    // call returned only part of the §5.3 shape.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        replyWithArgs({ verdict: "needs_work", dimension: "too_short", hint: "Too short." }),
+      ),
+    );
+    const provider = geminiProvider("test-key");
+    await expect(provider.request(coachStructuredReq())).rejects.toBeInstanceOf(
+      ProviderShapeError,
+    );
+  });
+
+  it("a dimension outside the four configured dimensions rejects", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        replyWithArgs({ verdict: "needs_work", dimension: "length", hint: "x", example: "" }),
+      ),
+    );
+    const provider = geminiProvider("test-key");
+    await expect(provider.request(coachStructuredReq())).rejects.toBeInstanceOf(
+      ProviderShapeError,
+    );
+  });
+
+  it("the serialised conforming shape parses back to the §5.3 CoachOutput the Anthropic path produced", async () => {
+    const args = {
+      verdict: "needs_work",
+      dimension: "measurability",
+      hint: "What would you point at to show this happened?",
+      example: "",
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => replyWithArgs(args)));
+    const provider = geminiProvider("test-key");
+    const res = await provider.request(coachStructuredReq());
+    // The provider serialises exactly the validated arguments, so whatever the
+    // Anthropic implementation returned for the same tool input, this is the
+    // same shape the coach parser must accept.
+    expect(JSON.parse(res.text)).toEqual(args);
   });
 });

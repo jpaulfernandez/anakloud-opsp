@@ -23,6 +23,34 @@ Gemini introduces two correctness hazards beyond request mapping: its function d
 - Served L0 interactions record real Gemini token counts
 - No respondent sees a provider or safety-block error
 
+## Live schema-fidelity check (M07, F18-T02)
+
+The faked-transport tests in `tests/unit/provider.test.ts` and the pure suite in
+`tests/unit/structured-shape.test.ts` prove the provider rejects a
+non-conforming `coach_result` before the output guard sees it. But "Gemini
+honours the verdict and dimension enums" is a claim about the *live API*, which
+no faked `fetch` can verify. It is confirmed once against a real endpoint —
+costs money, needs `GEMINI_API_KEY` and a pinned `AI_MODEL`, so it is **not**
+part of `./verify.sh` — whenever the coach schema or model changes:
+
+1. Drive the production coach schema through `geminiProvider` at L0 over a few
+   of the §8 T1 fixtures (e.g. run the fixtures in
+   `tests/e2e/key-removal.spec.ts` or a handful of `COACH_FIXTURES`).
+2. Assert every call **resolves** — a call is rejected with `ProviderShapeError`
+   only when Gemini returned args outside `verdict: ok|needs_work` or
+   `dimension` not among the four named dimensions (or null). A clean run means
+   the API enforced the enums it was given, so the structural guarantee the
+   dialect rewrite preserves is real and not inspection.
+3. Check the serialised output parses back through `parseCoachResponse` to the
+   §5.3 `{verdict, dimension, hint, example}` shape.
+
+A single fixture that resolves is the minimal signal; the deterministic
+enum/required coverage lives in the offline suites above. The dangerous case
+this guards against is a schema keyword Gemini *silently ignores* (the reason
+the dialect in `lib/coach-prompt.ts` avoids array `type` and `null`-in-enum):
+a turn where Gemini returns the four-dimension shape through the live validation
+is the evidence it honoured the declaration rather than dropping a constraint.
+
 ## Risks
 
 - **A 200 response is not necessarily a usable response.** Prompt blocks and safety finish reasons must be handled before parsing.

@@ -93,6 +93,15 @@ export const COACH_RESULT_TOOL_NAME = "coach_result";
  * refuses plain free text, so the only way out of this call is a valid
  * `coach_result` input (§5.3). The schema is a **request**; the §5.4 guard is
  * what actually trips on any leak.
+ *
+ * The schema is written in the OpenAPI-3.0-subset dialect Gemini accepts
+ * (F18-T02, M07). Two JSON-Schema conveniences would break or silently lose a
+ * constraint there, so they are deliberately avoided:
+ *   - an array `type: ["string","null"]` is not valid OpenAPI 3.0 — the subset
+ *     spells "string or null" as `type: "string"` plus `nullable: true`;
+ *   - `null` is not a member of a string `enum` — the subset constrains the
+ *     enum to the four real dimensions and expresses the null case through
+ *     `nullable`, so a `dimension` is exactly one of the four, or null.
  */
 export const COACH_RESULT_TOOL = {
   name: COACH_RESULT_TOOL_NAME,
@@ -102,8 +111,9 @@ export const COACH_RESULT_TOOL = {
     properties: {
       verdict: { type: "string", enum: ["ok", "needs_work"] },
       dimension: {
-        type: ["string", "null"],
-        enum: ["measurability", "specificity", "single_answer", "too_short", null],
+        type: "string",
+        enum: ["measurability", "specificity", "single_answer", "too_short"],
+        nullable: true,
       },
       hint: { type: "string", description: "≤25 words, empty when ok" },
       example: {

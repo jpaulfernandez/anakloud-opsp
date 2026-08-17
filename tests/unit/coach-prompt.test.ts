@@ -48,7 +48,7 @@ describe("structured output mode is enforced (acceptance 1)", () => {
   const schema = COACH_RESULT_TOOL.input_schema as unknown as {
     properties: {
       verdict: { enum: string[] };
-      dimension: { enum: Array<string | null> };
+      dimension: { enum: string[]; nullable?: boolean };
       hint: { description?: string };
     };
     required: string[];
@@ -65,9 +65,14 @@ describe("structured output mode is enforced (acceptance 1)", () => {
 
   it("verdict and dimension are closed enums, so the model cannot improvise", () => {
     expect(schema.properties.verdict.enum).toEqual(["ok", "needs_work"]);
+    // F18-T02 — the schema is written in Gemini's OpenAPI-3.0 subset: the enum
+    // holds the four real dimensions only (no null member), and the nil case is
+    // expressed as `nullable: true`. An off-enum dimension is rejected, and null
+    // is the one non-string value allowed.
     expect(schema.properties.dimension.enum).toEqual([
-      "measurability", "specificity", "single_answer", "too_short", null,
+      "measurability", "specificity", "single_answer", "too_short",
     ]);
+    expect(schema.properties.dimension.nullable).toBe(true);
   });
 
   it("the request forces the coach_result tool in tool-use mode", () => {

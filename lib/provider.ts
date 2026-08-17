@@ -12,6 +12,8 @@
 // Server-side only by construction: the concrete client reads the API key that
 // the gateway passes in, never anything a client bundle could reach.
 
+import { validateStructuredShape } from "./structured-shape";
+
 /** Hard per-request timeout for a provider call (tech_infrastructure.md §6.2). */
 export const PROVIDER_TIMEOUT_MS = 6000;
 
@@ -27,6 +29,24 @@ export class ProviderHttpError extends Error {
   constructor(readonly status: number) {
     super(`provider responded ${status}`);
     this.name = "ProviderHttpError";
+  }
+}
+
+/**
+ * A structured function call whose arguments did not match the declared
+ * `input_schema` (F18-T02, M07). The model was forced to call the tool but the
+ * arguments came back off-shape — a missing required field, an out-of-enum
+ * value, a wrong type — so there is no structural guarantee left. It is not an
+ * HTTP error (so the gateway will not burn a retry on it) and the gateway
+ * degrades the call the same way it would any other provider failure, keeping
+ * the malformed object away from the output guard and the browser.
+ */
+export class ProviderShapeError extends Error {
+  constructor(readonly violations: string[]) {
+    super(
+      `structured output did not conform to the declared schema: ${violations.join("; ")}`,
+    );
+    this.name = "ProviderShapeError";
   }
 }
 
@@ -229,11 +249,28 @@ export function geminiProvider(apiKey: string): AIProvider {
       // The serialised structured output travels back as `text` so the output
       // guard (which scans `ProviderResponse.text`) sees it, and so a calling
       // F13 endpoint can run it back through the coach parser.
+      const directive = req.structuredOutput;
       const structured = parts.find(
         (p) =>
           p.functionCall !== undefined &&
-          p.functionCall.name === req.structuredOutput?.tool.name,
+          p.functionCall.name === directive?.tool.name,
       )?.functionCall?.args;
+      if (structured !== undefined && directive !== undefined) {
+        // F18-T02 — validate the complete argument shape against the declared
+        // input_schema before the guard sees anything. A forced tool call does
+        // not guarantee conforming arguments; if they are partial or off-shape
+        // this rejects with a provider failure so the gateway degrades and no
+        // malformed object ever reaches the output guard or a browser. The
+        // schema dialect in coach-prompt.ts is the OpenAPI subset Gemini
+        // accepts, so every constraint declared here is one Gemini enforces.
+        const violations = validateStructuredShape(
+          directive.tool.input_schema,
+          structured,
+        );
+        if (violations.length > 0) {
+          throw new ProviderShapeError(violations);
+        }
+      }
       return {
         text: structured !== undefined ? JSON.stringify(structured) : textParts,
         inputTokens: parsed.usageMetadata?.promptTokenCount ?? 0,

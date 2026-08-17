@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 101
+**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 102
 
 ---
 
@@ -257,7 +257,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
 | F18-T01 | Implement the Gemini provider | Done | M06 |
-| F18-T02 | Preserve structured-output schema fidelity | Not started | M07 |
+| F18-T02 | Preserve structured-output schema fidelity | Done | M07 |
 | F18-T03 | Handle Gemini safety blocks | Not started | M08; synthetic private-risk fixtures only |
 
 ## F19 — Neon environments
