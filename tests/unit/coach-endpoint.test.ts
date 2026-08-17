@@ -13,7 +13,7 @@ import {
 import { COACH_SYSTEM_PROMPT, type CoachRequestContext } from "../../lib/coach-prompt";
 import { STATIC_HINTS } from "../../lib/static-hints";
 import type { AIProvider, GatewayContext, GatewayResult, ProviderResponse } from "../../lib/ai-gateway";
-import { ProviderHttpError } from "../../lib/ai-gateway";
+import { ProviderHttpError, ProviderSafetyError } from "../../lib/ai-gateway";
 import { POST } from "../../app/api/coach/route";
 
 // F13-T04 — coach endpoint resilience (tech_infrastructure.md §6.2, spec.md §10
@@ -131,6 +131,7 @@ describe("serveCoach — provider fuzzing yields no 5xx (acceptance 1)", () => {
     () => Promise.reject(new ProviderHttpError(429)),
     () => Promise.reject(new ProviderHttpError(503)),
     () => Promise.reject(new ProviderHttpError(500)),
+    () => Promise.reject(new ProviderSafetyError("SAFETY")), // F18-T03 block
     () => Promise.reject(new Error("network down")),
     () => Promise.reject("string rejection"),
     () => new Promise<ProviderResponse>(() => {}), // hangs → timeout → L2
@@ -142,6 +143,26 @@ describe("serveCoach — provider fuzzing yields no 5xx (acceptance 1)", () => {
     expect(body.level).toBe("L2");
     expect(body.verdict).toBe("needs_work");
     expect(body.hint).toBe(STATIC_HINTS.q7.hint);
+  });
+});
+
+describe("serveCoach — a safety block serves the same L2 state as an ordinary fallback (F18-T03)", () => {
+  // PR6 / M08 acceptance 1: a Gemini safety refusal must not look any different
+  // to the respondent than any other provider failure. The block travels as a
+  // provider failure through the gateway — which degrades to L2 and records
+  // blocked_reason separately — so `serveCoach` renders the exact static hint
+  // body an HTTP failure renders. Nothing about a block reaches a browser.
+  it("yields the identical deterministic coach card as a generic provider error", async () => {
+    async function servedFor(err: Error): Promise<ReturnType<typeof coachResponseFromResult>> {
+      const provider: AIProvider = { request: () => Promise.reject(err) };
+      return serveCoach(coachCtx(), gatewayCtx(), provider, "pinned-model");
+    }
+    const blocked = await servedFor(new ProviderSafetyError("SAFETY"));
+    const httpFailure = await servedFor(new ProviderHttpError(500));
+    expect(blocked).toEqual(httpFailure);
+    expect(blocked.level).toBe("L2");
+    expect(blocked.hint).toBe(STATIC_HINTS.q7.hint);
+    expect(blocked.example).toBe("");
   });
 });
 

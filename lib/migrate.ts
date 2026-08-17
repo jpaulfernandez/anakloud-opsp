@@ -223,6 +223,19 @@ export const MIGRATIONS: Migration[] = [
            drop policy if exists drafts_official_update on opsp_drafts;
            drop policy if exists drafts_official_insert on opsp_drafts;`,
   },
+  {
+    version: "0012_safety_block_reason",
+    // F18-T03 (source item M08) — a Gemini safety block is recorded in its own
+    // ai_interactions column so it is counted separately from output-guard
+    // trips (`guard_tripped`) and from ordinary HTTP failures. A 200 with a
+    // SAFETY finish reason or a blocked prompt is a provider failure with no
+    // Anthropic equivalent, and it must be auditable apart from the §11 guard
+    // metric. Added to the fresh-schema path (0001, generated from SCHEMA)
+    // already, so this `if not exists` stays a no-op there, exactly like 0003
+    // and 0005.
+    up: `alter table ai_interactions add column if not exists blocked_reason text;`,
+    down: `alter table ai_interactions drop column if exists blocked_reason;`,
+  },
 ];
 
 async function withTransaction<T>(

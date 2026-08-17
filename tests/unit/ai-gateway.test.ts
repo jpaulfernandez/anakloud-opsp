@@ -6,6 +6,7 @@ import {
   callProvider,
   gatewayCallRecord,
   ProviderHttpError,
+  ProviderSafetyError,
   selectLevel,
   type AIProvider,
   type GatewayRecord,
@@ -370,6 +371,7 @@ describe("timeout and retry policy (F12-T05, tech_infrastructure.md §6.2)", () 
       () => Promise.reject(new ProviderHttpError(429)),
       () => Promise.reject(new ProviderHttpError(503)),
       () => Promise.reject(new ProviderHttpError(500)),
+      () => Promise.reject(new ProviderSafetyError("SAFETY")), // F18-T03 block
       () => Promise.reject(new Error("network down")),
       () => Promise.reject("string rejection"),
       () => new Promise<ProviderResponse>(() => {}), // hangs → timeout
@@ -387,6 +389,77 @@ describe("timeout and retry policy (F12-T05, tech_infrastructure.md §6.2)", () 
       expect(["L0", "L1", "L2"]).toContain(result.level);
       expect(result.degraded).toBe(result.provider === undefined);
     }
+  });
+});
+
+describe("safety-block handling (F18-T03, M08)", () => {
+  // A Gemini safety block is a provider failure with a distinguishing shape:
+  // it must degrade to the deterministic L2 sibling, it must be recorded
+  // distinctly from an HTTP failure and a guard trip in ai_interactions, and
+  // it must never be retried — the input will not change, so a re-send is
+  // wasted spend. All three hold here because a safety block is neither a
+  // retriable HTTP status (no retry) nor a guard trip (a separate column).
+
+  function ctx(
+    overrides: Partial<Parameters<typeof callProvider>[0]> = {},
+  ): Parameters<typeof callProvider>[0] {
+    return coachCtx({ retryBackoffMs: 0, ...overrides });
+  }
+
+  function record(overrides: Partial<GatewayRecord> = {}): GatewayRecord {
+    return {
+      db: {} as unknown as ClientBase,
+      cohortId: "cohort-1",
+      respondentId: "resp-1",
+      questionId: "q7",
+      attemptNo: 1,
+      verdict: "needs_work",
+      hintText: "Make it countable.",
+      exampleShown: false,
+      ...overrides,
+    };
+  }
+
+  it("a safety-blocked provider is served at L2, degraded, and never retried", async () => {
+    const { provider, calls } = recordingProvider(async () => {
+      throw new ProviderSafetyError("SAFETY");
+    });
+    const result = await callProvider(ctx(), provider, REQ);
+    // Exactly one provider request for a safety-blocked response.
+    expect(calls).toHaveLength(1);
+    expect(result.level).toBe("L2");
+    expect(result.degraded).toBe(true);
+    expect(result.provider).toBeUndefined();
+    expect(result.blockedReason).toBe("SAFETY");
+  });
+
+  it("records the block reason distinctly — blockedReason set, guardTrip null", () => {
+    // A safety block is not a §11 guard trip: the guard never ran, so
+    // `guard_tripped` stays null and the block reasons into its own column —
+    // exactly the separation M08 demands for a visible rising count.
+    const result: GatewayResult = {
+      level: "L2",
+      degraded: true,
+      blockedReason: "SAFETY",
+    };
+    const row = gatewayCallRecord({ purpose: "coach", record: record() }, REQ, result);
+    expect(row!.blockedReason).toBe("SAFETY");
+    expect(row!.guardTripped).toBeNull();
+    // Zero tokens: a blocked turn produced nothing the budget can charge.
+    expect(row!.inputTokens).toBe(0);
+    expect(row!.outputTokens).toBe(0);
+  });
+
+  it("an HTTP failure and a guard trip each record without a block reason", () => {
+    // HTTP failures and guard trips stay plainly distinguishable from a block:
+    // the former record no reason, the latter record in `guard_tripped` only.
+    const http: GatewayResult = { level: "L2", degraded: true };
+    expect(gatewayCallRecord({ purpose: "coach", record: record() }, REQ, http)!.blockedReason).toBeNull();
+
+    const trip: GatewayResult = { level: "L2", degraded: true, guardTripped: "banned term: clinic" };
+    const row = gatewayCallRecord({ purpose: "coach", record: record() }, REQ, trip);
+    expect(row!.blockedReason).toBeNull();
+    expect(row!.guardTripped).toBe("banned term: clinic");
   });
 });
 

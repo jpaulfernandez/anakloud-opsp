@@ -51,6 +51,23 @@ export class ProviderShapeError extends Error {
 }
 
 /**
+ * Gemini refused the request on safety grounds (F18-T03, source item M08) — a
+ * finished candidate with `finishReason: "SAFETY"`, or a prompt blocked via
+ * `promptFeedback.blockReason`. Both arrive as a 200 with no usable content,
+ * which is exactly why this is its own class rather than an HTTP error: the
+ * gateway records it distinctly in `ai_interactions`, and it is never retried
+ * because the input will not change on the next attempt. The respondent sees
+ * nothing (PR6) — like every other provider failure this degrades to the
+ * deterministic sibling.
+ */
+export class ProviderSafetyError extends Error {
+  constructor(readonly reason: string) {
+    super(`provider safety block: ${reason}`);
+    this.name = "ProviderSafetyError";
+  }
+}
+
+/**
  * A structured-output directive (F13-T01, tech_infrastructure.md §5.3). When
  * present, the provider sends the request in tool-use mode — a `system` prompt,
  * a single user turn, and the one tool the model is forced to call — so the
@@ -232,6 +249,7 @@ export function geminiProvider(apiKey: string): AIProvider {
       }
       const parsed = (await res.json()) as {
         candidates?: Array<{
+          finishReason?: string;
           content?: {
             parts?: Array<{
               text?: string;
@@ -239,11 +257,24 @@ export function geminiProvider(apiKey: string): AIProvider {
             }>;
           };
         }>;
+        promptFeedback?: { blockReason?: string };
         usageMetadata?: {
           promptTokenCount?: number;
           candidatesTokenCount?: number;
         };
       };
+      // F18-T03 (M08) — a 200 is not necessarily a usable response. Gemini may
+      // finish a candidate with `finishReason: "SAFETY"` or block the request
+      // outright via `promptFeedback.blockReason`, both with no content the
+      // coach could use. Treat either as a provider failure so the gateway
+      // degrades to the deterministic sibling and records the block distinctly
+      // — never handing an emptied reply to the output guard or a browser.
+      const blockedReason =
+        parsed.promptFeedback?.blockReason ??
+        (parsed.candidates?.[0]?.finishReason === "SAFETY" ? "SAFETY" : undefined);
+      if (blockedReason !== undefined) {
+        throw new ProviderSafetyError(blockedReason);
+      }
       const parts = parsed.candidates?.[0]?.content?.parts ?? [];
       const textParts = parts.map((p) => p.text ?? "").join("");
       // The serialised structured output travels back as `text` so the output

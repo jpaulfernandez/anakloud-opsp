@@ -79,6 +79,7 @@ const EXPECTED: Record<
     input_tokens: { type: "int", nullable: false },
     output_tokens: { type: "int", nullable: false },
     guard_tripped: { type: "text", nullable: true },
+    blocked_reason: { type: "text", nullable: true },
     created_at: { type: "timestamptz", nullable: false },
   },
   ai_budget: {

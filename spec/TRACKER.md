@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 102
+**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 103
 
 ---
 
@@ -59,7 +59,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F15 | Official OPSP canvas | P4 | Done | 2026-08-17 | 2026-08-17 | |
 | F16 | Gemini configuration guardrails | M | Done | 2026-08-17 | 2026-08-17 | M09–M11; do before the provider migration |
 | F17 | Neon runtime | M | Done | 2026-08-17 | 2026-08-17 | M01–M03 |
-| F18 | Gemini provider | M | In progress | 2026-08-17 | | M06–M08; may proceed alongside F17 after F16 |
+| F18 | Gemini provider | M | Done | 2026-08-17 | 2026-08-17 | M06–M08; may proceed alongside F17 after F16 |
 | F19 | Neon environments | M | Not started | | | M04–M05; follows F17 |
 | F20 | Migration release gate | M | Not started | | | M12; final migration gate |
 
@@ -258,7 +258,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 |---|---|---|---|
 | F18-T01 | Implement the Gemini provider | Done | M06 |
 | F18-T02 | Preserve structured-output schema fidelity | Done | M07 |
-| F18-T03 | Handle Gemini safety blocks | Not started | M08; synthetic private-risk fixtures only |
+| F18-T03 | Handle Gemini safety blocks | Done | M08; synthetic private-risk fixtures only |
 
 ## F19 — Neon environments
 

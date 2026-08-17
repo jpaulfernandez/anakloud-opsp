@@ -145,6 +145,10 @@ export const SCHEMA: SchemaDef = {
       input_tokens: col("input_tokens", "int", { default: "0" }),
       output_tokens: col("output_tokens", "int", { default: "0" }),
       guard_tripped: col("guard_tripped", "text", { nullable: true }),
+      // F18-T03 / M08 — a Gemini safety block, kept distinct from an output-
+      // guard trip (`guard_tripped`) and from an ordinary HTTP failure (which
+      // records nothing) so a rising block count is visible to the facilitator.
+      blocked_reason: col("blocked_reason", "text", { nullable: true }),
       created_at: col("created_at", "timestamptz", { default: "now()" }),
     },
     primaryKey: ["id"],

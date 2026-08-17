@@ -3,6 +3,7 @@ import {
   anthropicProvider,
   geminiProvider,
   ProviderHttpError,
+  ProviderSafetyError,
   ProviderShapeError,
   type ProviderRequest,
 } from "../../lib/provider";
@@ -483,5 +484,86 @@ describe("geminiProvider schema fidelity (F18-T02)", () => {
     // Anthropic implementation returned for the same tool input, this is the
     // same shape the coach parser must accept.
     expect(JSON.parse(res.text)).toEqual(args);
+  });
+});
+
+// F18-T03 (M08) — safety-block handling. Gemini can refuse a turn with a 200
+// and no usable content: a candidate with `finishReason: "SAFETY"`, or a
+// prompt blocked via `promptFeedback.blockReason`. Both must reject as a typed
+// `ProviderSafetyError` so the gateway degrades to the deterministic sibling
+// and records the block distinctly. The reason is carried on the error so it
+// lands in `ai_interactions.blocked_reason`; it is never an HTTP error, so the
+// gateway's 429/503 retry policy ignores it (a block does not clear on re-send).
+
+/** A SAFETY-finished candidate, the common blocked-turn shape. */
+function safetyResponse(): Response {
+  return okJson({
+    candidates: [
+      { finishReason: "SAFETY", index: 0 },
+    ],
+  });
+}
+
+describe("geminiProvider safety blocks (F18-T03)", () => {
+  it("a candidate with finishReason SAFETY rejects with ProviderSafetyError", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => safetyResponse()));
+    const provider = geminiProvider("test-key");
+    await expect(provider.request(structReq())).rejects.toBeInstanceOf(
+      ProviderSafetyError,
+    );
+  });
+
+  it("carries the block reason so it lands in ai_interactions.blocked_reason", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => safetyResponse()));
+    const provider = geminiProvider("test-key");
+    await expect(provider.request(structReq())).rejects.toMatchObject({
+      name: "ProviderSafetyError",
+      reason: "SAFETY",
+    });
+  });
+
+  it("a prompt block via promptFeedback.blockReason rejects too, with that reason", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        okJson({ promptFeedback: { blockReason: "DANGEROUS_CONTENT" } }),
+      ),
+    );
+    const provider = geminiProvider("test-key");
+    await expect(provider.request(structReq())).rejects.toMatchObject({
+      reason: "DANGEROUS_CONTENT",
+    });
+  });
+
+  it("a SAFETY block on a structured coach call rejects before any shape parsing", async () => {
+    // The forced-tool path must degrade just the same: a block is a provider
+    // failure, not a malformed-coach-reply, and must not be mis-handled as an
+    // empty-then-parse-fallback (which would not record the block distinctly).
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        okJson({
+          candidates: [{ finishReason: "SAFETY", index: 0 }],
+          usageMetadata: { promptTokenCount: 33, candidatesTokenCount: 0 },
+        }),
+      ),
+    );
+    const provider = geminiProvider("test-key");
+    await expect(provider.request(coachStructuredReq())).rejects.toBeInstanceOf(
+      ProviderSafetyError,
+    );
+  });
+
+  it("a 200 with no candidate and no promptFeedback is not a block — empty text", async () => {
+    // The existing empty-body behaviour is untouched: only an explicit SAFETY
+    // finish reason or a blockReason marks a provider-safety failure.
+    vi.stubGlobal("fetch", vi.fn(async () => okJson({})));
+    const provider = geminiProvider("test-key");
+    const res = await provider.request({
+      prompt: "Review this.",
+      model: "pinned-model",
+      maxTokens: 200,
+    });
+    expect(res.text).toBe("");
   });
 });

@@ -50,6 +50,7 @@ function call(overrides: Partial<RecordedModelCall> = {}): RecordedModelCall {
     inputTokens: 120,
     outputTokens: 30,
     guardTripped: null,
+    blockedReason: null,
     ...overrides,
   };
 }

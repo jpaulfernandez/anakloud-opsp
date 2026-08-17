@@ -21,6 +21,7 @@
 import {
   PROVIDER_TIMEOUT_MS,
   ProviderHttpError,
+  ProviderSafetyError,
   type AIProvider,
   type ProviderRequest,
   type ProviderResponse,
@@ -43,6 +44,7 @@ export type {
 export {
   PROVIDER_TIMEOUT_MS,
   ProviderHttpError,
+  ProviderSafetyError,
   // The concrete providers are re-exported here so no other module has to
   // import lib/provider.ts directly — the gateway stays the single sanctioned
   // door to the provider boundary (the F12-T01 import-scan enforces that). The
@@ -71,6 +73,19 @@ const RETRY_BACKOFF_JITTER_MS = 200;
 
 function isRetriableStatus(err: unknown): boolean {
   return err instanceof ProviderHttpError && RETRIABLE_STATUSES.includes(err.status);
+}
+
+/**
+ * The safety-block reason on an error, when the error is one (F18-T03, M08).
+ * A safety block is never an HTTP status, so this is its own signal: the
+ * provider rejects with `ProviderSafetyError`, the gateway records the reason
+ * in `ai_interactions.blocked_reason`, and the retry policy ignores it (a
+ * block will not clear on re-send). Returns undefined for every other error so
+ * ordinary HTTP failures and guard trips stay plainly distinguishable from a
+ * block in the audit row.
+ */
+function safetyBlockReason(err: unknown): string | undefined {
+  return err instanceof ProviderSafetyError ? err.reason : undefined;
 }
 
 /** A jittered retry delay; an injected override removes the jitter for tests. */
@@ -151,6 +166,8 @@ export interface GatewayResult {
   degraded: boolean;
   /** The output guard that tripped, when one did (§11 trip metric). */
   guardTripped?: string;
+  /** A Gemini safety-block reason (F18-T03), distinct from a guard trip or an HTTP failure. */
+  blockedReason?: string;
 }
 
 /**
@@ -221,6 +238,8 @@ interface Run {
   pending: Promise<ProviderResponse> | null;
   providerResult?: ProviderResponse;
   guardTripped?: string;
+  /** A Gemini safety-block reason, recorded distinctly in ai_interactions (F18-T03). */
+  blockedReason?: string;
 }
 
 /** A stage may continue to the next, or stop with a finished result. */
@@ -308,6 +327,9 @@ async function timeoutStage(run: Run): Promise<StageDecision> {
       run.elapsedMs = Date.now() - run.startedAt;
       return CONTINUE;
     }
+    // A retry that fails is not retried again. A safety block on the retry is
+    // recorded here, just as it would be on the first attempt (F18-T03).
+    run.blockedReason = safetyBlockReason(retry.kind === "error" ? retry.error : undefined);
     run.elapsedMs = Date.now() - run.startedAt;
     return { kind: "stop", level: "L2", degraded: true };
   }
@@ -317,6 +339,10 @@ async function timeoutStage(run: Run): Promise<StageDecision> {
     run.elapsedMs = Date.now() - run.startedAt;
     return CONTINUE;
   }
+  // F18-T03 — a safety block is its own signal, carried so the otherwise
+  // identical L2 fallback is audited distinctly from a guard trip or an HTTP
+  // failure in ai_interactions.blocked_reason.
+  run.blockedReason = safetyBlockReason(attempt.kind === "error" ? attempt.error : undefined);
   run.elapsedMs = Date.now() - run.startedAt;
   return { kind: "stop", level: "L2", degraded: true };
 }
@@ -417,6 +443,11 @@ export function gatewayCallRecord(
     inputTokens: result.provider?.inputTokens ?? 0,
     outputTokens: result.provider?.outputTokens ?? 0,
     guardTripped: result.guardTripped ?? null,
+    // F18-T03 — a Gemini safety block is audited in its own column so a
+    // rising block count is visible to the facilitator, separate from the
+    // §11 guard-trip metric (`guard_tripped`) and from ordinary HTTP failures
+    // (which record nothing here).
+    blockedReason: result.blockedReason ?? null,
   };
 }
 
@@ -454,6 +485,7 @@ async function runPipeline(run: Run): Promise<GatewayResult> {
         level: decision.level,
         degraded: decision.degraded,
         guardTripped: decision.guardTripped,
+        blockedReason: run.blockedReason,
       };
     }
   }
@@ -461,6 +493,7 @@ async function runPipeline(run: Run): Promise<GatewayResult> {
     level: run.level,
     degraded: false,
     guardTripped: run.guardTripped,
+    blockedReason: run.blockedReason,
     provider: run.providerResult,
   };
 }

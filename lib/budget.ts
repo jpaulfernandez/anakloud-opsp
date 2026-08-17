@@ -170,6 +170,8 @@ export interface RecordedModelCall {
   inputTokens: number;
   outputTokens: number;
   guardTripped: string | null;
+  /** A Gemini safety-block reason, distinct from a guard trip or HTTP failure (F18-T03/M08). */
+  blockedReason: string | null;
 }
 
 /**
@@ -196,8 +198,8 @@ export async function recordModelCall(
       `insert into ai_interactions (
          id, respondent_id, question_id, purpose, attempt_no, level, model,
          verdict, hint_text, example_shown, answer_changed,
-         input_tokens, output_tokens, guard_tripped
-       ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+         input_tokens, output_tokens, guard_tripped, blocked_reason
+       ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
       [
         randomUUID(),
         call.respondentId,
@@ -213,6 +215,7 @@ export async function recordModelCall(
         call.inputTokens,
         call.outputTokens,
         call.guardTripped,
+        call.blockedReason,
       ],
     );
 
