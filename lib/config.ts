@@ -16,6 +16,18 @@ export const CONFIG_ENV_NAMES = [
 export type ConfigEnvName = (typeof CONFIG_ENV_NAMES)[number];
 
 /**
+ * The AI-key environment variables in use during the migration.
+ * `GEMINI_API_KEY` is the incoming credential; `ANTHROPIC_API_KEY` is the
+ * legacy one that stays scanned until the rename (F16-T03) completes. Every
+ * name here must also be a client-bundle scan target: a green guard that scans
+ * fewer names than the server reads proves nothing (F16-T02, spec.md §8).
+ */
+export const AI_KEY_ENV_NAMES = [
+  "GEMINI_API_KEY",
+  "ANTHROPIC_API_KEY",
+] as const;
+
+/**
  * Every env name the application reads at boot. Names with no natural default
  * are always present; the others are optional.
  */

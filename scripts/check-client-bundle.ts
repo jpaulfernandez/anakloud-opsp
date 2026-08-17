@@ -1,11 +1,11 @@
-// Build-time step for F11-T05. Runs after `next build` and scans the
-// client-only output for any ANTHROPIC_API_KEY reference or value. Exits
+// Build-time step for F11-T05, retargeted by F16-T02. Runs after `next build`
+// and scans the client-only output for any AI-key env name or value. Exits
 // non-zero if a leak is found, failing the build (spec.md §8, §9). Wired into
 // the standard build in package.json: `next build && npm run check:client-bundle`.
 
 import { resolve } from "node:path";
 import {
-  AI_KEY_ENV,
+  SCAN_AI_KEY_ENVS,
   CLIENT_BUNDLE_DIR,
   findBundleViolations,
   keyNeedles,
@@ -13,10 +13,11 @@ import {
 
 const root = resolve(process.cwd(), CLIENT_BUNDLE_DIR);
 const violations = findBundleViolations(root, keyNeedles());
+const targets = SCAN_AI_KEY_ENVS.join(", ");
 
 if (violations.length > 0) {
   console.error(
-    `F11-T05 build check failed: ${AI_KEY_ENV} leaked into ${violations.length} client bundle file(s).`,
+    `build check (${targets}) failed: an AI key leaked into ${violations.length} client bundle file(s).`,
   );
   for (const violation of violations) {
     console.error(`  - ${violation.file} contains "${violation.needle}"`);
@@ -25,4 +26,4 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-console.log(`F11-T05 build check passed: no ${AI_KEY_ENV} reference in client bundles.`);
+console.log(`build check passed: no ${targets} reference in client bundles.`);

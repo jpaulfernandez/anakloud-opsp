@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 95
+**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 96
 
 ---
 
@@ -241,7 +241,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
 | F16-T01 | Reject moving Gemini model aliases | Done | M09 |
-| F16-T02 | Retarget the client-bundle key guard | Not started | M10 |
+| F16-T02 | Retarget the client-bundle key guard | Done | M10 | Scans GEMINI + legacy ANTHROPIC names and values |
 | F16-T03 | Rename the provider credential | Not started | M11; retargets the T2 gate |
 
 ## F17 — Neon runtime
