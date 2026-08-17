@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P3 · **Tickets:** 94 · **Done:** 85
+**Last updated:** 2026-08-17 · **Current phase:** P3 · **Tickets:** 94 · **Done:** 86
 
 ---
 
@@ -213,7 +213,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F14-T02 | Analysis endpoint with degradation | Done | |
 | F14-T03 | Analysis side panel | Done | |
 | F14-T04 | Individual OPSP strengths and gaps | Done | |
-| F14-T05 | Anonymised projection hardening | Not started | |
+| F14-T05 | Anonymised projection hardening | Done | |
 | F14-T06 | Output labelling and re-run | Not started | |
 
 ## F15 — Official OPSP canvas

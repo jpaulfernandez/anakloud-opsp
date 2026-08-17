@@ -6,6 +6,7 @@ import {
   comparisonAnswerText,
   shuffleAnswers,
 } from "@/lib/comparison-screen";
+import { ATTRIBUTE_GRANT_HEADER } from "@/lib/attribute-grant";
 import type {
   ComparisonAnswerAnonymised,
   ComparisonAnswerAttributed,
@@ -21,6 +22,13 @@ import type { QuestionId } from "@/lib/questions";
 // wording is fixed (the confirmation below), never the result of a single
 // click, a remembered preference, or a URL parameter — the mode lives in this
 // component's state only, so a reload drops straight back to anonymised.
+//
+// F14-T05 hardens the confirmation into a server capability: passing it does
+// not just flip client state, it POSTs the attribute-grant endpoint and then
+// requests the named payload with the returned grant over x-attribute-grant. A
+// reload never carries the grant (it is not stored, and it expires in minutes),
+// and manipulating the URL alone cannot mint one — so the only way the named
+// payload is served at all is through this confirmation-then-grant path.
 //
 // The server page (page.tsx) renders the anonymised default from the same
 // F10-T02 fetch; the client only reaches out to the attributed mode of that
@@ -101,8 +109,22 @@ export default function ComparisonBoard({
     setLoading(true);
     setAttributedError(null);
     try {
+      // F14-T05: passing the confirmation first mints a server-issued attribute
+      // grant for this question; the named payload is only served with it. The
+      // grant is not stored and expires quickly, so a reload or navigation
+      // cannot carry it into attributed mode.
+      const gRes = await fetch(
+        `/api/admin/question/${questionId}/attribute-grant`,
+        { method: "POST" },
+      );
+      if (!gRes.ok) throw new Error("attribute grant failed");
+      const { grant } = (await gRes.json()) as { grant?: string };
+      if (typeof grant !== "string" || grant === "") {
+        throw new Error("attribute grant missing");
+      }
       const res = await fetch(
         `/api/admin/question/${questionId}?mode=attributed`,
+        { headers: { [ATTRIBUTE_GRANT_HEADER]: grant } },
       );
       if (!res.ok) throw new Error("attributed load failed");
       const json = (await res.json()) as AttributedPayload;
