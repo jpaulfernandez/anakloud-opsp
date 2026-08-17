@@ -23,16 +23,16 @@ const R2 = "71000000-0000-0000-0000-000000000092";
 
 // A hard split on Q8: opposite first wedges, both at confidence 5.
 const R1_Q8 = {
-  rank: ["pedconnect", "teachday", "parentup", "fourth_app"],
-  delete: "fourth_app",
+  rank: ["pedconnect", "teachday", "parentup", "pedmd"],
+  delete: "pedmd",
   why: "the referral is the scarce resource",
-  predicted: ["teachday", "pedconnect", "parentup", "fourth_app"],
+  predicted: ["teachday", "pedconnect", "parentup", "pedmd"],
 };
 const R2_Q8 = {
-  rank: ["teachday", "pedconnect", "parentup", "fourth_app"],
-  delete: "fourth_app",
+  rank: ["teachday", "pedconnect", "parentup", "pedmd"],
+  delete: "pedmd",
   why: "centers hold the money and the daily pain",
-  predicted: ["pedconnect", "teachday", "parentup", "fourth_app"],
+  predicted: ["pedconnect", "teachday", "parentup", "pedmd"],
 };
 const R1_Q1 = { text: "waiting stops being why a child misses care" };
 const R2_Q1 = { text: "progress visible so families know what they buy" };

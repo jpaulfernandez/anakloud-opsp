@@ -57,7 +57,7 @@ function useIsWide(): boolean {
 }
 
 const rowClass =
-  "hover:bg-neutral-50 transition-colors border-b border-neutral-200";
+  "hover:bg-cobalt-50/40 transition-colors border-b border-neutral-100";
 
 export function MatrixGridInput({
   value,
@@ -97,14 +97,14 @@ export function MatrixGridInput({
   }
 
   return (
-    <div className="flex flex-col gap-5" data-testid="matrix-grid">
+    <div className="flex flex-col gap-6" data-testid="matrix-grid">
       {/* The desktop-grid ⇄ pivot toggle (§7: the pivot is the accessible path
           on all screen sizes, so it is offered explicitly on desktop too). */}
       {isWide && (
         <button
           type="button"
           onClick={() => setViewPref(view === "pivot" ? "grid" : "pivot")}
-          className="self-start text-sm font-medium text-neutral-600 underline decoration-neutral-300 underline-offset-4 hover:decoration-neutral-500"
+          className="self-start inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 shadow-subtle hover:bg-neutral-50"
           aria-pressed={view === "pivot"}
         >
           {view === "pivot"
@@ -114,14 +114,14 @@ export function MatrixGridInput({
       )}
 
       {view === "grid" ? (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-2xl border border-neutral-200/80 bg-white shadow-card">
           <table className="w-full border-collapse text-left text-base">
             <thead>
-              <tr>
+              <tr className="border-b border-neutral-200 bg-neutral-50/80">
                 {/* Sticky header row overlays the role column as the page scrolls. */}
                 <th
                   scope="col"
-                  className="sticky top-0 z-10 bg-white px-3 py-2 text-sm font-medium text-neutral-500"
+                  className="sticky top-0 z-10 px-4 py-3 text-xs font-bold uppercase tracking-wider text-neutral-500"
                 >
                   Roles
                 </th>
@@ -129,7 +129,7 @@ export function MatrixGridInput({
                   <th
                     key={column}
                     scope="col"
-                    className="sticky top-0 z-10 min-w-28 bg-white px-3 py-2 text-center text-sm font-semibold text-neutral-700"
+                    className="sticky top-0 z-10 min-w-28 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-neutral-700"
                   >
                     {Q5_COLUMN_LABELS[column]}
                   </th>
@@ -141,19 +141,19 @@ export function MatrixGridInput({
                 <tr key={role} className={rowClass}>
                   <th
                     scope="row"
-                    className="px-3 py-2.5 text-left text-base font-medium text-neutral-800"
+                    className="px-4 py-3 text-left text-sm font-semibold text-neutral-800"
                   >
                     {Q5_ROLE_LABELS[role]}
                   </th>
                   {Q5_COLUMNS.map((column) => (
-                    <td key={column} className="px-3 py-2.5 text-center">
-                      <label className="flex h-11 w-11 cursor-pointer items-center justify-center">
+                    <td key={column} className="px-4 py-2 text-center">
+                      <label className="flex h-11 w-11 mx-auto cursor-pointer items-center justify-center rounded-lg hover:bg-cobalt-50">
                         <span className="sr-only">
                           {Q5_ROLE_LABELS[role]} — {Q5_COLUMN_LABELS[column]}
                         </span>
                         <input
                           type="checkbox"
-                          className="h-5 w-5 accent-neutral-900"
+                          className="h-5 w-5 rounded border-neutral-300 text-cobalt-600 focus:ring-cobalt-500 accent-cobalt-600"
                           checked={answer[column].includes(role)}
                           onChange={() => mark(column, role)}
                         />
@@ -193,36 +193,41 @@ function PivotView({
   const selected = answer[column];
 
   return (
-    <div className="flex flex-col gap-4" data-testid="matrix-pivot">
+    <div className="flex flex-col gap-5 rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6" data-testid="matrix-pivot">
       {/* Sub-progress: the "1 of 4" is about the four columns inside this one
           question, so it is rendered here and stays off the main progress. */}
-      <p
-        className="text-sm font-medium text-neutral-500"
-        aria-live="polite"
-        data-testid="matrix-sub-progress"
-      >
-        {step + 1} of 4
-      </p>
-      <p className="text-base font-semibold text-neutral-800">
+      <div className="flex items-center justify-between">
+        <span
+          className="inline-flex items-center rounded-full bg-cobalt-50 px-2.5 py-1 text-xs font-semibold text-cobalt-700"
+          aria-live="polite"
+          data-testid="matrix-sub-progress"
+        >
+          {step + 1} of 4
+        </span>
+        <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+          Column Step
+        </span>
+      </div>
+      <p className="text-lg font-bold tracking-tight text-neutral-900">
         Who {Q5_COLUMN_LABELS[column].toLowerCase()}?
       </p>
 
-      <fieldset className="flex flex-col gap-2">
+      <fieldset className="flex flex-col gap-2.5">
         <legend className="sr-only">{Q5_COLUMN_LABELS[column]}</legend>
         {Q5_ROLE_IDS.map((role) => {
           const checked = selected.includes(role);
           return (
             <label
               key={role}
-              className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-neutral-300 px-3 py-2.5 text-base text-neutral-800 has-checked:border-neutral-900 has-checked:bg-neutral-50"
+              className="flex min-h-[50px] cursor-pointer items-center gap-3.5 rounded-xl border border-neutral-200/90 px-4 py-3 text-base font-medium text-neutral-800 transition-all hover:border-cobalt-300 hover:bg-cobalt-50/20 has-checked:border-cobalt-600 has-checked:bg-cobalt-50/50 has-checked:text-cobalt-950 shadow-subtle"
             >
               <input
                 type="checkbox"
-                className="h-5 w-5 shrink-0 accent-neutral-900"
+                className="h-5 w-5 shrink-0 rounded border-neutral-300 text-cobalt-600 focus:ring-cobalt-500 accent-cobalt-600"
                 checked={checked}
                 onChange={() => onMark(column, role)}
               />
-              <span className="font-medium">{Q5_ROLE_LABELS[role]}</span>
+              <span>{Q5_ROLE_LABELS[role]}</span>
             </label>
           );
         })}
@@ -230,12 +235,12 @@ function PivotView({
 
       {/* Column-screen navigation. On the last column there is no Next: the
           respondent leaves Q5 via the shell's Continue. */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 border-t border-neutral-100 pt-4">
         {step > 0 ? (
           <button
             type="button"
             onClick={() => setStep(step - 1)}
-            className="text-base font-medium text-neutral-700 underline decoration-neutral-300 underline-offset-4 hover:decoration-neutral-500"
+            className="inline-flex min-h-[44px] items-center text-sm font-semibold text-neutral-600 hover:text-neutral-900 transition-colors"
           >
             ← Back
           </button>
@@ -246,7 +251,7 @@ function PivotView({
           <button
             type="button"
             onClick={() => setStep(step + 1)}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-base font-semibold text-white hover:bg-neutral-700"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-cobalt-600 px-5 py-2 text-sm font-semibold text-white shadow-cobalt transition-all hover:bg-cobalt-700 active:scale-[0.98]"
           >
             Next
           </button>

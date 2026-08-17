@@ -115,10 +115,11 @@ export function isValidAnswerShape(id: QuestionId, value: unknown): boolean {
         value.items.every(isString)
       );
     case "q10":
-      // { payer: string; model: string; amount: number; unit: string; first_peso: string }
+      // { payer: string | string[]; model: string; amount: number; unit: string; first_peso: string }
       return (
         "payer" in value &&
-        isString(value.payer) &&
+        (isString(value.payer) ||
+          (Array.isArray(value.payer) && value.payer.every(isString))) &&
         "model" in value &&
         isString(value.model) &&
         "amount" in value &&

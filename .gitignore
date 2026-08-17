@@ -6,3 +6,4 @@ node_modules/
 .loop-logs/
 test-results/
 playwright-report/
+*.tsbuildinfo

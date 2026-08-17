@@ -186,7 +186,7 @@ test("the ranking is completable with one thumb at 360px", async ({ page }) => {
   await expect(ordered.locator("li")).toHaveCount(4);
   await expect(pool.getByRole("button")).toHaveCount(0);
 
-  await page.getByRole("radio", { name: /Fourth app|PedConnect|TeachDay|ParentUp/ }).first().check();
+  await page.getByRole("radio", { name: /PedMD|PedConnect|TeachDay|ParentUp/ }).first().check();
   await page.getByRole("textbox", { name: "One line why" }).fill("it never opens a door");
 
   // Still blocked: the predicted ranking is missing.
@@ -251,7 +251,7 @@ test("the ranking is completable with keyboard only", async ({ page }) => {
 
   // Delete radio + why by keyboard.
   await page
-    .getByRole("radio", { name: /Fourth app|PedConnect|TeachDay|ParentUp/ })
+    .getByRole("radio", { name: /PedMD|PedConnect|TeachDay|ParentUp/ })
     .first()
     .focus();
   await page.keyboard.press("Space");

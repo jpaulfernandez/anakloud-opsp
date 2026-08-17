@@ -22,7 +22,7 @@ import {
 // "answered" and the forward decision from the draft the component emits.
 
 const fieldClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full min-h-[48px] rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20";
 
 const BLOCK_INDICES = [0, 1, 2] as const;
 
@@ -66,7 +66,7 @@ export function PairedRowsInput({
   }
 
   return (
-    <div className="flex flex-col gap-5" data-testid="paired-rows">
+    <div className="flex flex-col gap-6" data-testid="paired-rows">
       {BLOCK_INDICES.map((index) => {
         const rock = draft.rocks[index];
         const whatId = `q11-what-${index}`;
@@ -74,17 +74,17 @@ export function PairedRowsInput({
         return (
           <fieldset
             key={index}
-            className="rounded-md border border-neutral-300 px-4 py-3"
+            className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6"
           >
-            <legend className="px-1 text-sm font-medium text-neutral-500">
+            <legend className="px-1 text-xs font-bold uppercase tracking-wider text-neutral-500">
               Priority {index + 1}
             </legend>
 
-            <div className="flex flex-col gap-3">
+            <div className="mt-2 flex flex-col gap-4">
               <div>
                 <label
                   htmlFor={whatId}
-                  className="block text-base font-medium text-neutral-700"
+                  className="block text-sm font-semibold text-neutral-800 mb-1.5"
                 >
                   What
                 </label>
@@ -97,14 +97,14 @@ export function PairedRowsInput({
                   // this attribute mirrors it for the required block.
                   required={index === 0}
                   onChange={(e) => setRock(index, "what", e.target.value)}
-                  className={`${fieldClass} mt-1`}
+                  className={fieldClass}
                 />
               </div>
 
               <div>
                 <label
                   htmlFor={doneId}
-                  className="block text-base font-medium text-neutral-700"
+                  className="block text-sm font-semibold text-neutral-800 mb-1.5"
                 >
                   Done when
                 </label>
@@ -116,23 +116,23 @@ export function PairedRowsInput({
                   onChange={(e) =>
                     setRock(index, "done_when", e.target.value)
                   }
-                  className={`${fieldClass} mt-1`}
+                  className={fieldClass}
                 />
               </div>
 
               {/* The star is a radio across all three blocks (ui_ux §4.10): one
                   shared name groups them, so choosing a second clears the
                   first by construction — never a checkbox, never two stars. */}
-              <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-neutral-300 px-3 py-2.5 text-base text-neutral-800 has-checked:border-neutral-900 has-checked:bg-neutral-50">
+              <label className="flex min-h-[48px] cursor-pointer items-center gap-3.5 rounded-xl border border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-800 transition-all hover:border-cobalt-300 hover:bg-cobalt-50/20 has-checked:border-cobalt-600 has-checked:bg-cobalt-50/50 has-checked:text-cobalt-950 shadow-subtle mt-1">
                 <input
                   type="radio"
                   name="q11-star"
                   value={index}
                   checked={draft.starred === index}
                   onChange={() => chooseStar(index)}
-                  className="h-5 w-5 shrink-0 accent-neutral-900"
+                  className="h-4 w-4 shrink-0 text-cobalt-600 focus:ring-cobalt-500 accent-cobalt-600"
                 />
-                <span className="font-medium">
+                <span className="font-semibold">
                   ☆ This is the most important one
                 </span>
               </label>
@@ -146,7 +146,7 @@ export function PairedRowsInput({
       {starNoteVisible && (
         <p
           data-testid="star-note"
-          className="text-base text-neutral-600"
+          className="rounded-xl border border-cobalt-200 bg-cobalt-50 p-4 text-sm font-medium text-cobalt-900"
         >
           {PAIRED_ROWS_STAR_NOTE}
         </p>

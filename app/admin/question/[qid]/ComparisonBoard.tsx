@@ -6,7 +6,7 @@ import {
   comparisonAnswerText,
   shuffleAnswers,
 } from "@/lib/comparison-screen";
-import { ATTRIBUTE_GRANT_HEADER } from "@/lib/attribute-grant";
+import { ATTRIBUTE_GRANT_HEADER } from "@/lib/attribute-grant-constants";
 import type {
   ComparisonAnswerAnonymised,
   ComparisonAnswerAttributed,
@@ -42,10 +42,10 @@ const BADGE_STYLE: Record<
   DivergenceCategory | "manual review",
   string
 > = {
-  aligned: "bg-emerald-50 text-emerald-800",
-  "soft split": "bg-amber-50 text-amber-800",
-  "hard split": "bg-red-50 text-red-800",
-  "manual review": "bg-neutral-100 text-neutral-700",
+  aligned: "bg-emerald-50 text-emerald-800 border border-emerald-200/80",
+  "soft split": "bg-amber-50 text-amber-800 border border-amber-200/80",
+  "hard split": "bg-rose-50 text-rose-800 border border-rose-200/80",
+  "manual review": "bg-neutral-100 text-neutral-700 border border-neutral-200/80",
 };
 
 interface ComparisonBoardProps {
@@ -156,19 +156,19 @@ export default function ComparisonBoard({
     displaying === null || (Array.isArray(displaying) && displaying.length === 0);
 
   return (
-    <>
-      <header className="mt-1 border-b border-neutral-200 pb-3">
-        <div className="text-xs uppercase tracking-wide text-neutral-500">
+    <div className="space-y-6">
+      <header className="border-b border-neutral-200 pb-5">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-cobalt-50 px-3 py-0.5 text-xs font-semibold uppercase tracking-wider text-cobalt-700 mb-2">
           Q{questionId.replace("q", "")} · {section}
         </div>
-        <div className="mt-1 flex items-start justify-between gap-3">
-          <h1 className="text-[19px] leading-snug font-semibold text-neutral-900 md:text-[24px]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <h1 className="text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl">
             {questionText}
           </h1>
           {badge !== null ? (
             <span
               data-testid="divergence-badge"
-              className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium ${BADGE_STYLE[badge.category]}`}
+              className={`inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${BADGE_STYLE[badge.category]}`}
             >
               {badge.label}
             </span>
@@ -176,22 +176,22 @@ export default function ComparisonBoard({
         </div>
       </header>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div
           role="group"
           aria-label="Comparison mode"
           data-testid="comparison-mode-toggle"
-          className="inline-flex items-center overflow-hidden rounded-full border border-neutral-200 bg-white"
+          className="inline-flex items-center rounded-xl border border-neutral-200 bg-neutral-100 p-1 shadow-subtle"
         >
           <button
             type="button"
             data-testid="mode-attributed"
             data-active={mode === "attributed"}
             onClick={requestAttributed}
-            className={`px-3 py-1 text-xs font-medium ${
+            className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
               mode === "attributed"
-                ? "bg-neutral-900 text-white"
-                : "text-neutral-600 hover:bg-neutral-50"
+                ? "bg-white text-neutral-900 shadow-sm"
+                : "text-neutral-600 hover:text-neutral-900"
             }`}
           >
             Attributed
@@ -201,10 +201,10 @@ export default function ComparisonBoard({
             data-testid="mode-anonymised"
             data-active={mode === "anonymised"}
             onClick={switchToAnonymised}
-            className={`px-3 py-1 text-xs font-medium ${
+            className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
               mode === "anonymised"
-                ? "bg-neutral-900 text-white"
-                : "text-neutral-600 hover:bg-neutral-50"
+                ? "bg-white text-neutral-900 shadow-sm"
+                : "text-neutral-600 hover:text-neutral-900"
             }`}
           >
             Anonymised
@@ -225,21 +225,21 @@ export default function ComparisonBoard({
           role="dialog"
           aria-modal="true"
           data-testid="attributed-confirm"
-          className="mt-3 rounded-md border border-neutral-300 bg-neutral-50 p-4"
+          className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-card"
         >
           <p
             data-testid="attributed-confirm-message"
-            className="text-sm font-medium text-neutral-900"
+            className="text-sm font-semibold leading-relaxed text-amber-950"
           >
             {ATTRIBUTED_CONFIRM_MESSAGE}
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2.5">
             <button
               type="button"
               data-testid="attributed-confirm-yes"
               disabled={loading}
               onClick={confirmAttributed}
-              className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+              className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-cobalt-600 px-4 py-1.5 text-xs font-semibold text-white shadow-cobalt hover:bg-cobalt-700 disabled:opacity-50 transition-all"
             >
               Show names
             </button>
@@ -248,7 +248,7 @@ export default function ComparisonBoard({
               data-testid="attributed-confirm-no"
               disabled={loading}
               onClick={keepAnonymised}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700"
+              className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-neutral-300 bg-white px-4 py-1.5 text-xs font-semibold text-neutral-700 shadow-subtle hover:bg-neutral-50 transition-all"
             >
               Keep anonymised
             </button>
@@ -257,19 +257,19 @@ export default function ComparisonBoard({
       )}
 
       {attributedError !== null && (
-        <p data-testid="attributed-error" className="mt-3 text-sm text-red-700">
+        <p data-testid="attributed-error" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800">
           {attributedError}
         </p>
       )}
 
       {isEmpty ? (
-        <p className="mt-6 text-neutral-500">
+        <div className="rounded-2xl border border-neutral-200/80 bg-white p-8 text-center text-sm text-neutral-500 shadow-card">
           No one has answered this question yet.
-        </p>
+        </div>
       ) : (
         <ul
           data-testid="comparison-grid"
-          className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           {displaying!.map((answer, i) => {
             const attributedAnswer = answer as ComparisonAnswerAttributed;
@@ -289,26 +289,28 @@ export default function ComparisonBoard({
               <li
                 key={mode === "attributed" ? attributedAnswer.respondentId : i}
                 data-testid="answer-card"
-                className="flex h-full flex-col rounded-md border border-neutral-200 bg-white p-3"
+                className="flex h-full flex-col justify-between rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card transition-all hover:border-neutral-300"
               >
-                {mode === "attributed" && (
-                  <div
-                    data-testid="answer-name"
-                    className="mb-1.5 border-b border-neutral-100 pb-1 text-xs font-semibold text-neutral-900"
+                <div>
+                  {mode === "attributed" && (
+                    <div
+                      data-testid="answer-name"
+                      className="mb-2 border-b border-neutral-100 pb-2 text-xs font-bold text-cobalt-700 uppercase tracking-wider"
+                    >
+                      {name}
+                    </div>
+                  )}
+                  <p
+                    data-testid="answer-text"
+                    className="whitespace-pre-line text-sm leading-relaxed text-neutral-800"
                   >
-                    {name}
-                  </div>
-                )}
-                <p
-                  data-testid="answer-text"
-                  className="flex-1 whitespace-pre-line text-[13px] leading-relaxed text-neutral-800"
-                >
-                  {comparisonAnswerText(questionId, value, true)}
-                </p>
+                    {comparisonAnswerText(questionId, value, true)}
+                  </p>
+                </div>
                 {confidence !== null ? (
                   <div
                     data-testid="answer-confidence"
-                    className="mt-2 border-t border-neutral-100 pt-1.5 text-xs text-neutral-500"
+                    className="mt-4 border-t border-neutral-100 pt-2.5 text-xs font-semibold text-neutral-400"
                   >
                     Confidence {confidence}
                   </div>
@@ -318,6 +320,6 @@ export default function ComparisonBoard({
           })}
         </ul>
       )}
-    </>
+    </div>
   );
 }

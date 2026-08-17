@@ -88,11 +88,11 @@ test.beforeAll(async () => {
         value: {
           rank:
             seed === 1
-              ? ["pedconnect", "teachday", "parentup", "fourth_app"]
-              : ["teachday", "pedconnect", "parentup", "fourth_app"],
-          delete: "fourth_app",
+              ? ["pedconnect", "teachday", "parentup", "pedmd"]
+              : ["teachday", "pedconnect", "parentup", "pedmd"],
+          delete: "pedmd",
           why: `reason ${seed}`,
-          predicted: ["teachday", "pedconnect", "parentup", "fourth_app"],
+          predicted: ["teachday", "pedconnect", "parentup", "pedmd"],
         },
         confidence: 5,
       });

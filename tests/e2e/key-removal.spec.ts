@@ -245,17 +245,17 @@ test(
     // Q8 tap-to-assign ranking: a full order, a delete choice, a why, and a
     // full predicted order, then confidence.
     const pool = page.getByTestId("rank-pool");
-    for (const app of ["PedConnect", "TeachDay", "ParentUp", "Fourth app"]) {
+    for (const app of ["PedConnect", "TeachDay", "ParentUp", "PedMD"]) {
       await pool.getByRole("button", { name: app }).click();
     }
     await expect(page.getByTestId("rank-ordered").getByText("#1")).toBeVisible();
-    await page.getByRole("radio", { name: "Fourth app" }).check();
+    await page.getByRole("radio", { name: "PedMD" }).check();
     await page.getByLabel("One line why").fill("lowest pull on the door to a yes");
     await page
       .getByRole("button", { name: "What do you think the group's #1 will be?" })
       .click();
     const predicted = page.getByTestId("predicted-pool");
-    for (const app of ["PedConnect", "TeachDay", "ParentUp", "Fourth app"]) {
+    for (const app of ["PedConnect", "TeachDay", "ParentUp", "PedMD"]) {
       await predicted.getByRole("button", { name: app }).click();
     }
     await setConfidence(page);

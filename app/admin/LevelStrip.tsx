@@ -35,67 +35,69 @@ export default function LevelStrip({ data }: { data: AdminStripData }) {
   return (
     <div
       data-testid="admin-level-strip"
-      className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700"
+      className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card text-sm text-neutral-700"
     >
-      <div className="flex items-center gap-2">
-        <span className="text-xs uppercase tracking-wide text-neutral-500">
-          Level
-        </span>
-        <span
-          data-testid="strip-level"
-          className="rounded-md bg-neutral-900 px-2 py-0.5 font-semibold text-white"
-        >
-          {data.level === "auto" ? "Auto" : data.level}
-        </span>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+            Level
+          </span>
+          <span
+            data-testid="strip-level"
+            className="rounded-lg bg-cobalt-600 px-2.5 py-1 text-xs font-bold text-white shadow-cobalt"
+          >
+            {data.level === "auto" ? "Auto" : data.level}
+          </span>
+        </div>
+
+        {reason !== null ? (
+          <span data-testid="strip-reason" className="text-xs font-medium text-neutral-600 bg-neutral-100 px-2.5 py-1 rounded-lg">
+            {reason}
+          </span>
+        ) : null}
+
+        {data.budgetAlerts.map((alert) => (
+          <span
+            key={alert}
+            data-testid="strip-warning"
+            className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 border border-amber-200"
+          >
+            {budgetAlertLabel(alert)}
+          </span>
+        ))}
+
+        {data.guardAlert !== null ? (
+          <span
+            data-testid="strip-guard-alert"
+            className="rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-900 border border-rose-200"
+          >
+            {data.guardAlert}
+          </span>
+        ) : null}
       </div>
 
-      {reason !== null ? (
-        <span data-testid="strip-reason" className="text-neutral-700">
-          {reason}
-        </span>
-      ) : null}
-
-      {data.budgetAlerts.map((alert) => (
-        <span
-          key={alert}
-          data-testid="strip-warning"
-          className="rounded-md bg-amber-50 px-2 py-0.5 font-medium text-amber-900"
-        >
-          {budgetAlertLabel(alert)}
-        </span>
-      ))}
-
-      {data.guardAlert !== null ? (
-        <span
-          data-testid="strip-guard-alert"
-          className="rounded-md bg-rose-50 px-2 py-0.5 font-medium text-rose-900"
-        >
-          {data.guardAlert}
-        </span>
-      ) : null}
-
-      <dl className="flex gap-5 text-xs text-neutral-600">
+      <dl className="flex flex-wrap items-center gap-6 text-xs text-neutral-600">
         <div>
-          <dt className="uppercase tracking-wide text-neutral-500">
+          <dt className="font-semibold uppercase tracking-wider text-neutral-400">
             Token budget
           </dt>
-          <dd data-testid="strip-budget" className="tabular-nums">
+          <dd data-testid="strip-budget" className="font-bold tabular-nums text-neutral-900 mt-0.5">
             {total === null ? "—" : `${total.used} / ${total.cap}`}
           </dd>
         </div>
         <div>
-          <dt className="uppercase tracking-wide text-neutral-500">
+          <dt className="font-semibold uppercase tracking-wider text-neutral-400">
             Circuit
           </dt>
-          <dd data-testid="strip-circuit" className="tabular-nums">
+          <dd data-testid="strip-circuit" className="font-bold tabular-nums text-neutral-900 mt-0.5">
             {circuitLabel}
           </dd>
         </div>
         <div>
-          <dt className="uppercase tracking-wide text-neutral-500">
+          <dt className="font-semibold uppercase tracking-wider text-neutral-400">
             Guard trips
           </dt>
-          <dd data-testid="strip-guard-trips" className="tabular-nums">
+          <dd data-testid="strip-guard-trips" className="font-bold tabular-nums text-neutral-900 mt-0.5">
             {data.guardTrips}
           </dd>
         </div>

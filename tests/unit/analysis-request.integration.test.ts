@@ -47,16 +47,16 @@ const R2_Q1 = { text: "progress visible so families know what they buy" };
 
 /** The hard-split door-opener: R1 leads with pedconnect, R2 with teachday. */
 const R1_Q8 = {
-  rank: ["pedconnect", "teachday", "parentup", "fourth_app"],
-  delete: "fourth_app",
+  rank: ["pedconnect", "teachday", "parentup", "pedmd"],
+  delete: "pedmd",
   why: "the referral is the scarce resource",
-  predicted: ["teachday", "pedconnect", "parentup", "fourth_app"],
+  predicted: ["teachday", "pedconnect", "parentup", "pedmd"],
 };
 const R2_Q8 = {
-  rank: ["teachday", "pedconnect", "parentup", "fourth_app"],
-  delete: "fourth_app",
+  rank: ["teachday", "pedconnect", "parentup", "pedmd"],
+  delete: "pedmd",
   why: "centers hold the money and the daily pain",
-  predicted: ["pedconnect", "teachday", "parentup", "fourth_app"],
+  predicted: ["pedconnect", "teachday", "parentup", "pedmd"],
 };
 
 const R1_Q14: Q14AnswerValue = {

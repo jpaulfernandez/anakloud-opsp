@@ -23,7 +23,7 @@ import {
 // not with a generic greyed-out button (PR4, D2).
 
 const reasonFieldClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-400 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400";
+  "w-full min-h-[96px] rounded-xl border border-neutral-300 bg-white p-3.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20 disabled:cursor-not-allowed disabled:bg-neutral-100/70 disabled:text-neutral-400 disabled:border-neutral-200";
 
 export function SingleChoiceReasonInput({
   value,
@@ -52,16 +52,16 @@ export function SingleChoiceReasonInput({
 
   return (
     <div
-      className="flex flex-col gap-5"
+      className="flex flex-col gap-6"
       data-testid="single-choice-reason"
     >
-      <fieldset>
+      <fieldset className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6">
         <legend className="sr-only">Whose side do we take?</legend>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           {Q6_CHOICES.map((choiceId: Q6Choice) => (
             <label
               key={choiceId}
-              className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-neutral-300 px-3 py-2.5 text-base text-neutral-800 has-checked:border-neutral-900 has-checked:bg-neutral-50"
+              className="flex min-h-[48px] cursor-pointer items-center gap-3.5 rounded-xl border border-neutral-200 px-4 py-3 text-base text-neutral-800 transition-all hover:border-cobalt-300 hover:bg-cobalt-50/20 has-checked:border-cobalt-600 has-checked:bg-cobalt-50/50 has-checked:text-cobalt-950 shadow-subtle"
             >
               <input
                 type="radio"
@@ -71,18 +71,18 @@ export function SingleChoiceReasonInput({
                 onChange={() =>
                   setField((current) => ({ ...current, choice: choiceId }))
                 }
-                className="h-5 w-5 shrink-0 accent-neutral-900"
+                className="h-4 w-4 shrink-0 text-cobalt-600 focus:ring-cobalt-500 accent-cobalt-600"
               />
-              <span className="font-medium">{Q6_CHOICE_LABELS[choiceId]}</span>
+              <span className="font-semibold">{Q6_CHOICE_LABELS[choiceId]}</span>
             </label>
           ))}
         </div>
       </fieldset>
 
-      <div>
+      <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6">
         <label
           htmlFor="q6-why"
-          className="block text-base font-medium text-neutral-700"
+          className="block text-sm font-semibold text-neutral-800 mb-1.5"
         >
           One line: why
         </label>
@@ -98,7 +98,7 @@ export function SingleChoiceReasonInput({
           onChange={(e) =>
             setField((current) => ({ ...current, why: e.target.value }))
           }
-          className={`${reasonFieldClass} mt-2`}
+          className={reasonFieldClass}
         />
       </div>
     </div>

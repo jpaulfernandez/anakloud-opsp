@@ -45,9 +45,9 @@ import {
 // `is_private = true` row at persist time, so the component only collects it.
 
 const chipClass =
-  "min-h-11 rounded-md border border-neutral-300 bg-white px-3 py-2 text-base font-medium text-neutral-800 hover:border-neutral-500";
+  "min-h-[48px] rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm font-semibold text-neutral-800 shadow-subtle hover:border-cobalt-300 hover:bg-cobalt-50/20 active:scale-[0.98] transition-all";
 const chipSelectedClass =
-  "min-h-11 rounded-md border border-neutral-900 bg-neutral-900 px-3 py-2 text-base font-medium text-white";
+  "min-h-[48px] rounded-xl border border-cobalt-600 bg-cobalt-600 px-3 py-2 text-sm font-semibold text-white shadow-cobalt active:scale-[0.98] transition-all";
 // The dimmed chip stays a fully real, tappable control (F03-T09: dimming is
 // visual only — a tap still explains itself instead of silently no-oping), so
 // its label must keep the 4.5:1 contrast floor rather than relying on a
@@ -55,10 +55,10 @@ const chipSelectedClass =
 // (≈7:1) and the border thinned to neutral-200, which reads as "dimmed" next
 // to a white chip whose text is neutral-800, without dropping illegible.
 const chipDimmedClass =
-  "min-h-11 cursor-not-allowed rounded-md border border-neutral-200 bg-neutral-100 px-3 py-2 text-base font-medium text-neutral-600";
+  "min-h-[48px] cursor-pointer rounded-xl border border-neutral-200 bg-neutral-100/80 px-3 py-2 text-sm font-medium text-neutral-500 transition-all";
 
 const fieldClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full min-h-[48px] rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20";
 
 export function Q14Input({
   value,
@@ -109,16 +109,16 @@ export function Q14Input({
   }
 
   return (
-    <div className="flex flex-col gap-8" data-testid="q14">
+    <div className="flex flex-col gap-6" data-testid="q14">
       {/* (a) Function chips, at most three. */}
-      <div>
+      <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6">
         <fieldset className="flex flex-col gap-3">
-          <legend className="text-base font-semibold text-neutral-800">
+          <legend className="text-base font-bold text-neutral-900">
             Pick up to three functions you want to own.
           </legend>
           <div
             data-testid="function-chips"
-            className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+            className="grid grid-cols-2 gap-2.5 sm:grid-cols-3"
           >
             {FUNCTION_ID_LIST.map((id) => {
               const selected = draft.wants.includes(id);
@@ -128,6 +128,7 @@ export function Q14Input({
                   key={id}
                   type="button"
                   aria-pressed={selected}
+                  data-testid={`function-chip-${id}`}
                   onClick={() => toggleFunction(id)}
                   className={`${selected ? chipSelectedClass : dimmed ? chipDimmedClass : chipClass}`}
                 >
@@ -138,7 +139,7 @@ export function Q14Input({
           </div>
           {/* The cap line, shown only while a dimmed chip was tapped. */}
           {capMessageVisible && (
-            <p data-testid="cap-message" className="text-base text-neutral-600">
+            <p data-testid="cap-message" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900">
               {FUNCTION_CAP_MESSAGE}
             </p>
           )}
@@ -146,59 +147,63 @@ export function Q14Input({
       </div>
 
       {/* (b) One short field per teammate, names pre-filled from the roster. */}
-      <fieldset className="flex flex-col gap-3">
-        <legend className="text-base font-semibold text-neutral-800">
-          For each teammate, the one function you think they own.
-        </legend>
-        {teammates.map((teammate) => {
-          const selectId = `q14-others-${teammate.id}`;
-          const current = draft.others[teammate.id];
-          return (
-            <div key={teammate.id}>
-              <label
-                htmlFor={selectId}
-                className="block text-base font-medium text-neutral-700"
-              >
-                {teammate.displayName}
-              </label>
-              <select
-                id={selectId}
-                value={current ?? ""}
-                onChange={(e) =>
-                  report({
-                    ...draft,
-                    others: {
-                      ...draft.others,
-                      [teammate.id]:
-                        (e.target.value as FunctionId) || null,
-                    },
-                  })
-                }
-                className={`${fieldClass} mt-1`}
-              >
-                <option value="">Not sure yet</option>
-                {FUNCTION_ID_LIST.map((id) => (
-                  <option key={id} value={id}>
-                    {FUNCTION_LABELS[id]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          );
-        })}
-      </fieldset>
+      <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6">
+        <fieldset className="flex flex-col gap-4">
+          <legend className="text-base font-bold text-neutral-900">
+            For each teammate, the one function you think they own.
+          </legend>
+          <div className="flex flex-col gap-3">
+            {teammates.map((teammate) => {
+              const selectId = `q14-others-${teammate.id}`;
+              const current = draft.others[teammate.id];
+              return (
+                <div key={teammate.id} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                  <label
+                    htmlFor={selectId}
+                    className="block text-sm font-semibold text-neutral-800 sm:w-1/3"
+                  >
+                    {teammate.displayName}
+                  </label>
+                  <select
+                    id={selectId}
+                    value={current ?? ""}
+                    onChange={(e) =>
+                      report({
+                        ...draft,
+                        others: {
+                          ...draft.others,
+                          [teammate.id]:
+                            (e.target.value as FunctionId) || null,
+                        },
+                      })
+                    }
+                    className={`${fieldClass} sm:flex-1`}
+                  >
+                    <option value="">Not sure yet</option>
+                    {FUNCTION_ID_LIST.map((id) => (
+                      <option key={id} value={id}>
+                        {FUNCTION_LABELS[id]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+        </fieldset>
+      </div>
 
       {/* (c) Hours slider, unset by default, value shown large. */}
-      <div data-testid="hours-box">
-        <fieldset className="flex flex-col gap-3">
-          <legend className="text-base font-semibold text-neutral-800">
+      <div data-testid="hours-box" className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6">
+        <fieldset className="flex flex-col gap-4">
+          <legend className="text-base font-bold text-neutral-900">
             Realistically, how many hours a week can you give Anakloud from
             October 2026?
           </legend>
           <div className="flex items-center gap-4">
             <span
               data-testid="hours-value"
-              className="min-w-16 text-left text-4xl font-semibold tabular-nums text-neutral-900"
+              className="min-w-16 text-center text-4xl font-extrabold tabular-nums text-cobalt-700 bg-cobalt-50/80 py-2 px-3 rounded-2xl border border-cobalt-200/60"
             >
               {draft.hours !== null ? draft.hours : "—"}
             </span>
@@ -207,6 +212,7 @@ export function Q14Input({
               data-set={draft.hours !== null}
             >
               <input
+                id="q14-hours-slider"
                 type="range"
                 min={0}
                 max={60}
@@ -235,7 +241,7 @@ export function Q14Input({
                   e.target.value === "" ? null : Number(e.target.value),
                 )
               }
-              className="w-20 rounded-md border border-neutral-300 bg-white px-3 py-2 text-center text-base tabular-nums text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              className="h-11 w-16 rounded-xl border border-neutral-300 bg-white px-2 py-1 text-center font-bold tabular-nums text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20"
             />
           </div>
         </fieldset>
@@ -244,20 +250,22 @@ export function Q14Input({
       {/* (d) The private field, a distinct inset panel with the §4.11 copy. */}
       <div
         data-testid="private-panel"
-        className="rounded-md border border-neutral-300 bg-neutral-50 px-5 py-4"
+        className="rounded-2xl border-2 border-dashed border-cobalt-300 bg-cobalt-50/40 p-6 shadow-sm"
       >
-        <div className="flex items-start gap-3">
-          <LockGlyph />
+        <div className="flex items-start gap-3.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cobalt-100 text-cobalt-700">
+            <LockGlyph />
+          </div>
           <div className="flex flex-col gap-1">
-            <p className="text-base font-semibold text-neutral-900">
+            <p className="text-base font-bold text-neutral-900">
               {PRIVATE_PANEL_HEADING}
             </p>
-            <p className="text-base text-neutral-700">{PRIVATE_PANEL_BODY}</p>
+            <p className="text-sm leading-relaxed text-neutral-700">{PRIVATE_PANEL_BODY}</p>
           </div>
         </div>
         <label
           htmlFor="q14-private"
-          className="mt-4 block text-base font-medium text-neutral-700"
+          className="mt-5 block text-sm font-semibold text-neutral-800 mb-1.5"
         >
           {PRIVATE_PANEL_PROMPT}
         </label>
@@ -266,9 +274,9 @@ export function Q14Input({
           rows={3}
           value={draft.privateNote}
           onChange={(e) => report({ ...draft, privateNote: e.target.value })}
-          className={`${fieldClass} mt-2`}
+          className="w-full rounded-xl border border-neutral-300 bg-white p-3.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20"
         />
-        <p className="mt-2 text-sm text-neutral-500">
+        <p className="mt-2 text-xs font-medium text-neutral-500">
           ({PRIVATE_PANEL_OPTIONAL})
         </p>
       </div>
@@ -287,7 +295,7 @@ function LockGlyph() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="h-6 w-6 shrink-0 text-neutral-700"
+      className="h-5 w-5"
     >
       <rect x="4" y="11" width="16" height="10" rx="2" />
       <path d="M8 11V7a4 4 0 0 1 8 0v4" />

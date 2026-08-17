@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  OPSP_CELL_IDS,
   type OpspCell,
   type OpspCellId,
   type OpspMark,
@@ -10,6 +9,7 @@ import {
 import type { DisplayNameResolver } from "@/lib/review";
 import {
   OPSP_CELL_LABELS,
+  OPSP_HORIZONS,
   formatOpspCellValue,
   formatOpspProvenance,
 } from "@/lib/opsp-view";
@@ -216,10 +216,13 @@ export function OPSPView({
   );
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 text-base lg:pb-10">
+    <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 text-base lg:pb-12">
       {printMode ? null : (
-        <header data-testid="opsp-draft-label" className="max-w-2xl">
-          <h1 className="text-[21px] leading-snug font-semibold text-neutral-900 md:text-[28px]">
+        <header data-testid="opsp-draft-label" className="max-w-2xl mb-8">
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-cobalt-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cobalt-700">
+            One-Page Strategic Plan
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
             Your draft. Not the company&apos;s plan.
           </h1>
           <p className="mt-2 text-base leading-relaxed text-neutral-600">
@@ -236,7 +239,7 @@ export function OPSPView({
             type="button"
             data-testid="opsp-print-trigger"
             onClick={saveAsPdf}
-            className="mt-4 rounded border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:border-neutral-400 hover:text-neutral-900"
+            className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-cobalt-600 px-5 py-2.5 text-sm font-semibold text-white shadow-cobalt transition-all hover:bg-cobalt-700 active:scale-[0.98] active:bg-cobalt-800"
           >
             Save as PDF
           </button>
@@ -255,170 +258,211 @@ export function OPSPView({
       */}
       <div
         data-testid="opsp-document"
-        className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start"
+        className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] lg:items-start"
       >
-        <div className="space-y-4">
+        <div className="space-y-6">
           {printMode ? null : (
             <div
               data-testid="opsp-edit-bar"
-              className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3"
+              className="rounded-2xl border border-cobalt-200/60 bg-cobalt-50/50 p-4"
             >
-              <p className="text-sm leading-relaxed text-neutral-700">{editBarNote}</p>
+              <p className="text-sm font-medium leading-relaxed text-cobalt-950">{editBarNote}</p>
             </div>
           )}
 
           <section
             data-testid="opsp-grid"
             aria-label="Your draft One-Page Strategic Plan"
-            className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2"
           >
-            {OPSP_CELL_IDS.map((id) => {
-              const cell = cells[id];
-              if (!cell) return null;
-              const state = resolveOpspCellState(cell);
-              const editing = !printMode && editingId === id;
-              const ink = state.kind === "ink";
-              const content =
-                state.kind === "empty"
-                  ? ""
-                  : formatOpspCellValue(cell.value, nameOf);
-              const provenance =
-                state.kind === "empty" ? null : formatOpspProvenance(cell.sources);
-              const note = opspCellNote(state);
-              const revisit = showsRevisitTag(state);
-              return (
-                <article
-                  key={id}
-                  data-testid={`opsp-cell-${id}`}
-                  className="rounded-lg border border-neutral-200 bg-white p-4"
+            {OPSP_HORIZONS.map((horizon) => (
+              <div key={horizon.id} className="contents">
+                <div
+                  data-testid={`opsp-horizon-header-${horizon.id}`}
+                  className="col-span-full mt-6 first:mt-0 mb-1 flex flex-wrap items-baseline justify-between gap-2 border-b border-neutral-200/80 pb-2 pt-1"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <h2 className="text-sm font-semibold tracking-wide text-neutral-500 uppercase">
-                      {OPSP_CELL_LABELS[id]}
-                    </h2>
-                    {printMode ? null : (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          type="button"
-                          data-testid={`opsp-cell-edit-${id}`}
-                          onClick={() => (editing ? undefined : beginEdit(id))}
-                          aria-label={`Edit ${OPSP_CELL_LABELS[id]}`}
-                          className="rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          data-testid={`opsp-howto-trigger-${id}`}
-                          onClick={() => activateCell(id)}
-                          aria-label={`How to read ${OPSP_CELL_LABELS[id]}`}
-                          className="rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
-                        >
-                          What&apos;s this?
-                        </button>
-                      </div>
-                    )}
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xs font-mono font-bold tracking-wider text-cobalt-600">
+                      {horizon.number}
+                    </span>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+                      {horizon.title}
+                    </h3>
+                    <span className="hidden sm:inline text-xs text-neutral-300">·</span>
+                    <span className="hidden sm:inline text-xs text-neutral-500 font-medium">
+                      {horizon.subtitle}
+                    </span>
                   </div>
+                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-neutral-600 uppercase">
+                    {horizon.timeframe}
+                  </span>
+                </div>
 
-                  {editing ? (
-                    <div className="mt-2">
-                      <textarea
-                        data-testid={`opsp-cell-input-${id}`}
-                        value={draftText}
-                        onChange={(e) => setDraftText(e.target.value)}
-                        aria-label={OPSP_CELL_LABELS[id]}
-                        rows={4}
-                        className="w-full resize-y rounded border border-neutral-300 bg-white p-2 text-[15px] leading-relaxed text-neutral-900 focus:border-neutral-500 focus:outline-none"
-                      />
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span className="text-xs text-neutral-500">Mark:</span>
-                        <button
-                          type="button"
-                          data-testid={`opsp-mark-ink-${id}`}
-                          onClick={() => setDraftMark("ink")}
-                          aria-pressed={draftMark === "ink"}
-                          className={`rounded border px-2 py-0.5 text-[11px] font-medium ${
-                            draftMark === "ink"
-                              ? "border-neutral-400 bg-neutral-100 text-neutral-900"
-                              : "border-neutral-200 text-neutral-500"
-                          }`}
-                        >
-                          Ink
-                        </button>
-                        <button
-                          type="button"
-                          data-testid={`opsp-mark-pencil-${id}`}
-                          onClick={() => setDraftMark("pencil")}
-                          aria-pressed={draftMark === "pencil"}
-                          className={`rounded border px-2 py-0.5 text-[11px] font-medium ${
-                            draftMark === "pencil"
-                              ? "border-neutral-400 bg-neutral-100 text-neutral-900"
-                              : "border-neutral-200 text-neutral-500"
-                          }`}
-                        >
-                          Pencil
-                        </button>
-                        <span className="flex-1" />
-                        <button
-                          type="button"
-                          data-testid={`opsp-cell-cancel-${id}`}
-                          onClick={() => setEditingId(null)}
-                          className="rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          data-testid={`opsp-cell-save-${id}`}
-                          onClick={saveEdit}
-                          disabled={saving}
-                          className="rounded border border-neutral-900 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
-                        >
-                          {saving ? "Saving…" : "Save"}
-                        </button>
+                {horizon.cellIds.map((id) => {
+                  const cell = cells[id];
+                  if (!cell) return null;
+                  const state = resolveOpspCellState(cell);
+                  const editing = !printMode && editingId === id;
+                  const ink = state.kind === "ink";
+                  const content =
+                    state.kind === "empty"
+                      ? ""
+                      : formatOpspCellValue(cell.value, nameOf);
+                  const provenance =
+                    state.kind === "empty" ? null : formatOpspProvenance(cell.sources);
+                  const note = opspCellNote(state);
+                  const revisit = showsRevisitTag(state);
+
+                  const isHero =
+                    id === "bhag" ||
+                    id === "key_initiatives" ||
+                    id === "quarterly_theme" ||
+                    id === "accountability_face";
+
+                  return (
+                    <article
+                      key={id}
+                      data-testid={`opsp-cell-${id}`}
+                      className={`rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card transition-all hover:border-neutral-300 flex flex-col justify-between ${
+                        isHero
+                          ? "sm:col-span-2 print:col-span-2"
+                          : "sm:col-span-1 print:col-span-1"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2 border-b border-neutral-100 pb-3">
+                          <h2 className="text-xs font-bold tracking-wider text-neutral-600 uppercase">
+                            {OPSP_CELL_LABELS[id]}
+                          </h2>
+                          {printMode ? null : (
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              <button
+                                type="button"
+                                data-testid={`opsp-cell-edit-${id}`}
+                                onClick={() => (editing ? undefined : beginEdit(id))}
+                                aria-label={`Edit ${OPSP_CELL_LABELS[id]}`}
+                                className="rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                data-testid={`opsp-howto-trigger-${id}`}
+                                onClick={() => activateCell(id)}
+                                aria-label={`How to read ${OPSP_CELL_LABELS[id]}`}
+                                className="rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-xs font-semibold text-cobalt-700 hover:bg-cobalt-50 hover:text-cobalt-800 transition-colors"
+                              >
+                                What&apos;s this?
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {editing ? (
+                          <div className="mt-3">
+                            <textarea
+                              data-testid={`opsp-cell-input-${id}`}
+                              value={draftText}
+                              onChange={(e) => setDraftText(e.target.value)}
+                              aria-label={OPSP_CELL_LABELS[id]}
+                              rows={4}
+                              className="w-full resize-y rounded-xl border border-neutral-300 bg-white p-3 text-sm leading-relaxed text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20"
+                            />
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <span className="text-xs font-semibold text-neutral-500">Mark:</span>
+                              <button
+                                type="button"
+                                data-testid={`opsp-mark-ink-${id}`}
+                                onClick={() => setDraftMark("ink")}
+                                aria-pressed={draftMark === "ink"}
+                                className={`rounded-lg border px-3 py-1 text-xs font-semibold transition-all ${
+                                  draftMark === "ink"
+                                    ? "border-cobalt-600 bg-cobalt-600 text-white shadow-cobalt"
+                                    : "border-neutral-200 text-neutral-600 hover:bg-neutral-50"
+                                }`}
+                              >
+                                Ink
+                              </button>
+                              <button
+                                type="button"
+                                data-testid={`opsp-mark-pencil-${id}`}
+                                onClick={() => setDraftMark("pencil")}
+                                aria-pressed={draftMark === "pencil"}
+                                className={`rounded-lg border px-3 py-1 text-xs font-semibold transition-all ${
+                                  draftMark === "pencil"
+                                    ? "border-cobalt-600 bg-cobalt-600 text-white shadow-cobalt"
+                                    : "border-neutral-200 text-neutral-600 hover:bg-neutral-50"
+                                }`}
+                              >
+                                Pencil
+                              </button>
+                              <span className="flex-1" />
+                              <button
+                                type="button"
+                                data-testid={`opsp-cell-cancel-${id}`}
+                                onClick={() => setEditingId(null)}
+                                className="rounded-lg border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                data-testid={`opsp-cell-save-${id}`}
+                                onClick={saveEdit}
+                                disabled={saving}
+                                className="rounded-lg bg-cobalt-600 px-4 py-1 text-xs font-semibold text-white shadow-cobalt hover:bg-cobalt-700 disabled:opacity-50 transition-all"
+                              >
+                                {saving ? "Saving…" : "Save"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            data-testid={`opsp-content-${id}`}
+                            className={`mt-3 whitespace-pre-wrap text-sm leading-relaxed ${
+                              ink
+                                ? "font-medium text-neutral-900"
+                                : "border-l-4 border-dashed border-neutral-400 pl-3 font-light text-neutral-700"
+                            }`}
+                          >
+                            {content || ""}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div
-                        data-testid={`opsp-content-${id}`}
-                        className={`mt-2 whitespace-pre-wrap text-[15px] leading-relaxed ${
-                          ink
-                            ? "font-normal text-neutral-900"
-                            : "border-l-4 border-dashed border-neutral-400 pl-3 font-light text-neutral-700"
-                        }`}
-                      >
-                        {content || ""}
-                      </div>
-                      {revisit ? (
-                        <span
-                          data-testid={`opsp-revisit-${id}`}
-                          className="mt-3 inline-block rounded-full border border-neutral-300 px-2 py-0.5 text-[11px] font-medium tracking-wide text-neutral-500 uppercase"
-                        >
-                          {OPSP_REVISIT_TAG}
-                        </span>
-                      ) : null}
-                      {note !== null ? (
-                        <p
-                          data-testid={`opsp-note-${id}`}
-                          className="mt-3 text-xs italic text-neutral-500"
-                        >
-                          {note}
-                        </p>
-                      ) : null}
-                      {provenance !== null ? (
-                        <p
-                          data-testid={`opsp-provenance-${id}`}
-                          className="mt-3 text-xs text-neutral-400"
-                        >
-                          {provenance}
-                        </p>
-                      ) : null}
-                    </>
-                  )}
-                </article>
-              );
-            })}
+
+                      {!editing && (
+                        <div className="mt-4 pt-2 border-t border-neutral-100/80">
+                          {revisit ? (
+                            <span
+                              data-testid={`opsp-revisit-${id}`}
+                              className="inline-block rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-amber-900 uppercase"
+                            >
+                              {OPSP_REVISIT_TAG}
+                            </span>
+                          ) : null}
+                          {note !== null ? (
+                            <p
+                              data-testid={`opsp-note-${id}`}
+                              className="mt-1.5 text-xs italic text-neutral-500"
+                            >
+                              {note}
+                            </p>
+                          ) : null}
+                          {provenance !== null ? (
+                            <p
+                              data-testid={`opsp-provenance-${id}`}
+                              className="mt-1.5 text-[11px] font-medium text-neutral-400"
+                            >
+                              {provenance}
+                            </p>
+                          ) : null}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            ))}
           </section>
         </div>
 
@@ -426,12 +470,12 @@ export function OPSPView({
           <aside
             aria-label="How to read this plan"
             data-testid="opsp-howto-panel"
-            className="fixed inset-x-0 bottom-0 z-20 flex max-h-[55vh] flex-col border-t border-neutral-200 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.08)] lg:sticky lg:top-6 lg:inset-auto lg:h-[calc(100vh-3rem)] lg:max-h-[calc(100vh-3rem)] lg:rounded-lg lg:border lg:border-neutral-200 lg:shadow-none"
+            className="fixed inset-x-0 bottom-0 z-20 flex max-h-[55vh] flex-col border-t border-neutral-200 bg-white shadow-[0_-8px_24px_rgba(0,0,0,0.08)] lg:sticky lg:top-6 lg:inset-auto lg:h-[calc(100vh-3rem)] lg:max-h-[calc(100vh-3rem)] lg:rounded-2xl lg:border lg:border-neutral-200/80 lg:shadow-card"
           >
-            <div className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3 lg:justify-start lg:px-5 lg:py-3">
+            <div className="flex items-center justify-between gap-3 border-b border-neutral-200 px-5 py-4 lg:justify-start">
               <h2
                 data-testid="opsp-howto-title"
-                className="text-sm font-semibold tracking-wide text-neutral-700 uppercase"
+                className="text-xs font-bold tracking-wider text-neutral-700 uppercase"
               >
                 How to read this
               </h2>
@@ -440,7 +484,7 @@ export function OPSPView({
                 onClick={() => setMobileOpen((o) => !o)}
                 aria-expanded={mobileOpen}
                 data-testid="opsp-howto-toggle"
-                className="shrink-0 rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 lg:hidden"
+                className="shrink-0 rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-xs font-semibold text-neutral-700 lg:hidden"
               >
                 {mobileOpen ? "Collapse" : "Expand"}
               </button>
@@ -448,42 +492,63 @@ export function OPSPView({
             <div
               ref={bodyRef}
               data-testid="opsp-howto-body"
-              className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 lg:px-5 lg:pb-3 ${
+              className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 lg:pb-4 ${
                 mobileOpen ? "block" : "hidden lg:block"
               }`}
             >
-              {OPSP_CELL_IDS.map((id) => {
-                const entry = OPSP_HOWTO[id];
-                const active = activeId === id;
-                return (
-                  <section
-                    key={id}
-                    ref={(el) => {
-                      entryRefs.current[id] = el;
-                    }}
-                    data-testid={`opsp-howto-${id}`}
-                    data-active={active}
-                    className={`mt-4 rounded-md p-3 ${
-                      active
-                        ? "bg-neutral-50 ring-1 ring-neutral-200"
-                        : "bg-transparent"
-                    }`}
-                  >
-                    <h3 className="text-[13px] font-semibold text-neutral-900">
-                      {OPSP_CELL_LABELS[id]}
-                    </h3>
-                    <p className="mt-1 text-[13px] leading-relaxed text-neutral-700">
-                      {entry.purpose}
-                    </p>
-                    <p className="mt-1 text-[13px] leading-relaxed text-neutral-700">
-                      <span className="font-medium">Strong:</span> {entry.strong}
-                    </p>
-                    <p className="mt-1 text-[13px] leading-relaxed text-neutral-700">
-                      <span className="font-medium">Weak:</span> {entry.weak}
-                    </p>
-                  </section>
-                );
-              })}
+              {OPSP_HORIZONS.map((horizon) => (
+                <div key={horizon.id} className="mt-5 first:mt-2">
+                  <div className="flex items-center justify-between border-b border-neutral-200/70 pb-1.5 mb-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono font-bold text-cobalt-600">
+                        {horizon.number}
+                      </span>
+                      <h4 className="text-[11px] font-bold uppercase tracking-wider text-neutral-700">
+                        {horizon.title}
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-medium text-neutral-400">
+                      {horizon.timeframe}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {horizon.cellIds.map((id) => {
+                      const entry = OPSP_HOWTO[id];
+                      const active = activeId === id;
+                      return (
+                        <section
+                          key={id}
+                          ref={(el) => {
+                            entryRefs.current[id] = el;
+                          }}
+                          data-testid={`opsp-howto-${id}`}
+                          data-active={active}
+                          className={`rounded-xl p-3.5 transition-all ${
+                            active
+                              ? "bg-cobalt-50/80 ring-1 ring-cobalt-200 border-l-4 border-cobalt-600 shadow-sm"
+                              : "bg-neutral-50/70 border border-neutral-200/70 hover:bg-neutral-50"
+                          }`}
+                        >
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900">
+                            {OPSP_CELL_LABELS[id]}
+                          </h3>
+                          <p className="mt-1.5 text-xs leading-relaxed text-neutral-700">
+                            {entry.purpose}
+                          </p>
+                          <div className="mt-2 space-y-1 text-xs leading-relaxed text-neutral-600">
+                            <p>
+                              <span className="font-semibold text-neutral-900">Strong:</span> {entry.strong}
+                            </p>
+                            <p>
+                              <span className="font-semibold text-neutral-900">Weak:</span> {entry.weak}
+                            </p>
+                          </div>
+                        </section>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </aside>
         )}

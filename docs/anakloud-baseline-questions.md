@@ -168,7 +168,7 @@ If everyone picks the same unit and different numbers, you're in good shape; tha
 > Then: if we had to delete one entirely and ship three, which goes? One line why.
 
 **Type:** Ranking (drag or numbered 1–4) + single choice + short text
-**Interaction:** Rank PedConnect, TeachDay, ParentUp, [fourth app]. Then a separate "delete one" radio. Confidence slider 1–5. **Also ask: "what do you think the group's #1 will be?"** — a second ranking field.
+**Interaction:** Rank PedConnect, PedMD, ParentUp, TeachDay. Then a separate "delete one" radio. Confidence slider 1–5. **Also ask: "what do you think the group's #1 will be?"** — a second ranking field.
 **Maps to:** OPSP → Key Initiatives, Quarterly Priorities
 
 **What plausible answers look like:**
@@ -176,7 +176,7 @@ If everyone picks the same unit and different numbers, you're in good shape; tha
 - *"PedConnect first. The referral is the scarce resource. A center with no incoming referrals doesn't need software to manage them."*
 - *"TeachDay first. Centers have the money and the daily pain. Doctors won't change a fifteen-year referral habit for a startup with no track record."*
 - *"ParentUp first. Parents are the only ones who'll adopt something new without being sold to. They'll drag the centers in."*
-- *"Delete: [fourth app]. I had to check the deck to remember what it does."*
+- *"Delete: PedMD. I had to check the deck to remember what it does."*
 
 **How to read it:** This may be the single highest-value question on the form for where you are right now. Whichever app leads determines your entire beta design, your first sales conversation, and what "success" means in ninety days. If the team splits here, everything downstream sits on sand.
 

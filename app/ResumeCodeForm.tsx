@@ -62,19 +62,38 @@ export function ResumeCodeForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label htmlFor="resume_code">Resume code</label>
-      <input
-        id="resume_code"
-        name="resume_code"
-        autoCapitalize="characters"
-        autoComplete="off"
-        spellCheck={false}
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-      />
-      {message !== null ? <p role="status">{message}</p> : null}
-      <button type="submit" disabled={!canSubmit}>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div>
+        <label
+          htmlFor="resume_code"
+          className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5"
+        >
+          Resume code
+        </label>
+        <input
+          id="resume_code"
+          name="resume_code"
+          autoCapitalize="characters"
+          autoComplete="off"
+          spellCheck={false}
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          className="w-full min-h-[48px] rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-center font-mono text-lg tracking-[0.25em] uppercase text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20"
+        />
+      </div>
+      {message !== null ? (
+        <p
+          role="status"
+          className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-center text-xs font-medium text-rose-800"
+        >
+          {message}
+        </p>
+      ) : null}
+      <button
+        type="submit"
+        disabled={!canSubmit}
+        className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-cobalt-600 px-5 py-3 text-base font-semibold text-white shadow-cobalt transition-all hover:bg-cobalt-700 active:scale-[0.98] active:bg-cobalt-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+      >
         Resume
       </button>
     </form>

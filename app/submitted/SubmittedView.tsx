@@ -41,37 +41,52 @@ export function SubmittedView({
   const answered = questions.filter((q) => q.answered);
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 pb-10 pt-6 text-base">
-      <header>
-        <h1 className="mt-1 text-[21px] leading-snug font-semibold text-neutral-900 md:text-[28px]">
+    <main className="mx-auto w-full max-w-2xl px-4 pb-16 pt-8 sm:px-6 sm:pb-20 text-base">
+      <header className="mb-8 rounded-2xl border border-neutral-200/80 bg-white p-6 shadow-card sm:p-8">
+        <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-800 border border-emerald-200/60">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+          Baseline Locked
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
           You&apos;re all set, {name}.
         </h1>
-        <p className="mt-3 text-base leading-relaxed text-neutral-600">
+        <p className="mt-2 text-base leading-relaxed text-neutral-600">
           Your answers are in and the baseline is locked. This is the finished
           version — you can read it back any time.
         </p>
+
+        <div className="mt-6 border-t border-neutral-100 pt-6">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-500">
+            Your One-Page Strategic Plan
+          </h2>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Link
+              href="/opsp"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-cobalt-600 px-6 py-3 text-base font-semibold text-white shadow-cobalt transition-all hover:bg-cobalt-700 active:scale-[0.98] active:bg-cobalt-800"
+            >
+              View your One-Page Strategic Plan
+            </Link>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-neutral-500">
+            A printable PDF version will be here to view whenever you come back.
+          </p>
+        </div>
       </header>
 
-      <ol className="mt-8 space-y-4">
+      <div className="mb-4 flex items-center justify-between px-1">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-500">
+          Submitted Answers
+        </h2>
+        <span className="text-xs font-semibold text-neutral-400">
+          {answered.length} of 15
+        </span>
+      </div>
+
+      <ol className="space-y-4">
         {answered.map((q, idx) => (
           <SubmittedCard key={q.id} position={idx + 1} question={q} nameOf={nameOf} />
         ))}
       </ol>
-
-      <section className="mt-10 border-t border-neutral-200 pt-6">
-        <h2 className="text-base font-semibold text-neutral-900">
-          Your One-Page Strategic Plan
-        </h2>
-        <Link
-          href="/opsp"
-          className="mt-2 inline-block text-base text-neutral-700 underline"
-        >
-          View your One-Page Strategic Plan
-        </Link>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-          A printable PDF version will be here to view whenever you come back.
-        </p>
-      </section>
     </main>
   );
 }
@@ -90,34 +105,37 @@ function SubmittedCard({
   return (
     <li
       data-testid={`submitted-${question.id}`}
-      className="rounded-lg border border-neutral-200 bg-white p-4"
+      className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6"
     >
-      <h3 className="text-[15px] font-semibold leading-snug text-neutral-900">
-        <span className="text-neutral-400">{position}.</span>{" "}
+      <h3 className="text-base font-bold leading-snug text-neutral-900">
+        <span className="text-cobalt-600 mr-1.5">{position}.</span>{" "}
         {QUESTION_MAP[question.id].text}
       </h3>
       <pre
         data-testid={`submitted-summary-${question.id}`}
-        className="mt-2 whitespace-pre-wrap font-sans text-base leading-relaxed text-neutral-700"
+        className="mt-3 whitespace-pre-wrap font-sans text-sm leading-relaxed text-neutral-700 bg-neutral-50/60 p-3.5 rounded-xl border border-neutral-100"
       >
         {text}
       </pre>
 
       {question.confidence !== null && isConfidenceQuestion(question.id) && (
-        <p className="mt-2 text-sm text-neutral-500">
+        <div
+          data-testid={`submitted-confidence-${question.id}`}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-cobalt-50 px-2.5 py-0.5 text-xs font-semibold text-cobalt-700"
+        >
           Confidence: {question.confidence}/5
-        </p>
+        </div>
       )}
 
       {question.privateNote !== null && (
         <div
-          data-testid="private-note"
-          className="mt-3 rounded-md border border-neutral-300 bg-neutral-50 p-3"
+          data-testid={`submitted-private-${question.id}`}
+          className="mt-4 rounded-xl border border-cobalt-200 bg-cobalt-50/50 p-4"
         >
-          <h4 className="text-sm font-semibold text-neutral-900">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-cobalt-900">
             Only Paul sees this one.
           </h4>
-          <p className="mt-1 text-sm leading-relaxed text-neutral-700">
+          <p className="mt-1.5 text-sm leading-relaxed text-neutral-700">
             {question.privateNote}
           </p>
         </div>

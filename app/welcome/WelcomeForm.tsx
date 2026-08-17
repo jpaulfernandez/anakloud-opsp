@@ -43,28 +43,50 @@ export function WelcomeForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label htmlFor="display_name">Your name</label>
-      <input
-        id="display_name"
-        name="display_name"
-        autoComplete="name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <div>
+        <label
+          htmlFor="display_name"
+          className="block text-sm font-semibold text-neutral-800 mb-1.5"
+        >
+          Your name
+        </label>
+        <input
+          id="display_name"
+          name="display_name"
+          autoComplete="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full min-h-[48px] rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20"
+        />
+      </div>
 
-      <label htmlFor="email">Email (optional)</label>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        autoComplete="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <p id="email-note">so we can resend your link if you lose it</p>
+      <div>
+        <label
+          htmlFor="email"
+          className="block text-sm font-semibold text-neutral-800 mb-1.5"
+        >
+          Email (optional)
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full min-h-[48px] rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20"
+        />
+        <p id="email-note" className="mt-1.5 text-xs text-neutral-500">
+          so we can resend your link if you lose it
+        </p>
+      </div>
 
-      <button type="submit" disabled={!canContinue}>
+      <button
+        type="submit"
+        disabled={!canContinue}
+        className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-cobalt-600 px-6 py-3 text-base font-semibold text-white shadow-cobalt transition-all hover:bg-cobalt-700 active:scale-[0.98] active:bg-cobalt-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+      >
         Continue
       </button>
     </form>

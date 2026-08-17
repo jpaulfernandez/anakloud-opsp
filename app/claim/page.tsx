@@ -58,8 +58,11 @@ function ClaimInner() {
   }, [router, token]);
 
   return (
-    <main>
-      <p>Claiming your session&hellip;</p>
+    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
+      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-neutral-200/80 bg-white p-8 shadow-card text-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-cobalt-200 border-t-cobalt-600" />
+        <p className="text-sm font-medium text-neutral-600">Claiming your session&hellip;</p>
+      </div>
     </main>
   );
 }

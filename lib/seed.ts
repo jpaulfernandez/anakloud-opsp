@@ -25,8 +25,7 @@ export const questionIds = [
   "q11", "q12", "q13", "q14", "q15",
 ] as const;
 
-/** The four apps in Q8's ranking. The fourth is the unnamed one. */
-export const APP_IDS = ["pedconnect", "teachday", "parentup", "fourth_app"] as const;
+export const APP_IDS = ["pedconnect", "pedmd", "parentup", "teachday"] as const;
 
 /** The functions a respondent can claim in Q14(a) (baseline §Q14 list). */
 export const FUNCTION_IDS = [
@@ -144,11 +143,11 @@ function q5(decides: string[]): SeedAnswerValue {
 // app is first (the baseline's "silent majority deferring" case).
 function q8(lead: "pedconnect" | "teachday"): Q8Value {
   const first = [lead, lead === "pedconnect" ? "teachday" : "pedconnect"];
-  const rank = [...first, "parentup", "fourth_app"];
-  const predicted = [...([...first].reverse()), "parentup", "fourth_app"];
+  const rank = [...first, "parentup", "pedmd"];
+  const predicted = [...([...first].reverse()), "parentup", "pedmd"];
   return {
     rank,
-    delete: "fourth_app",
+    delete: "pedmd",
     why:
       lead === "pedconnect"
         ? "The referral is the scarce resource; a center with no incoming referrals needs no software to manage them."

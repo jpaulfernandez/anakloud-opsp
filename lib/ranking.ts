@@ -20,14 +20,12 @@ import { APP_IDS, type AppId, type Q8Value } from "./questions";
 // respondent's identity, so two respondents in the same cohort see different
 // pool orders while a single respondent keeps a stable order across reloads.
 
-/** Display labels for the four apps. The fourth is a placeholder (plan blocker 2). */
+/** Display labels for the four apps. */
 export const APP_LABELS: Record<AppId, string> = {
   pedconnect: "PedConnect",
-  teachday: "TeachDay",
+  pedmd: "PedMD",
   parentup: "ParentUp",
-  // Placeholder until the fourth product is named (plan blocker 2); the name is
-  // content, not structure, so the registry id stays and only this changes.
-  fourth_app: "Fourth app",
+  teachday: "TeachDay",
 };
 
 /**

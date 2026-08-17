@@ -21,7 +21,7 @@ import {
 // stays the same shape for all three capped questions (140 / 120 / 40).
 
 const fieldClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full min-h-[48px] rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20";
 
 export function ShortTextInput({
   cap,
@@ -39,17 +39,17 @@ export function ShortTextInput({
   const text = clampToCap(value?.text ?? "", cap);
 
   return (
-    <div className="flex flex-col gap-2" data-testid="capped-short-text">
+    <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6 flex flex-col gap-3" data-testid="capped-short-text">
       <div className="flex items-center justify-between gap-3">
         <label
           htmlFor={inputId}
-          className="text-base font-medium text-neutral-700"
+          className="text-sm font-semibold text-neutral-800"
         >
           Your answer
         </label>
         <span
           aria-live="polite"
-          className="text-sm tabular-nums text-neutral-500"
+          className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-neutral-600"
         >
           {shortTextCounterLabel(clampToCap(text, cap).length, cap)}
         </span>
@@ -62,7 +62,7 @@ export function ShortTextInput({
         value={text}
         maxLength={cap}
         onChange={(e) => onChange({ text: clampToCap(e.target.value, cap) })}
-        className={`${fieldClass} mt-0`}
+        className={fieldClass}
       />
     </div>
   );

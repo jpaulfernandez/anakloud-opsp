@@ -23,7 +23,7 @@ import { useState } from "react";
 // or a focus grab.
 
 const buttonClass =
-  "rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50";
+  "inline-flex min-h-[44px] items-center justify-center rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 shadow-subtle transition-all hover:border-neutral-400 hover:bg-neutral-50 active:scale-[0.98]";
 
 export function CoachCard({
   hint,
@@ -49,11 +49,13 @@ export function CoachCard({
     <div
       data-testid="coach-card"
       role="status"
-      className="rounded-md border border-neutral-300 bg-neutral-50 p-4"
+      className="rounded-2xl border border-neutral-200/90 bg-neutral-50/80 p-5 shadow-card"
     >
-      <p className="text-sm leading-relaxed text-neutral-700">{hint}</p>
+      <div>
+        <p className="text-sm leading-relaxed text-neutral-800 font-medium">{hint}</p>
+      </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2.5">
         <button
           type="button"
           data-action="revise"
@@ -81,7 +83,7 @@ export function CoachCard({
         <button
           type="button"
           data-action="keep"
-          className={buttonClass}
+          className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-cobalt-700 shadow-subtle transition-all hover:bg-cobalt-50/50 hover:border-cobalt-200 active:scale-[0.98]"
           onClick={onKeepAsIs}
         >
           Keep it as is →
@@ -89,17 +91,19 @@ export function CoachCard({
       </div>
 
       {exampleOpen && example && (
-        <div data-testid="coach-example" className="mt-3 border-t border-neutral-200 pt-3">
-          <h2 className="text-sm font-semibold text-neutral-800">
+        <div data-testid="coach-example" className="mt-4 rounded-xl border border-neutral-200 bg-white p-4">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-500">
             The shape, not a suggestion:
           </h2>
-          <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+          <p className="mt-1.5 text-sm leading-relaxed text-neutral-700">
             {example}
           </p>
         </div>
       )}
 
-      <p className="mt-3 text-xs text-neutral-500">nudge {nudge} of 3</p>
+      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+        nudge {nudge} of 3
+      </p>
     </div>
   );
 }

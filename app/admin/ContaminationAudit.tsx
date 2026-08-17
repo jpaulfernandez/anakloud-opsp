@@ -35,47 +35,49 @@ export default function ContaminationSection({
   if (audit.questions.length === 0) return null;
 
   return (
-    <section className="mt-6 border-t border-neutral-200 pt-5">
+    <section className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card">
       <h2
         data-testid="contamination-heading"
-        className="text-base font-semibold text-neutral-900"
+        className="text-xs font-bold uppercase tracking-wider text-neutral-500"
       >
         Contamination audit
       </h2>
-      <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+      <p className="mt-1 text-xs leading-relaxed text-neutral-600">
         Mean agreement rate on the coachable closed questions, by how each
         answer was treated. If the example-shown column is clearly higher than
         the uncoached one, the coach has pushed answers together — the prompt
         needs tightening.
       </p>
 
-      <table
-        data-testid="contamination-summary"
-        className="mt-3 w-full border-collapse text-sm text-neutral-700"
-      >
-        <thead>
-          <tr className="border-b border-neutral-200 text-left text-xs uppercase tracking-wide text-neutral-500">
-            <th className="px-3 py-2 font-medium">Group</th>
-            <th className="px-3 py-2 font-medium">Mean agreement</th>
-            <th className="px-3 py-2 font-medium">Questions scored</th>
-          </tr>
-        </thead>
-        <tbody>
-          {GROUP_ORDER.map((group) => (
-            <tr key={group} data-testid={`contamination-group-${group}`} className="border-b border-neutral-100">
-              <td className="px-3 py-2 font-medium text-neutral-900">
-                {GROUP_LABEL[group]}
-              </td>
-              <td className="px-3 py-2 tabular-nums">
-                {percent(audit.agreement[group])}
-              </td>
-              <td className="px-3 py-2 tabular-nums">
-                {audit.closedQuestions}
-              </td>
+      <div className="mt-3 overflow-x-auto">
+        <table
+          data-testid="contamination-summary"
+          className="w-full border-collapse text-sm text-neutral-700"
+        >
+          <thead>
+            <tr className="border-b border-neutral-200 text-left text-xs uppercase tracking-wide text-neutral-500">
+              <th className="px-3 py-2.5 font-semibold">Group</th>
+              <th className="px-3 py-2.5 font-semibold">Mean agreement</th>
+              <th className="px-3 py-2.5 font-semibold">Questions scored</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {GROUP_ORDER.map((group) => (
+              <tr key={group} data-testid={`contamination-group-${group}`} className="border-b border-neutral-100 hover:bg-neutral-50/50 transition-colors">
+                <td className="px-3 py-2.5 font-semibold text-neutral-900">
+                  {GROUP_LABEL[group]}
+                </td>
+                <td className="px-3 py-2.5 font-medium tabular-nums text-neutral-800">
+                  {percent(audit.agreement[group])}
+                </td>
+                <td className="px-3 py-2.5 tabular-nums text-xs text-neutral-500">
+                  {audit.closedQuestions}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

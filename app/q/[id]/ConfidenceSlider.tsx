@@ -50,13 +50,15 @@ export function ConfidenceSlider({
   const numberId = "confidence-number";
   return (
     <div
-      className="confidence flex flex-wrap items-center gap-3"
+      className="confidence flex flex-wrap items-center gap-4 rounded-xl border border-neutral-200/80 bg-white p-4 shadow-card"
       data-set={value !== null}
     >
-      <span className="text-base font-semibold text-neutral-800">
+      <span className="text-sm font-bold text-neutral-800">
         {CONFIDENCE_LABEL}
       </span>
-      <span className="text-sm text-neutral-500">{CONFIDENCE_MIN}</span>
+      <span className="text-xs font-semibold tabular-nums text-neutral-400">
+        {CONFIDENCE_MIN}
+      </span>
       <input
         id={sliderId}
         type="range"
@@ -69,7 +71,9 @@ export function ConfidenceSlider({
         onChange={(e) => onChange(clampConfidence(Number(e.target.value)))}
         className="min-w-28 flex-1"
       />
-      <span className="text-sm text-neutral-500">{CONFIDENCE_MAX}</span>
+      <span className="text-xs font-semibold tabular-nums text-neutral-400">
+        {CONFIDENCE_MAX}
+      </span>
       <label htmlFor={numberId} className="sr-only">
         Confidence (number)
       </label>
@@ -80,7 +84,7 @@ export function ConfidenceSlider({
         max={CONFIDENCE_MAX}
         value={value !== null ? value : ""}
         onChange={(e) => setValue(e.target.value, onChange)}
-        className="w-16 rounded-md border border-neutral-300 bg-white px-2 py-2 text-center text-base tabular-nums text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-400"
+        className="h-11 w-14 rounded-xl border border-neutral-300 bg-white px-2 py-1 text-center font-semibold tabular-nums text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20"
       />
     </div>
   );

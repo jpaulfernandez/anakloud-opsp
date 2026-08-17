@@ -85,7 +85,7 @@ async function seedAllAnswers(omit: ReadonlySet<string> = new Set()) {
       put("q5", { pays: ["parent"], decides: ["center_owner"], uses: ["therapist"], benefits: ["child"] }),
       put("q6", { choice: "center", why: "we sell to centers" }),
       put("q7", { text: "the only system built for PH clinics" }),
-      put("q8", { rank: ["pedconnect", "teachday", "parentup", "fourth_app"], delete: "fourth_app", why: "lowest pull", predicted: ["teachday", "pedconnect", "parentup", "fourth_app"] }),
+      put("q8", { rank: ["pedconnect", "teachday", "parentup", "pedmd"], delete: "pedmd", why: "lowest pull", predicted: ["teachday", "pedconnect", "parentup", "pedmd"] }),
       put("q9", { items: ["no HR tools", "no billing", "no app store"] }),
       put("q10", { payer: "parent", model: "per active child per month", amount: 500, unit: "pesos", first_peso: "2026-11" }),
       put("q11", { rocks: [{ what: "ship beta", done_when: "30 Sept" }], starred: 0 }),

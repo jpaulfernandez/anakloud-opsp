@@ -278,7 +278,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | # | Blocker | Blocks | Owner | Status |
 |---|---|---|---|---|
 | 1 | Part B OPSP mapping table | F07-T01 | Facilitator | **Resolved** 2026-08-16 |
-| 2 | Fourth app has no name | F03-T07 content, F10 fixtures | Facilitator | Open |
+| 2 | Fourth app has no name | F03-T07 content, F10 fixtures | Facilitator | **Resolved** 2026-08-17 (PedMD) |
 | 3 | Confirm multi-cohort scope before F01-T02 lands | F01-T02 | Facilitator | Open |
 | 4 | Confirm the facilitator answers as a respondent | F09-T01 | Facilitator | Open |
 | 5 | Divergence thresholds have no numeric defaults | F10-T01 | Facilitator | Open — pick defaults, tune after real data |

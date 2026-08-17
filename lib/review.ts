@@ -174,8 +174,11 @@ export function formatAnswerSummary(
         .join("\n");
     case "q10": {
       const amount = v.amount;
+      const payerDisplay = Array.isArray(v.payer)
+        ? v.payer.join(", ")
+        : String(v.payer ?? "");
       return [
-        `Payer: ${String(v.payer ?? "")}`,
+        `Payer: ${payerDisplay}`,
         `Model: ${String(v.model ?? "")}`,
         `Pays: ${typeof amount === "number" ? amount : ""} ${String(v.unit ?? "")}`,
         `First real peso: ${String(v.first_peso ?? "")}`,

@@ -45,15 +45,25 @@ function toStorableQ14(value: unknown): unknown {
   return toQ14Value(value as Q14Draft);
 }
 
-/** Q10: requires a payer, a model and a parseable peso amount. */
+/** Q10: requires a payer (at least one), a model and a parseable peso amount. */
 function toStorableQ10(value: unknown): unknown {
   if (!value || typeof value !== "object") return null;
   const draft = value as Q10Draft;
-  if (draft.payer === null || draft.model === null) return null;
+  const payerList = Array.isArray(draft.payer)
+    ? draft.payer
+    : typeof draft.payer === "string" && draft.payer
+      ? [draft.payer]
+      : [];
+  if (payerList.length === 0 || draft.model === null) return null;
+  const payer = Array.isArray(draft.payer)
+    ? draft.payer
+    : draft.payer !== null
+      ? draft.payer
+      : payerList;
   const amount = parseQ10Amount(draft.amount);
   if (amount === null) return null;
   return {
-    payer: draft.payer,
+    payer,
     model: draft.model,
     amount,
     unit: modelUnitLabel(draft.model),

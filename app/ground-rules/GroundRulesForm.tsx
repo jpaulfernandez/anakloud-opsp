@@ -35,17 +35,24 @@ export function GroundRulesForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <label className="flex min-h-[52px] cursor-pointer items-center gap-3.5 rounded-xl border border-neutral-200 bg-white p-4 shadow-subtle transition-all hover:border-cobalt-300 hover:bg-cobalt-50/20 has-checked:border-cobalt-600 has-checked:bg-cobalt-50/40">
         <input
           type="checkbox"
           checked={gotIt}
           onChange={(e) => setGotIt(e.target.checked)}
+          className="h-5 w-5 rounded-md border-neutral-300 text-cobalt-600 focus:ring-cobalt-500 accent-cobalt-600"
         />
-        Got it
+        <span className="text-base font-semibold text-neutral-900">
+          Got it
+        </span>
       </label>
 
-      <button type="submit" disabled={!canContinue}>
+      <button
+        type="submit"
+        disabled={!canContinue}
+        className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-cobalt-600 px-6 py-3 text-base font-semibold text-white shadow-cobalt transition-all hover:bg-cobalt-700 active:scale-[0.98] active:bg-cobalt-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+      >
         Continue
       </button>
     </form>

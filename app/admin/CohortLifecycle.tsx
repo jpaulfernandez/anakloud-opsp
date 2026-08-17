@@ -95,16 +95,16 @@ export default function CohortLifecycle({
   return (
     <section
       data-testid="cohort-lifecycle"
-      className="mt-6 rounded-md border border-neutral-200 bg-white px-4 py-4 text-sm text-neutral-700"
+      className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card text-sm text-neutral-700"
     >
-      <h2 className="text-base font-semibold text-neutral-900">Cohort</h2>
+      <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-500">Cohort Lifecycle</h2>
 
-      <div className="mt-3 grid gap-4 md:grid-cols-2">
+      <div className="mt-4 grid gap-6 md:grid-cols-2">
         <div>
-          <div className="text-xs uppercase tracking-wide text-neutral-500">
-            Status
+          <div className="text-xs font-semibold text-neutral-700">
+            Cohort Status
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-2.5 flex flex-wrap gap-2">
             {(["draft", "open", "closed"] as CohortStatus[]).map((value) => (
               <button
                 key={value}
@@ -113,10 +113,10 @@ export default function CohortLifecycle({
                 data-active={cohort.status === value}
                 disabled={busy}
                 onClick={() => update({ status: value })}
-                className={`rounded-full border px-3 py-1 text-sm font-medium disabled:opacity-50 ${
+                className={`rounded-xl px-4 py-2 text-xs font-semibold shadow-subtle transition-all disabled:opacity-50 ${
                   cohort.status === value
-                    ? "border-neutral-900 bg-neutral-900 text-white"
-                    : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-400"
+                    ? "bg-cobalt-600 text-white shadow-cobalt"
+                    : "border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
                 }`}
               >
                 {STATUS_LABEL[value]}
@@ -124,7 +124,7 @@ export default function CohortLifecycle({
             ))}
           </div>
           {cohort.status === "closed" && (
-            <p className="mt-2 text-xs leading-relaxed text-neutral-600">
+            <p className="mt-2.5 text-xs leading-relaxed text-neutral-500">
               While closed, no one can change answers. Their OPSPs and PDFs stay
               accessible.
             </p>
@@ -133,10 +133,10 @@ export default function CohortLifecycle({
 
         <div>
           <label
-            className="text-xs uppercase tracking-wide text-neutral-500"
+            className="text-xs font-semibold text-neutral-700"
             htmlFor="cohort-level-pin"
           >
-            AI level
+            AI Serving Level
           </label>
           <select
             id="cohort-level-pin"
@@ -144,7 +144,7 @@ export default function CohortLifecycle({
             disabled={busy}
             value={pinValue}
             onChange={(e) => update({ aiLevelPin: e.target.value })}
-            className="mt-2 block w-full rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-sm text-neutral-700"
+            className="mt-2.5 block w-full min-h-[42px] rounded-xl border border-neutral-300 bg-white px-3.5 py-2 text-sm text-neutral-800 shadow-sm focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20"
           >
             {LEVEL_LABEL.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -156,42 +156,42 @@ export default function CohortLifecycle({
       </div>
 
       {error !== null && (
-        <p data-testid="cohort-error" className="mt-2 text-sm text-red-700">
+        <p data-testid="cohort-error" className="mt-3 text-xs font-semibold text-rose-700">
           {error}
         </p>
       )}
 
-      <div className="mt-5 border-t border-neutral-100 pt-4">
+      <div className="mt-6 border-t border-neutral-100 pt-4">
         {!confirming ? (
           <button
             type="button"
             data-testid="cohort-delete-open"
             onClick={() => setConfirming(true)}
-            className="text-sm font-medium text-red-700 hover:underline"
+            className="text-xs font-semibold text-rose-600 hover:text-rose-700 transition-colors"
           >
             Delete the cohort
           </button>
         ) : (
-          <div data-testid="cohort-delete-confirm">
-            <p className="text-sm text-neutral-700">
+          <div data-testid="cohort-delete-confirm" className="rounded-xl border border-rose-200 bg-rose-50/50 p-4">
+            <p className="text-xs leading-relaxed text-rose-950 font-medium">
               This deletes every answer, snapshot, draft and interaction in{" "}
               &ldquo;{cohort.name}&rdquo;. Type the cohort name to confirm:
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2.5">
               <input
                 type="text"
                 data-testid="cohort-delete-name"
                 value={typedName}
                 onChange={(e) => setTypedName(e.target.value)}
                 placeholder={cohort.name}
-                className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm text-neutral-700"
+                className="min-h-[38px] rounded-xl border border-rose-300 bg-white px-3 py-1.5 text-xs text-neutral-800 focus:border-rose-600 focus:outline-none"
               />
               <button
                 type="button"
                 data-testid="cohort-delete-confirm-btn"
                 disabled={busy || typedName !== cohort.name}
                 onClick={confirmDelete}
-                className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+                className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-rose-600 px-4 py-1.5 text-xs font-semibold text-white shadow-subtle hover:bg-rose-700 disabled:opacity-40 transition-all"
               >
                 Delete cohort
               </button>
@@ -204,13 +204,13 @@ export default function CohortLifecycle({
                   setTypedName("");
                   setDeleteError(null);
                 }}
-                className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm text-neutral-700"
+                className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-neutral-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-neutral-700 shadow-subtle hover:bg-neutral-50 transition-all"
               >
                 Cancel
               </button>
             </div>
             {deleteError !== null && (
-              <p data-testid="cohort-delete-error" className="mt-2 text-sm text-red-700">
+              <p data-testid="cohort-delete-error" className="mt-2 text-xs font-semibold text-rose-700">
                 {deleteError}
               </p>
             )}

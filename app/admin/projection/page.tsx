@@ -66,12 +66,16 @@ export default async function AdminProjectionPage() {
 
     return (
       <>
-        <div className="border-b border-neutral-200 bg-neutral-50">
-          <div className="mx-auto w-full max-w-6xl px-4 py-3 text-sm text-neutral-600">
-            <Link href="/admin" className="underline" data-testid="projection-back">
-              Back to Admin
+        <div className="border-b border-neutral-200/80 bg-white shadow-subtle">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 text-sm text-neutral-600 sm:px-6">
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-cobalt-700 hover:text-cobalt-800 transition-colors"
+              data-testid="projection-back"
+            >
+              &larr; Admin Dashboard
             </Link>
-            <span className="ml-3 hidden print:hidden md:inline">
+            <span className="hidden print:hidden text-xs text-neutral-500 md:inline">
               Project this sheet, or use your browser&apos;s Print to keep a copy.
             </span>
           </div>

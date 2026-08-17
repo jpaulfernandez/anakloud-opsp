@@ -259,8 +259,10 @@ function validateQ10(v: unknown): Verdict {
   const model = asString(rec.model);
   if (model === null) return { ok: false, dimension: "specificity" };
   if (isNotSureModel(model)) return { ok: true };
-  const payer = asString(rec.payer);
-  const payerOk = payer !== null && payer.trim() !== "";
+  const payer = rec.payer;
+  const payerOk = Array.isArray(payer)
+    ? payer.length > 0 && payer.every((p) => typeof p === "string" && p.trim() !== "")
+    : typeof payer === "string" && payer.trim() !== "";
   const modelOk = model.trim() !== "";
   const amountOk = typeof rec.amount === "number" && Number.isFinite(rec.amount);
   const firstPeso = asString(rec.first_peso);

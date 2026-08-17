@@ -155,4 +155,26 @@ describe("q10IsAnswered", () => {
       }),
     ).toBe(false);
   });
+
+  it("is answered when multiple payers are selected", () => {
+    expect(
+      q10IsAnswered({
+        payer: ["parent", "pediatrician/clinic"],
+        model: "freemium with parent upgrade",
+        amount: "349",
+        firstPeso: "2027-01",
+      }),
+    ).toBe(true);
+  });
+
+  it("is not answered when payer array is empty", () => {
+    expect(
+      q10IsAnswered({
+        payer: [],
+        model: "not sure yet",
+        amount: "",
+        firstPeso: "",
+      }),
+    ).toBe(false);
+  });
 });

@@ -16,7 +16,7 @@ import {
 } from "@/lib/navigation";
 import { QUESTION_IDS, QUESTION_MAP, type QuestionId } from "@/lib/questions";
 import { groundRulesAcknowledged } from "@/lib/respondent";
-import { ResumeCodeForm } from "./ResumeCodeForm";
+import { StartOrResumeForm } from "./StartOrResumeForm";
 import { SubmittedView } from "./submitted/SubmittedView";
 
 // The resume landing (F04-T05, FR-8, ui_ux.md §3.2). This is what every
@@ -36,7 +36,7 @@ import { SubmittedView } from "./submitted/SubmittedView";
 // The page also serves the root "/" as the anonymous landing: this route is
 // CLAIM_SCREEN (lib/auth), so an unauthenticated visitor must see a page here
 // rather than a redirect-to-self. With no session cookie the page renders the
-// resume-code return entry and never touches the database.
+// start new or resume return entry and never touches the database.
 
 export const metadata: Metadata = {
   title: "Welcome back",
@@ -113,14 +113,24 @@ export default async function HomePage() {
  * gets entered here to restore a session. Stays renderable with no database. */
 function AnonymousLanding() {
   return (
-    <main>
-      <h1>Align</h1>
-      <p>Anakloud strategic alignment questionnaire.</p>
-      <section>
-        <p>Been here before?</p>
-        <p>Enter your resume code to pick up where you left off.</p>
-        <ResumeCodeForm />
-      </section>
+    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12 sm:px-6">
+      <div className="w-full max-w-md rounded-2xl border border-neutral-200/80 bg-white p-6 shadow-card sm:p-8">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="mb-3 inline-flex items-center justify-center rounded-xl bg-cobalt-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-cobalt-700">
+            Anakloud
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+            Align
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+            Figure out where the six of you actually agree.
+          </p>
+        </div>
+
+        <section className="border-t border-neutral-100 pt-6">
+          <StartOrResumeForm />
+        </section>
+      </div>
     </main>
   );
 }
@@ -141,32 +151,74 @@ function ResumeLanding({
   const next = firstUnanswered(new Set(answered));
 
   return (
-    <main>
-      <h1>Welcome back, {name}.</h1>
-      {next === null ? (
-        <p>You&apos;ve answered every question.</p>
-      ) : (
-        <p>You&apos;re on question {positionOf(next)} of 15.</p>
-      )}
-      <div>
-        {next !== null ? (
-          <Link href={`/q/${questionRouteSegment(next)}`}>Continue</Link>
-        ) : null}
-        <Link href={REVIEW_DESTINATION}>Review what I&apos;ve answered</Link>
+    <main className="mx-auto w-full max-w-2xl px-4 pb-16 pt-8 sm:px-6 sm:pt-12 text-base">
+      <div className="rounded-2xl border border-neutral-200/80 bg-white p-6 shadow-card sm:p-8">
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-cobalt-50 px-3 py-1 text-xs font-medium text-cobalt-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-cobalt-600" />
+          Questionnaire in progress
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+          Welcome back, {name}.
+        </h1>
+        {next === null ? (
+          <p className="mt-2 text-base leading-relaxed text-neutral-600">
+            You&apos;ve answered every question.
+          </p>
+        ) : (
+          <p className="mt-2 text-base leading-relaxed text-neutral-600">
+            You&apos;re on question {positionOf(next)} of 15.
+          </p>
+        )}
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          {next !== null ? (
+            <Link
+              href={`/q/${questionRouteSegment(next)}`}
+              className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-cobalt-600 px-6 py-3 text-base font-semibold text-white shadow-cobalt transition-all hover:bg-cobalt-700 active:scale-[0.98] active:bg-cobalt-800"
+            >
+              Continue
+            </Link>
+          ) : null}
+          <Link
+            href={REVIEW_DESTINATION}
+            className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-neutral-300 bg-white px-5 py-3 text-base font-medium text-neutral-800 shadow-subtle transition-all hover:border-neutral-400 hover:bg-neutral-50 active:scale-[0.98]"
+          >
+            Review what I&apos;ve answered
+          </Link>
+        </div>
       </div>
+
       {answered.length > 0 ? (
-        <>
-          <h2>Answered so far</h2>
-          <ul>
+        <section className="mt-8">
+          <div className="mb-3 flex items-center justify-between px-1">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500">
+              Answered so far
+            </h2>
+            <span className="text-xs text-neutral-400">
+              {answered.length} of 15
+            </span>
+          </div>
+          <ul className="divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-card">
             {answered.map((id) => (
               <li key={id}>
-                <Link href={`/q/${questionRouteSegment(id)}`}>
-                  {QUESTION_MAP[id].text}
+                <Link
+                  href={`/q/${questionRouteSegment(id)}`}
+                  className="flex min-h-[52px] items-center justify-between gap-4 px-4 py-3.5 text-sm text-neutral-800 transition-colors hover:bg-cobalt-50/50 hover:text-cobalt-900"
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cobalt-50 text-xs font-semibold text-cobalt-700">
+                      {positionOf(id)}
+                    </span>
+                    <span className="font-medium">{QUESTION_MAP[id].text}</span>
+                  </span>
+                  <span className="shrink-0 text-xs font-semibold text-cobalt-600">
+                    Edit &rarr;
+                  </span>
                 </Link>
               </li>
             ))}
           </ul>
-        </>
+        </section>
       ) : null}
     </main>
   );

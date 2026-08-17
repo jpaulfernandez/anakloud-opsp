@@ -31,7 +31,7 @@ import {
 // predicted }`; "answered" is the shell's job, derived from the emitted draft.
 
 const reasonFieldClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20";
 
 export function RankingInput({
   value,
@@ -71,8 +71,8 @@ export function RankingInput({
 
   return (
     <div className="flex flex-col gap-6" data-testid="ranking">
-      <div>
-        <p className="mb-3 text-base font-medium text-neutral-700">
+      <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6">
+        <p className="mb-3 text-sm font-bold uppercase tracking-wider text-neutral-600">
           Tap in order, first to last.
         </p>
         <RankBuild
@@ -87,57 +87,60 @@ export function RankingInput({
       {/* The delete-one radio and its one-line why (baseline Q8). The why is
           required and paired with the delete — "if we had to delete one
           entirely and ship three, which goes? One line why." */}
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-base font-semibold text-neutral-800">
+      <fieldset className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6 flex flex-col gap-4">
+        <legend className="text-base font-bold text-neutral-900">
           If we had to delete one entirely and ship three, which goes?
         </legend>
-        {APP_IDS.map((id) => (
-          <label
-            key={id}
-            className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-neutral-300 px-3 py-2.5 text-base text-neutral-800 has-checked:border-neutral-900 has-checked:bg-neutral-50"
-          >
-            <input
-              type="radio"
-              name="q8-delete"
-              value={id}
-              checked={draft.delete === id}
-              onChange={() => setField((d) => ({ ...d, delete: id }))}
-              className="h-5 w-5 shrink-0 accent-neutral-900"
-            />
-            <span className="font-medium">{APP_LABELS[id]}</span>
-          </label>
-        ))}
-      </fieldset>
+        <div className="flex flex-col gap-2.5">
+          {APP_IDS.map((id) => (
+            <label
+              key={id}
+              className="flex min-h-[48px] cursor-pointer items-center gap-3.5 rounded-xl border border-neutral-200 px-4 py-3 text-base text-neutral-800 transition-all hover:border-cobalt-300 hover:bg-cobalt-50/20 has-checked:border-cobalt-600 has-checked:bg-cobalt-50/50 has-checked:text-cobalt-950 shadow-subtle"
+            >
+              <input
+                type="radio"
+                name="q8-delete"
+                value={id}
+                checked={draft.delete === id}
+                onChange={() => setField((d) => ({ ...d, delete: id }))}
+                className="h-4 w-4 shrink-0 text-cobalt-600 focus:ring-cobalt-500 accent-cobalt-600"
+              />
+              <span className="font-semibold">{APP_LABELS[id]}</span>
+            </label>
+          ))}
+        </div>
 
-      <div>
-        <label
-          htmlFor="q8-why"
-          className="block text-base font-medium text-neutral-700"
-        >
-          One line why
-        </label>
-        <textarea
-          id="q8-why"
-          rows={2}
-          value={draft.why}
-          onChange={(e) => setField((d) => ({ ...d, why: e.target.value }))}
-          className={`${reasonFieldClass} mt-2`}
-        />
-      </div>
+        <div className="mt-2 pt-4 border-t border-neutral-100">
+          <label
+            htmlFor="q8-why"
+            className="block text-sm font-semibold text-neutral-700 mb-1.5"
+          >
+            One line why
+          </label>
+          <textarea
+            id="q8-why"
+            rows={2}
+            value={draft.why}
+            onChange={(e) => setField((d) => ({ ...d, why: e.target.value }))}
+            className={reasonFieldClass}
+          />
+        </div>
+      </fieldset>
 
       {/* The "predict the group" control: collapsed by default, a second,
           independent tap-to-assign ranking that expands on tap (baseline Q8). */}
-      <div>
+      <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6">
         <button
           type="button"
           onClick={() => setPredictedOpen((open) => !open)}
           aria-expanded={predictedOpen}
-          className="text-base font-medium text-neutral-700 underline decoration-neutral-300 underline-offset-4 hover:decoration-neutral-500"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-cobalt-700 hover:text-cobalt-800"
         >
-          What do you think the group&apos;s #1 will be?
+          <span>What do you think the group&apos;s #1 will be?</span>
+          <span>{predictedOpen ? "▲" : "▼"}</span>
         </button>
         {predictedOpen && (
-          <div className="mt-3">
+          <div className="mt-4 border-t border-neutral-100 pt-4">
             <RankBuild
               poolOrder={predictedPoolOrder}
               ordered={draft.predicted}
@@ -202,41 +205,43 @@ function RankBuild({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <ul
-        data-testid={poolTestId}
-        className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-      >
-        {pool.map((id) => (
-          <li key={id}>
-            <button
-              type="button"
-              onClick={() => assign(id)}
-              className="flex min-h-11 w-full cursor-pointer items-center justify-center rounded-md border border-neutral-300 bg-white px-3 py-2.5 text-base font-medium text-neutral-800 hover:border-neutral-500"
-            >
-              {APP_LABELS[id]}
-            </button>
-          </li>
-        ))}
-      </ul>
+    <div className="flex flex-col gap-5">
+      {pool.length > 0 && (
+        <ul
+          data-testid={poolTestId}
+          className="grid grid-cols-2 gap-2.5 sm:grid-cols-4"
+        >
+          {pool.map((id) => (
+            <li key={id}>
+              <button
+                type="button"
+                onClick={() => assign(id)}
+                className="flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm font-semibold text-neutral-800 shadow-subtle transition-all hover:border-cobalt-400 hover:bg-cobalt-50/30 active:scale-[0.98]"
+              >
+                {APP_LABELS[id]}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div>
-        <p className="mb-2 text-base font-medium text-neutral-700">
+        <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-neutral-500">
           Your order
         </p>
         <ol
           data-testid={orderedTestId}
-          className="flex flex-col gap-2"
+          className="flex flex-col gap-2.5"
         >
           {ordered.map((id, i) => (
             <li
               key={id}
-              className="flex min-h-11 items-center gap-2 rounded-md border border-neutral-300 bg-neutral-50 px-3 py-2"
+              className="flex min-h-[50px] items-center gap-3 rounded-xl border border-neutral-200/90 bg-neutral-50/60 px-3.5 py-2 shadow-subtle"
             >
-              <span className="w-8 shrink-0 text-left text-sm tabular-nums text-neutral-500">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cobalt-100 text-xs font-bold text-cobalt-700">
                 #{i + 1}
               </span>
-              <span className="flex-1 font-medium text-neutral-900">
+              <span className="flex-1 font-semibold text-neutral-900 text-sm">
                 {APP_LABELS[id]}
               </span>
               <button
@@ -244,7 +249,7 @@ function RankBuild({
                 aria-label={`Move ${APP_LABELS[id]} up`}
                 disabled={i === 0}
                 onClick={() => move(id, -1)}
-                className="h-11 w-11 shrink-0 rounded-md border border-neutral-300 bg-white text-base font-semibold text-neutral-700 disabled:cursor-not-allowed disabled:opacity-40"
+                className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-white text-xs font-bold text-neutral-700 shadow-subtle hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 ↑
               </button>
@@ -253,7 +258,7 @@ function RankBuild({
                 aria-label={`Move ${APP_LABELS[id]} down`}
                 disabled={i === ordered.length - 1}
                 onClick={() => move(id, 1)}
-                className="h-11 w-11 shrink-0 rounded-md border border-neutral-300 bg-white text-base font-semibold text-neutral-700 disabled:cursor-not-allowed disabled:opacity-40"
+                className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-white text-xs font-bold text-neutral-700 shadow-subtle hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 ↓
               </button>
@@ -261,7 +266,7 @@ function RankBuild({
                 type="button"
                 aria-label={`Remove ${APP_LABELS[id]} from the order`}
                 onClick={() => remove(id)}
-                className="h-11 w-11 shrink-0 rounded-md border border-neutral-300 bg-white text-base text-neutral-500 hover:text-neutral-900"
+                className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50/60 text-sm font-semibold text-rose-600 shadow-subtle hover:bg-rose-100/80 transition-colors"
               >
                 ✕
               </button>

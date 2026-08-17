@@ -534,16 +534,18 @@ export function QuestionShell({
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 pb-10 pt-6 text-base">
+    <main className="mx-auto w-full max-w-2xl px-4 pb-12 pt-6 sm:px-6 sm:pb-16 text-base">
       <ProgressHeader absolute={neighbors.absolute} current={neighbors.index} />
 
-      <p className="mt-6 text-sm font-medium text-neutral-500">
-        Section: {question.section}
-      </p>
-      <h1 className="mt-1 text-[21px] leading-snug font-semibold text-neutral-900 md:text-[28px]">
+      <div className="mt-6 mb-1">
+        <span className="inline-flex items-center rounded-md bg-cobalt-50 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-cobalt-700">
+          Section: {question.section}
+        </span>
+      </div>
+      <h1 className="mt-1 text-[22px] leading-tight font-bold tracking-tight text-neutral-900 md:text-[28px]">
         {question.text}
       </h1>
-      <p className="mt-3 text-base leading-relaxed text-neutral-600">
+      <p className="mt-2 text-base leading-relaxed text-neutral-600">
         {question.helper}
       </p>
 
@@ -709,7 +711,7 @@ export function QuestionShell({
             />
           )}
           {coachUI?.kind === "closed" && (
-            <p data-testid="coach-closed" className="text-sm text-neutral-600">
+            <p data-testid="coach-closed" className="text-sm font-medium text-neutral-600">
               Fair enough — going with yours.
             </p>
           )}
@@ -743,11 +745,11 @@ export function QuestionShell({
         )}
       </section>
 
-      <nav className="mt-10 flex items-center justify-between gap-3">
+      <nav className="mt-10 flex items-center justify-between gap-4 border-t border-neutral-100 pt-6">
         {backHref ? (
           <a
             href={backHref}
-            className="text-base font-medium text-neutral-700 underline decoration-neutral-300 underline-offset-4 hover:decoration-neutral-500"
+            className="inline-flex min-h-[44px] items-center text-sm font-semibold text-neutral-600 transition-colors hover:text-neutral-900"
           >
             ← Back
           </a>
@@ -756,7 +758,7 @@ export function QuestionShell({
         )}
 
         {showNormalContinue ? (
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-col items-end gap-1.5">
             <button
               type="button"
               onClick={() => {
@@ -766,19 +768,19 @@ export function QuestionShell({
                 // coach logic runs entirely inside handleContinue.
                 handleContinue();
               }}
-              className="rounded-md bg-neutral-900 px-4 py-2 text-base font-semibold text-white hover:bg-neutral-700"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-cobalt-600 px-6 py-3 text-base font-semibold text-white shadow-cobalt transition-all hover:bg-cobalt-700 active:scale-[0.98] active:bg-cobalt-800"
             >
               Continue
             </button>
             {blockedReason && (
-              <p className="text-sm text-neutral-600">{blockedReason}</p>
+              <p className="text-xs font-medium text-neutral-500">{blockedReason}</p>
             )}
           </div>
         ) : (
           <button
             type="button"
             onClick={handleReview}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-base font-semibold text-white hover:bg-neutral-700"
+            className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-cobalt-600 px-6 py-3 text-base font-semibold text-white shadow-cobalt transition-all hover:bg-cobalt-700 active:scale-[0.98] active:bg-cobalt-800"
           >
             {reviewButtonLabel}
           </button>
@@ -798,7 +800,7 @@ function ProgressHeader({
 }) {
   return (
     <header
-      className="flex items-center gap-3"
+      className="flex items-center justify-between gap-3 border-b border-neutral-100 pb-4"
       aria-label={`Question ${absolute} of ${QUESTION_IDS.length}`}
     >
       <div
@@ -813,13 +815,17 @@ function ProgressHeader({
             role="listitem"
             data-testid="progress-dot"
             aria-current={i === current ? "step" : undefined}
-            className={`h-2 w-2 shrink-0 rounded-full ${
-              i === current ? "bg-neutral-900" : "bg-neutral-300"
+            className={`h-2.5 w-2.5 shrink-0 rounded-full transition-all ${
+              i === current
+                ? "bg-cobalt-600 ring-2 ring-cobalt-200 scale-110"
+                : i < current
+                ? "bg-neutral-800"
+                : "bg-neutral-200"
             }`}
           />
         ))}
       </div>
-      <span className="text-sm tabular-nums text-neutral-500">
+      <span className="text-xs font-semibold tabular-nums text-neutral-500">
         {absolute} of {QUESTION_IDS.length}
       </span>
     </header>
@@ -841,7 +847,7 @@ function SaveStatus({ state, offline }: { state: SaveState | null; offline: bool
       <p
         data-testid="save-status"
         aria-live="polite"
-        className="text-sm text-neutral-500"
+        className="text-xs font-medium text-neutral-500"
       >
         Locked
       </p>
@@ -852,7 +858,7 @@ function SaveStatus({ state, offline }: { state: SaveState | null; offline: bool
       <p
         data-testid="save-status"
         aria-live="polite"
-        className="text-sm text-neutral-500"
+        className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900"
       >
         Saved on this device — will sync when you&#39;re back online.
       </p>
@@ -863,7 +869,9 @@ function SaveStatus({ state, offline }: { state: SaveState | null; offline: bool
     <p
       data-testid="save-status"
       aria-live="polite"
-      className="text-sm text-neutral-500"
+      className={`text-xs font-semibold ${
+        state === "saving" ? "text-cobalt-600" : "text-neutral-500"
+      }`}
     >
       {state === "saving" ? "Saving…" : "✓ Saved"}
     </p>

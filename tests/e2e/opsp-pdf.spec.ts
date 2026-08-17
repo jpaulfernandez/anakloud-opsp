@@ -139,6 +139,12 @@ test("renders the authenticated print route to a genuine PDF for the respondent'
   // the sheet rather than this route returning an empty or error response.
   expect(body.subarray(0, 5).toString("latin1")).toBe("%PDF-");
   expect(body.length).toBeGreaterThan(1000);
+
+  // The printed/rendered OPSP is compact and fits cleanly within 2 pages
+  // (never spilling onto an awkward 3rd page).
+  const pageCount = (body.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length;
+  expect(pageCount).toBeGreaterThanOrEqual(1);
+  expect(pageCount).toBeLessThanOrEqual(2);
 });
 
 test("requires a valid session", async ({ page }) => {

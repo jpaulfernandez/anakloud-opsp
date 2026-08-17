@@ -146,14 +146,14 @@ describe("formatAnswerSummary", () => {
 
   it("formats the ranking (q8) with order, delete and prediction", () => {
     const summary = formatAnswerSummary("q8", {
-      rank: ["pedconnect", "teachday", "parentup", "fourth_app"],
-      delete: "fourth_app",
+      rank: ["pedconnect", "teachday", "parentup", "pedmd"],
+      delete: "pedmd",
       why: "lowest pull",
-      predicted: ["teachday", "pedconnect", "parentup", "fourth_app"],
+      predicted: ["teachday", "pedconnect", "parentup", "pedmd"],
     });
     expect(summary).toContain("1. PedConnect");
     expect(summary).toContain("2. TeachDay");
-    expect(summary).toContain("Would delete: Fourth app");
+    expect(summary).toContain("Would delete: PedMD");
     expect(summary).toContain("Why: lowest pull");
     expect(summary).toContain("Predicted group #1: TeachDay");
   });

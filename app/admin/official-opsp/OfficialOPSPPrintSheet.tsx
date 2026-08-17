@@ -1,6 +1,7 @@
-import { OPSP_CELL_IDS, type OpspCellId } from "@/lib/opsp";
+import { type OpspCellId } from "@/lib/opsp";
 import {
   OPSP_CELL_LABELS,
+  OPSP_HORIZONS,
   formatOfficialCellProvenance,
   formatOpspCellValue,
 } from "@/lib/opsp-view";
@@ -62,47 +63,81 @@ export function OfficialOPSPPrintSheet({
           aria-label="Official One-Page Strategic Plan"
           className="grid grid-cols-1 gap-4 md:grid-cols-2"
         >
-          {OPSP_CELL_IDS.map((id) => {
-            const cell = cells[id];
-            if (!cell) return null;
-            const state = resolveOpspCellState(cell);
-            const ink = state.kind === "ink";
-            const content =
-              state.kind === "empty" ? "" : formatOpspCellValue(cell.value);
-            const provenance =
-              state.kind === "empty" || cell.provenance.length === 0
-                ? null
-                : formatOfficialCellProvenance(cell.provenance);
-            return (
-              <article
-                key={id}
-                data-testid={`opsp-cell-${id}`}
-                className="rounded-lg border border-neutral-200 bg-white p-4"
+          {OPSP_HORIZONS.map((horizon) => (
+            <div key={horizon.id} className="contents">
+              <div
+                data-testid={`opsp-horizon-header-${horizon.id}`}
+                className="col-span-full mt-6 first:mt-0 mb-1 flex flex-wrap items-baseline justify-between gap-2 border-b border-neutral-200/80 pb-2 pt-1"
               >
-                <h2 className="text-sm font-semibold tracking-wide text-neutral-500 uppercase">
-                  {OPSP_CELL_LABELS[id]}
-                </h2>
-                <div
-                  data-testid={`opsp-content-${id}`}
-                  className={`mt-2 whitespace-pre-wrap text-[15px] leading-relaxed ${
-                    ink
-                      ? "font-normal text-neutral-900"
-                      : "border-l-4 border-dashed border-neutral-400 pl-3 font-light text-neutral-700"
-                  }`}
-                >
-                  {content || ""}
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xs font-mono font-bold tracking-wider text-cobalt-600">
+                    {horizon.number}
+                  </span>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+                    {horizon.title}
+                  </h3>
+                  <span className="hidden sm:inline text-xs text-neutral-300">·</span>
+                  <span className="hidden sm:inline text-xs text-neutral-500 font-medium">
+                    {horizon.subtitle}
+                  </span>
                 </div>
-                {provenance !== null ? (
-                  <p
-                    data-testid={`opsp-provenance-${id}`}
-                    className="mt-3 text-xs text-neutral-400"
+                <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-neutral-600 uppercase">
+                  {horizon.timeframe}
+                </span>
+              </div>
+
+              {horizon.cellIds.map((id) => {
+                const cell = cells[id];
+                if (!cell) return null;
+                const state = resolveOpspCellState(cell);
+                const ink = state.kind === "ink";
+                const content =
+                  state.kind === "empty" ? "" : formatOpspCellValue(cell.value);
+                const provenance =
+                  state.kind === "empty" || cell.provenance.length === 0
+                    ? null
+                    : formatOfficialCellProvenance(cell.provenance);
+
+                const isHero =
+                  id === "bhag" ||
+                  id === "key_initiatives" ||
+                  id === "quarterly_theme" ||
+                  id === "accountability_face";
+
+                return (
+                  <article
+                    key={id}
+                    data-testid={`opsp-cell-${id}`}
+                    className={`rounded-lg border border-neutral-200 bg-white p-4 ${
+                      isHero ? "md:col-span-2 print:col-span-2" : "md:col-span-1 print:col-span-1"
+                    }`}
                   >
-                    {provenance}
-                  </p>
-                ) : null}
-              </article>
-            );
-          })}
+                    <h2 className="text-sm font-semibold tracking-wide text-neutral-500 uppercase">
+                      {OPSP_CELL_LABELS[id]}
+                    </h2>
+                    <div
+                      data-testid={`opsp-content-${id}`}
+                      className={`mt-2 whitespace-pre-wrap text-[15px] leading-relaxed ${
+                        ink
+                          ? "font-normal text-neutral-900"
+                          : "border-l-4 border-dashed border-neutral-400 pl-3 font-light text-neutral-700"
+                      }`}
+                    >
+                      {content || ""}
+                    </div>
+                    {provenance !== null ? (
+                      <p
+                        data-testid={`opsp-provenance-${id}`}
+                        className="mt-3 text-xs text-neutral-400"
+                      >
+                        {provenance}
+                      </p>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          ))}
         </section>
       </div>
     </main>

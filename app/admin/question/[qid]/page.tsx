@@ -65,10 +65,10 @@ export default async function AdminQuestionComparisonPage({
         : null;
 
     return (
-      <main className="mx-auto w-full max-w-5xl px-4 pb-10 pt-4 text-sm">
-        <div className="text-neutral-500">
-          <Link href="/admin" className="underline">
-            Admin
+      <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 text-sm">
+        <div className="mb-4">
+          <Link href="/admin" className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-cobalt-700 hover:text-cobalt-800 transition-colors">
+            &larr; Admin Dashboard
           </Link>
         </div>
         <QuestionComparison

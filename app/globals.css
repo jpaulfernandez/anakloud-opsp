@@ -2,6 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+  
+  body {
+    @apply bg-neutral-50 text-neutral-900 antialiased min-h-screen;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    @apply bg-cobalt-100 text-cobalt-900;
+  }
+}
+
+/*
+ * Custom range inputs with cobalt accent
+ */
+input[type="range"] {
+  @apply h-2 w-full appearance-none rounded-lg bg-neutral-200 cursor-pointer accent-cobalt-600;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  @apply appearance-none w-5 h-5 rounded-full bg-cobalt-600 border-2 border-white shadow-md transition-transform hover:scale-110 active:scale-95;
+}
+
+input[type="range"]::-moz-range-thumb {
+  @apply appearance-none w-5 h-5 rounded-full bg-cobalt-600 border-2 border-white shadow-md transition-transform hover:scale-110 active:scale-95;
+}
+
 /*
  * Q14's hours slider starts unset (F03-T09): a default position is an anchor.
  * Until the respondent moves it the native thumb is hidden so the screen
@@ -52,23 +83,67 @@
  * so the printed sheet carries only the plan.
  */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
+  /* Reset outer container margins and paddings on paper */
+  main {
+    padding: 0 !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+  }
+
   /* A page break is allowed only between sections, never through one. */
   [data-testid^="opsp-cell-"] {
     break-inside: avoid;
     page-break-inside: avoid;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid #d4d4d4;
+    border-radius: 6px;
+    background: #ffffff;
   }
 
   /* The plan spans the full sheet; the suppressed how-to panel leaves no gap. */
   [data-testid="opsp-document"] {
     display: block;
+    margin-top: 0;
   }
   [data-testid="opsp-grid"] {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.75rem;
+    gap: 0.35rem 0.55rem;
   }
-  [data-testid^="opsp-cell-"] {
-    padding: 0.625rem;
-    border: 1px solid #d4d4d4;
+
+  /* Horizon section dividers in print */
+  [data-testid^="opsp-horizon-header-"] {
+    break-after: avoid;
+    page-break-after: avoid;
+    margin-top: 0.45rem !important;
+    margin-bottom: 0.2rem !important;
+    padding-bottom: 0.15rem !important;
+  }
+
+  /* Print header: compact spacing so page 1 is not eaten up by whitespace */
+  [data-testid="opsp-print-header"] {
+    margin-bottom: 0.4rem !important;
+    padding-bottom: 0.3rem !important;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  [data-testid^="opsp-cell-"] h2 {
+    font-size: 8.5px !important;
+    letter-spacing: 0.05em !important;
+    line-height: 1.15 !important;
+    padding-bottom: 0.15rem !important;
+    margin-bottom: 0.15rem !important;
+  }
+
+  [data-testid^="opsp-content-"] {
+    font-size: 9.5px !important;
+    line-height: 1.25 !important;
+    margin-top: 0.15rem !important;
   }
 
   /* Ink: solid weight, no border. Pencil: lighter weight, dashed left border. */
@@ -80,6 +155,29 @@
     font-weight: 300;
     border-left: 4px dashed;
     border-color: #737373;
+    padding-left: 0.35rem;
+  }
+
+  /* Print meta lines: compact revisit badge, note, provenance */
+  [data-testid^="opsp-revisit-"] {
+    font-size: 7.5px !important;
+    padding: 1px 3px !important;
+    line-height: 1 !important;
+    margin-top: 0.15rem !important;
+  }
+
+  [data-testid^="opsp-note-"] {
+    font-size: 8px !important;
+    line-height: 1.15 !important;
+    margin-top: 0.15rem !important;
+    color: #737373 !important;
+  }
+
+  [data-testid^="opsp-provenance-"] {
+    font-size: 8px !important;
+    line-height: 1.15 !important;
+    margin-top: 0.15rem !important;
+    color: #a3a3a3 !important;
   }
 
   /* Interactive chrome — nothing that edits, exports or navigates prints. The

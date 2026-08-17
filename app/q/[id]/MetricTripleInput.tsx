@@ -28,7 +28,7 @@ import {
 // navigation itself (PR4, D2).
 
 const fieldClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full min-h-[48px] rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20";
 
 export function MetricTripleInput({
   value,
@@ -69,11 +69,11 @@ export function MetricTripleInput({
   }
 
   return (
-    <div className="flex flex-col gap-5" data-testid="metric-triple">
-      <div>
+    <div className="flex flex-col gap-6" data-testid="metric-triple">
+      <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card">
         <label
           htmlFor="q3-metric"
-          className="block text-base font-medium text-neutral-700"
+          className="block text-sm font-semibold text-neutral-800 mb-1.5"
         >
           What would you count?
         </label>
@@ -82,23 +82,23 @@ export function MetricTripleInput({
           type="text"
           value={draft.metric}
           onChange={(e) => setField("metric", e.target.value)}
-          className={`${fieldClass} mt-1`}
+          className={fieldClass}
           autoComplete="off"
         />
       </div>
 
       <fieldset
         data-testid="q3-number-unit"
-        className="rounded-md border border-neutral-300 px-3 pb-3 pt-2"
+        className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card"
       >
-        <legend className="px-1 text-base font-medium text-neutral-700">
+        <legend className="px-1 text-sm font-bold uppercase tracking-wider text-neutral-600">
           How many?
         </legend>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="sm:w-1/3">
             <label
               htmlFor="q3-value"
-              className="block text-sm font-medium text-neutral-500"
+              className="block text-xs font-semibold text-neutral-500 mb-1"
             >
               Number
             </label>
@@ -108,14 +108,14 @@ export function MetricTripleInput({
               inputMode="numeric"
               value={draft.rawValue}
               onChange={(e) => setField("rawValue", e.target.value)}
-              className={`${fieldClass} mt-1`}
+              className={fieldClass}
               autoComplete="off"
             />
           </div>
           <div className="flex-1">
             <label
               htmlFor="q3-unit"
-              className="block text-sm font-medium text-neutral-500"
+              className="block text-xs font-semibold text-neutral-500 mb-1"
             >
               Unit
             </label>
@@ -126,17 +126,17 @@ export function MetricTripleInput({
               type="text"
               value={draft.unit}
               onChange={(e) => setField("unit", e.target.value)}
-              className={`${fieldClass} mt-1`}
+              className={fieldClass}
               autoComplete="off"
             />
           </div>
         </div>
       </fieldset>
 
-      <div>
+      <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card">
         <label
           htmlFor="q3-why"
-          className="block text-base font-medium text-neutral-700"
+          className="block text-sm font-semibold text-neutral-800 mb-1.5"
         >
           Why that one?
         </label>
@@ -145,7 +145,7 @@ export function MetricTripleInput({
           type="text"
           value={draft.why}
           onChange={(e) => setField("why", e.target.value)}
-          className={`${fieldClass} mt-1`}
+          className={fieldClass}
           autoComplete="off"
         />
       </div>

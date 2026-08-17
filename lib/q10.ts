@@ -6,6 +6,8 @@ import {
   type Q10PayerOption,
 } from "./questions";
 
+export type { Q10ModelOption, Q10PayerOption };
+
 // Pure Q10 helpers (F03-T10, anakloud-baseline-questions.md Q10,
 // tech_infrastructure.md §3.1). No I/O, no network — the option lists, the
 // model-derived unit, and the "answered" rule are deterministic so they can be
@@ -73,7 +75,7 @@ export function modelUnitLabel(model: Q10ModelOption): string {
  * `modelUnitLabel`, so it can never disagree with the model on screen.
  */
 export interface Q10Draft {
-  payer: Q10PayerOption | null;
+  payer: Q10PayerOption[] | Q10PayerOption | null;
   model: Q10ModelOption | null;
   amount: string;
   firstPeso: string; // YYYY-MM
@@ -88,16 +90,21 @@ export function parseQ10Amount(raw: string): number | null {
 }
 
 /**
- * Whether a Q10 draft counts as an answer (Q10 is required, F03-T10). The payer
- * and the model are always required; beyond that, the answer is complete either
- * when the model is "not sure yet" (the amount and month are unknowable and
- * must not be demanded) or when the respondent has committed an amount and the
- * first-peso month. Requiring a fabricated number from someone who is honestly
- * not sure would be exactly the kind of manufactured confidence the baseline
- * exists to avoid.
+ * Whether a Q10 draft counts as an answer (Q10 is required, F03-T10). At least
+ * one payer and the model are always required; beyond that, the answer is
+ * complete either when the model is "not sure yet" (the amount and month are
+ * unknowable and must not be demanded) or when the respondent has committed an
+ * amount and the first-peso month. Requiring a fabricated number from someone
+ * who is honestly not sure would be exactly the kind of manufactured confidence
+ * the baseline exists to avoid.
  */
 export function q10IsAnswered(value: Q10Draft): boolean {
-  if (value.payer === null || value.model === null) return false;
+  const payers = Array.isArray(value.payer)
+    ? value.payer
+    : value.payer !== null
+      ? [value.payer]
+      : [];
+  if (payers.length === 0 || value.model === null) return false;
   if (isNotSureModel(value.model)) return true;
   return parseQ10Amount(value.amount) !== null && value.firstPeso.trim() !== "";
 }

@@ -40,6 +40,66 @@ export const OPSP_CELL_LABELS: Record<OpspCellId, string> = {
   capacity: "Capacity",
 };
 
+/** One of the five strategic horizons organizing the OPSP top-to-down. */
+export interface OpspHorizon {
+  id: string;
+  number: string;
+  title: string;
+  subtitle: string;
+  timeframe: string;
+  cellIds: readonly OpspCellId[];
+}
+
+/** The five strategic horizons in chronological and logical top-to-down sequence. */
+export const OPSP_HORIZONS: readonly OpspHorizon[] = [
+  {
+    id: "foundation",
+    number: "01",
+    title: "Core Foundations",
+    subtitle: "Identity & Long-term North Star",
+    timeframe: "10–25 Years",
+    cellIds: ["core_values", "purpose", "bhag"],
+  },
+  {
+    id: "strategy",
+    number: "02",
+    title: "Strategic Horizon",
+    subtitle: "Positioning & Market Boundaries",
+    timeframe: "3 Years",
+    cellIds: [
+      "three_year_targets",
+      "sandbox_core_customer",
+      "sandbox_boundaries",
+      "brand_promise",
+    ],
+  },
+  {
+    id: "tactics",
+    number: "03",
+    title: "Tactical Plan",
+    subtitle: "Unit Economics & Annual Bets",
+    timeframe: "1 Year",
+    cellIds: ["profit_per_x", "year1_critical_number", "key_initiatives"],
+  },
+  {
+    id: "execution",
+    number: "04",
+    title: "Execution Discipline",
+    subtitle: "Quarterly Focus & Priorities",
+    timeframe: "90 Days",
+    cellIds: ["quarterly_theme", "quarterly_rocks", "number1_priority"],
+  },
+  {
+    id: "people",
+    number: "05",
+    title: "People & Capacity",
+    subtitle: "Ownership, Threats & Availability",
+    timeframe: "Ongoing",
+    cellIds: ["accountability_face", "swt_threats", "capacity"],
+  },
+] as const;
+
+
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -123,8 +183,11 @@ function formatSourceFragment(id: string, fragment: unknown, nameOf?: DisplayNam
         .join("\n");
     case "q10": {
       const amount = v.amount;
+      const payerDisplay = Array.isArray(v.payer)
+        ? v.payer.join(", ")
+        : String(v.payer ?? "");
       return [
-        `Payer: ${String(v.payer ?? "")}`,
+        `Payer: ${payerDisplay}`,
         `Model: ${String(v.model ?? "")}`,
         `Pays: ${typeof amount === "number" ? amount : ""} ${String(v.unit ?? "")}`,
         `First real peso: ${String(v.first_peso ?? "")}`,

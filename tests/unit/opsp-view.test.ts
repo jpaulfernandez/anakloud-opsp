@@ -3,6 +3,7 @@ import { buildOpspCells, OPSP_CELL_IDS, type OpspSourceAnswers } from "../../lib
 import { SEED_RESPONDENTS, type SeedAnswer } from "../../lib/seed";
 import {
   OPSP_CELL_LABELS,
+  OPSP_HORIZONS,
   formatOfficialCellProvenance,
   formatOpspCellValue,
   formatOpspProvenance,
@@ -31,6 +32,18 @@ describe("F07-T02 OPSP view helpers", () => {
     for (const id of OPSP_CELL_IDS) {
       const title = OPSP_CELL_LABELS[id].trim();
       expect(title.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("organizes the 16 cells into 5 strategic horizons in exact order", () => {
+    expect(OPSP_HORIZONS).toHaveLength(5);
+    const combinedCellIds = OPSP_HORIZONS.flatMap((h) => h.cellIds);
+    expect(combinedCellIds).toEqual([...OPSP_CELL_IDS]);
+    for (const horizon of OPSP_HORIZONS) {
+      expect(horizon.number.length).toBeGreaterThan(0);
+      expect(horizon.title.length).toBeGreaterThan(0);
+      expect(horizon.timeframe.length).toBeGreaterThan(0);
+      expect(horizon.cellIds.length).toBeGreaterThan(0);
     }
   });
 

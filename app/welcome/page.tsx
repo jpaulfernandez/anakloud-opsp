@@ -40,25 +40,40 @@ export default async function WelcomePage() {
   }
 
   return (
-    <main>
-      <section aria-labelledby="before-we-start">
-        <h2 id="before-we-start">Before we start.</h2>
-        <p>
-          This is a set of questions about Anakloud — where it&apos;s going, who
-          it&apos;s for, what has to happen next. Everyone answers on their own,
-          before we talk as a group.
-        </p>
-        <p>
-          <strong>There are no right answers and this isn&apos;t a test.</strong>{" "}
-          If your answer is different from everyone else&apos;s, that&apos;s the
-          single most useful thing that can come out of this.
-        </p>
-        <p>
-          Takes about 25 minutes. You can stop anytime and come back — nothing
-          gets lost.
-        </p>
-      </section>
-      <WelcomeForm initialName={initialName} initialEmail={initialEmail} />
+    <main className="mx-auto w-full max-w-xl px-4 py-8 sm:px-6 sm:py-16 text-base">
+      <div className="rounded-2xl border border-neutral-200/80 bg-white p-6 shadow-card sm:p-8">
+        <section aria-labelledby="before-we-start" className="space-y-4">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-cobalt-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cobalt-700">
+            Anakloud Alignment
+          </div>
+          <h2
+            id="before-we-start"
+            className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl"
+          >
+            Before we start.
+          </h2>
+          <p className="text-base leading-relaxed text-neutral-700">
+            This is a set of questions about Anakloud — where it&apos;s going, who
+            it&apos;s for, what has to happen next. Everyone answers on their own,
+            before we talk as a group.
+          </p>
+          <div className="rounded-xl border-l-4 border-cobalt-600 bg-cobalt-50/60 p-4">
+            <p className="text-sm leading-relaxed text-cobalt-950">
+              <strong>There are no right answers and this isn&apos;t a test.</strong>{" "}
+              If your answer is different from everyone else&apos;s, that&apos;s the
+              single most useful thing that can come out of this.
+            </p>
+          </div>
+          <p className="text-sm leading-relaxed text-neutral-500">
+            Takes about 25 minutes. You can stop anytime and come back — nothing
+            gets lost.
+          </p>
+        </section>
+
+        <div className="mt-8 border-t border-neutral-100 pt-8">
+          <WelcomeForm initialName={initialName} initialEmail={initialEmail} />
+        </div>
+      </div>
     </main>
   );
 }

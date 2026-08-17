@@ -16,7 +16,7 @@ import { q9FieldLabel } from "@/lib/q9";
 // or deciding navigation itself (PR4, D2).
 
 const fieldClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full min-h-[48px] rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20";
 
 export function Q9Input({
   value,
@@ -37,10 +37,10 @@ export function Q9Input({
   return (
     <div className="flex flex-col gap-5" data-testid="q9-triple">
       {([0, 1, 2] as const).map((index) => (
-        <div key={index}>
+        <div key={index} className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card">
           <label
             htmlFor={`q9-not-doing-${index + 1}`}
-            className="block text-base font-medium text-neutral-700"
+            className="block text-sm font-semibold text-neutral-800 mb-1.5"
           >
             {q9FieldLabel((index + 1) as 1 | 2 | 3)}
           </label>
@@ -50,7 +50,7 @@ export function Q9Input({
             autoComplete="off"
             value={items[index]}
             onChange={(e) => setItem(index, e.target.value)}
-            className={`${fieldClass} mt-1`}
+            className={fieldClass}
           />
         </div>
       ))}

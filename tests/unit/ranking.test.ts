@@ -29,10 +29,10 @@ function fullDraft(): {
   predicted: AppId[];
 } {
   return {
-    rank: ["pedconnect", "teachday", "parentup", "fourth_app"],
-    delete: "fourth_app",
+    rank: ["pedconnect", "pedmd", "parentup", "teachday"],
+    delete: "pedmd",
     why: "it's the one nobody reaches for",
-    predicted: ["teachday", "pedconnect", "parentup", "fourth_app"],
+    predicted: ["teachday", "pedconnect", "parentup", "pedmd"],
   };
 }
 
@@ -71,8 +71,9 @@ describe("APP_LABELS", () => {
       expect(APP_LABELS[id]).toMatch(/\S/);
     }
     expect(APP_LABELS.pedconnect).toBe("PedConnect");
-    expect(APP_LABELS.teachday).toBe("TeachDay");
+    expect(APP_LABELS.pedmd).toBe("PedMD");
     expect(APP_LABELS.parentup).toBe("ParentUp");
+    expect(APP_LABELS.teachday).toBe("TeachDay");
   });
 });
 

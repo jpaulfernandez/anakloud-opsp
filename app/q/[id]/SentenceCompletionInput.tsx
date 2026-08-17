@@ -28,7 +28,7 @@ import {
 // The two underlined runs sit in 44px-tall hit areas (ui_ux §7) so a thumb
 // lands inside a blank even when it misses the narrow underline.
 const inputRunClass =
-  "min-h-11 border-b-2 border-neutral-400 bg-transparent px-1 py-0.5 text-base text-neutral-900 focus:border-neutral-900 focus:outline-none";
+  "min-h-[44px] border-b-2 border-neutral-400 bg-transparent px-2 py-1 text-base font-medium text-neutral-900 focus:border-cobalt-600 focus:outline-none transition-colors";
 
 export function SentenceCompletionInput({
   value,
@@ -64,12 +64,12 @@ export function SentenceCompletionInput({
   }
 
   return (
-    <div>
+    <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card sm:p-6">
       {/* Wide viewport: the two blanks run inline, underlined, inside the
           sentence. */}
       <p
         data-testid="q2-sentence-inline"
-        className="hidden text-base leading-relaxed text-neutral-900 md:block"
+        className="hidden text-lg leading-loose text-neutral-900 md:block"
       >
         {Q2_WHO_LABEL}{" "}
         <input
@@ -77,7 +77,7 @@ export function SentenceCompletionInput({
           value={values.who}
           onChange={(e) => setWho(e.target.value)}
           aria-label={Q2_WHO_LABEL}
-          className={`${inputRunClass} w-44`}
+          className={`${inputRunClass} w-48`}
         />{" "}
         , because{" "}
         <input
@@ -85,7 +85,7 @@ export function SentenceCompletionInput({
           value={values.because}
           onChange={(e) => setBecause(e.target.value)}
           aria-label={Q2_BECAUSE_LABEL}
-          className={`${inputRunClass} w-44`}
+          className={`${inputRunClass} w-64`}
         />{" "}
         .
       </p>
@@ -98,34 +98,35 @@ export function SentenceCompletionInput({
       >
         <div>
           <label
-            htmlFor="q2-who"
-            data-testid="q2-who-label"
-            className="block text-base font-medium text-neutral-700"
+            htmlFor="q2-who-mobile"
+            className="block text-sm font-semibold text-neutral-700 mb-1.5"
           >
             {Q2_WHO_LABEL}
           </label>
           <input
-            id="q2-who"
+            id="q2-who-mobile"
             type="text"
             value={values.who}
             onChange={(e) => setWho(e.target.value)}
-            className={`${inputRunClass} mt-1 w-full`}
+            aria-label={Q2_WHO_LABEL}
+            className="w-full min-h-[48px] rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20"
           />
         </div>
+
         <div>
           <label
-            htmlFor="q2-because"
-            data-testid="q2-because-label"
-            className="block text-base font-medium text-neutral-700"
+            htmlFor="q2-because-mobile"
+            className="block text-sm font-semibold text-neutral-700 mb-1.5"
           >
             {Q2_BECAUSE_LABEL}
           </label>
           <input
-            id="q2-because"
+            id="q2-because-mobile"
             type="text"
             value={values.because}
             onChange={(e) => setBecause(e.target.value)}
-            className={`${inputRunClass} mt-1 w-full`}
+            aria-label={Q2_BECAUSE_LABEL}
+            className="w-full min-h-[48px] rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20"
           />
         </div>
       </div>

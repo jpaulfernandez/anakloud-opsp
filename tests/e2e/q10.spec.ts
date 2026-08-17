@@ -174,3 +174,17 @@ test("a concrete model requires an amount and a YYYY-MM month", async ({
   await continueButton.click();
   await expect(page).toHaveURL(/\/q\/11$/);
 });
+
+test("multiple payers can be selected simultaneously", async ({ page }) => {
+  await setSession(page);
+  await page.goto("/q/10");
+
+  const parentBox = page.getByLabel("parent", { exact: true });
+  const clinicBox = page.getByLabel("pediatrician/clinic", { exact: true });
+
+  await parentBox.check();
+  await clinicBox.check();
+
+  expect(await parentBox.isChecked()).toBe(true);
+  expect(await clinicBox.isChecked()).toBe(true);
+});

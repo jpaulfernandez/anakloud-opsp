@@ -224,7 +224,7 @@ describe("answer value types derived from §3.1", () => {
       q8: { rank: AppId[]; delete: AppId; why: string; predicted: AppId[] };
       q9: { items: [string, string, string] };
       q10: {
-        payer: string;
+        payer: string | string[];
         model: string;
         amount: number;
         unit: string;

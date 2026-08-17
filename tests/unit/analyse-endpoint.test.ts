@@ -100,7 +100,7 @@ function scoringFixture(): AnalysisScoring {
         included: 2,
         privateExcluded: 0,
         agreementRate: 0.5,
-        modalAnswer: "pedconnect|teachday|parentup|fourth_app",
+        modalAnswer: "pedconnect|teachday|parentup|pedmd",
         spread: 0.5,
         meanConfidence: 5,
         wordCounts: null,

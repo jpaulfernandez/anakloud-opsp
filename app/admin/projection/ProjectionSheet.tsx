@@ -6,7 +6,7 @@ import type {
 // F10-T06 — the projection sheet render (FR-34, ui_ux.md §4.18). The export the
 // facilitator projects during the session. Its whole job is legibility at
 // projector distance: larger type than the comparison board, question blocks
-// that keep their cards together, and the deterministic divergence badge so the
+// cards together, and the deterministic divergence badge so the
 // verdict reads at a glance. There is deliberately no mode toggle and no
 // identity — the sheet is anonymised by construction (lib/projection.ts), and
 // this component is a pure server render of the ProjectionQuestion blocks the
@@ -19,10 +19,10 @@ import type {
 // so no single answer splits across a page boundary — the projection analogue
 // of the OPSP cell rule.
 const BADGE_STYLE: Record<ProjectionBadgeCategory, string> = {
-  aligned: "bg-emerald-50 text-emerald-800",
-  "soft split": "bg-amber-50 text-amber-800",
-  "hard split": "bg-red-50 text-red-800",
-  "manual review": "bg-neutral-100 text-neutral-700",
+  aligned: "bg-emerald-50 text-emerald-800 border border-emerald-200/80",
+  "soft split": "bg-amber-50 text-amber-800 border border-amber-200/80",
+  "hard split": "bg-rose-50 text-rose-800 border border-rose-200/80",
+  "manual review": "bg-neutral-100 text-neutral-700 border border-neutral-200/80",
 };
 
 export default function ProjectionSheet({
@@ -33,21 +33,21 @@ export default function ProjectionSheet({
   return (
     <main
       data-testid="projection-sheet"
-      className="mx-auto w-full max-w-6xl px-4 pb-12 pt-6"
+      className="mx-auto w-full max-w-6xl px-4 pb-16 pt-8 sm:px-6"
     >
       <div
         data-testid="projection-meta"
-        className="mb-8 border-b border-neutral-300 pb-4"
+        className="mb-10 rounded-2xl border border-neutral-200/80 bg-white p-6 shadow-card sm:p-8"
       >
-        <div className="text-sm uppercase tracking-widest text-neutral-500">
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-cobalt-50 px-3 py-0.5 text-xs font-semibold uppercase tracking-wider text-cobalt-700">
           Projection sheet
         </div>
-        <h1 className="mt-1 text-[22px] font-semibold leading-snug text-neutral-900 md:text-[28px]">
+        <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
           How six people answer the same questions
         </h1>
         <p
           data-testid="projection-anonymised-note"
-          className="mt-2 text-lg text-neutral-600"
+          className="mt-2 text-base leading-relaxed text-neutral-600"
         >
           Anonymised. No names. Order is not meaningful.
         </p>
@@ -58,21 +58,21 @@ export default function ProjectionSheet({
           <li
             key={question.questionId}
             data-testid={`projection-question-${question.questionId}`}
-            className="border-b border-neutral-200 pb-8 last:border-b-0"
+            className="rounded-2xl border border-neutral-200/80 bg-white p-6 shadow-card sm:p-8"
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-100 pb-4">
               <div className="min-w-0">
-                <div className="text-sm uppercase tracking-wide text-neutral-500">
+                <div className="text-xs font-bold uppercase tracking-wider text-cobalt-600">
                   Q{question.questionId.replace("q", "")} · {question.section}
                 </div>
-                <h2 className="mt-1 text-[20px] leading-snug font-semibold text-neutral-900 md:text-[26px]">
+                <h2 className="mt-1 text-xl font-bold leading-snug text-neutral-900 sm:text-2xl">
                   {question.text}
                 </h2>
               </div>
               {question.badge !== null ? (
                 <span
                   data-testid="projection-badge"
-                  className={`inline-flex shrink-0 items-center rounded-full px-3 py-1.5 text-base font-semibold ${BADGE_STYLE[question.badge.category]}`}
+                  className={`inline-flex shrink-0 items-center rounded-full px-3.5 py-1 text-xs font-bold uppercase tracking-wider ${BADGE_STYLE[question.badge.category]}`}
                 >
                   {question.badge.label}
                 </span>
@@ -80,30 +80,30 @@ export default function ProjectionSheet({
             </div>
 
             {question.answers.length === 0 ? (
-              <p className="mt-4 text-lg text-neutral-500">
+              <p className="mt-6 text-base text-neutral-500 italic">
                 No one has answered this question yet.
               </p>
             ) : (
               <ul
                 data-testid={`projection-answers-${question.questionId}`}
-                className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
               >
                 {question.answers.map((answer, i) => (
                   <li
                     key={i}
                     data-testid="projection-card"
-                    className="flex break-inside-avoid flex-col rounded-lg border border-neutral-300 bg-white p-4"
+                    className="flex break-inside-avoid flex-col justify-between rounded-xl border border-neutral-200/80 bg-neutral-50/60 p-4 shadow-subtle"
                   >
                     <p
                       data-testid="projection-answer-text"
-                      className="whitespace-pre-line text-[17px] leading-relaxed text-neutral-900"
+                      className="whitespace-pre-line text-sm leading-relaxed text-neutral-900"
                     >
                       {answer.text}
                     </p>
                     {answer.confidence !== null ? (
                       <div
                         data-testid="projection-confidence"
-                        className="mt-3 border-t border-neutral-200 pt-2 text-base text-neutral-500"
+                        className="mt-3 border-t border-neutral-200/60 pt-2 text-xs font-semibold text-neutral-400"
                       >
                         Confidence {answer.confidence}
                       </div>

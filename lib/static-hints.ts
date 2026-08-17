@@ -47,7 +47,7 @@ export type ValidatedQuestionId = (typeof VALIDATED_QUESTION_IDS)[number];
 export const STATIC_HINTS: Record<ValidatedQuestionId, StaticHint> = {
   q1: {
     hint:
-      "Provide more detail here — a few sentences showing why this matters to you. There is room for the full picture.",
+      "Say more here — a few sentences showing why this matters to you. There's room for the full picture.",
   },
   q3: {
     hint:

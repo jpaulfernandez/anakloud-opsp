@@ -74,46 +74,48 @@ export function LongTextInput({
   }
 
   return (
-    <div>
+    <div className="space-y-4">
       <textarea
         ref={textareaRef}
         value={text}
         onChange={(e) => handleTextChange(e.target.value)}
         rows={6}
         style={{ lineHeight: 1.6, minHeight: "9.6em" }}
-        className="w-full resize-y overflow-hidden rounded-md border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-400"
+        className="w-full resize-y overflow-hidden rounded-2xl border border-neutral-300 bg-white p-4 text-base text-neutral-900 shadow-sm transition-all focus:border-cobalt-600 focus:outline-none focus:ring-2 focus:ring-cobalt-500/20"
         aria-label={isQ13 ? "Your explanation" : "Your answer"}
       />
 
       {minChars !== undefined && (
-        <p
-          data-testid="long-text-counter"
-          className="mt-2 text-sm tabular-nums text-neutral-500"
-        >
-          {charCountLabel(text.length, minChars)}
-        </p>
+        <div className="flex justify-end">
+          <p
+            data-testid="long-text-counter"
+            className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold tabular-nums text-neutral-600"
+          >
+            {charCountLabel(text.length, minChars)}
+          </p>
+        </div>
       )}
 
       {isQ13 && (
-        <fieldset data-testid="q13-cause" className="mt-5">
-          <legend className="text-base font-medium text-neutral-700">
+        <fieldset data-testid="q13-cause" className="mt-6 space-y-3 rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-card">
+          <legend className="text-sm font-bold uppercase tracking-wider text-neutral-600">
             Most likely cause
           </legend>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {Q13_CAUSES.map((option) => (
+          <div className="flex flex-col gap-2.5">
+            {Q13_CAUSES.map((c) => (
               <label
-                key={option}
-                className="flex min-h-11 items-center gap-2 rounded-md px-1 py-1 text-neutral-700"
+                key={c}
+                className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-xl border border-neutral-200 p-3.5 text-sm font-medium text-neutral-800 transition-all hover:border-cobalt-300 hover:bg-cobalt-50/30 has-checked:border-cobalt-600 has-checked:bg-cobalt-50/50 has-checked:text-cobalt-950"
               >
                 <input
                   type="radio"
                   name="q13-cause"
-                  value={option}
-                  checked={cause === option}
-                  onChange={() => handleCauseSelect(option)}
-                  className="mt-0.5 h-5 w-5 shrink-0"
+                  value={c}
+                  checked={cause === c}
+                  onChange={() => handleCauseSelect(c)}
+                  className="h-4 w-4 text-cobalt-600 focus:ring-cobalt-500 accent-cobalt-600"
                 />
-                <span className="min-h-5 text-sm leading-5">{option}</span>
+                <span>{c}</span>
               </label>
             ))}
           </div>

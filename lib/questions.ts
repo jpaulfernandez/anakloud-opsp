@@ -56,7 +56,7 @@ export const FR10_INPUT_TYPES: readonly QuestionInputType[] = [
 // Stable vocabularies behind the §3.1 value shapes. These are the same ids the
 // seed fixture and F03 control components key on; question_id values never
 // change, and neither do these.
-export const APP_IDS = ["pedconnect", "teachday", "parentup", "fourth_app"] as const;
+export const APP_IDS = ["pedconnect", "pedmd", "parentup", "teachday"] as const;
 export type AppId = (typeof APP_IDS)[number];
 
 /**
@@ -331,7 +331,7 @@ export interface Q8Value {
 }
 export interface Q9Value { items: [string, string, string] }
 export interface Q10Value {
-  payer: string;
+  payer: string | string[];
   model: string;
   amount: number;
   unit: string;
