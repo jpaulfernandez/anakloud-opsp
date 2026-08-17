@@ -11,14 +11,14 @@
 - The system SHALL be a Next.js App Router application written in TypeScript with `strict: true`.
 - The system SHALL expose `npm run typecheck`, `npm run lint`, `npm run test`, and a Playwright E2E suite, so that `./verify.sh` runs unmodified.
 - The system SHALL style with Tailwind, configured with a print variant available (F08 depends on it).
-- WHEN the application boots, the system SHALL read configuration from `DATABASE_URL`, `ANTHROPIC_API_KEY`, `AI_MODEL`, `AI_LEVEL_PIN`, `SESSION_SECRET`, and `RESEND_API_KEY`.
-- IF `ANTHROPIC_API_KEY` is absent, THEN the system SHALL boot normally and SHALL NOT log an error at any level above `debug`.
+- WHEN the application boots, the system SHALL read configuration from `DATABASE_URL`, `ANTHROPIC_API_KEY` (historical; renamed to `GEMINI_API_KEY` by F16-T03), `AI_MODEL`, `AI_LEVEL_PIN`, `SESSION_SECRET`, and `RESEND_API_KEY`.
+- IF `ANTHROPIC_API_KEY` (historical; renamed to `GEMINI_API_KEY` by F16-T03) is absent, THEN the system SHALL boot normally and SHALL NOT log an error at any level above `debug`.
 - The system SHALL NOT include a drag-and-drop library, a state-management library, a queue, Redis, or a vector DB in its dependency tree.
 
 ### Acceptance
 
 - [ ] `./verify.sh` exits 0 on a fresh clone with an empty database
-- [ ] Booting with `ANTHROPIC_API_KEY` unset produces no error output
+- [ ] Booting with `ANTHROPIC_API_KEY` (historical; renamed to `GEMINI_API_KEY` by F16-T03) unset produces no error output
 - [ ] `package.json` dependency list reviewed against the "deliberately excluded" list in `tech_infrastructure.md` §1
 
 ---

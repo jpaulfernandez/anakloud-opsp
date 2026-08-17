@@ -5,6 +5,7 @@ import { withRespondentContext } from "@/lib/access";
 import { isQuestionId } from "@/lib/answer-shape";
 import type { QuestionId } from "@/lib/questions";
 import { loadCoachRequest } from "@/lib/coach-request";
+import { aiApiKey } from "@/lib/config";
 import { anthropicProvider } from "@/lib/ai-gateway";
 import {
   buildCoachGatewayContext,
@@ -78,7 +79,7 @@ export async function POST(request: Request): Promise<Response> {
       );
 
       const model = process.env.AI_MODEL ?? "";
-      const provider = anthropicProvider(process.env.ANTHROPIC_API_KEY ?? "");
+      const provider = anthropicProvider(aiApiKey());
       return NextResponse.json(await serveCoach(req, ctx, provider, model));
     } finally {
       await db.end();

@@ -6,7 +6,7 @@ import { createSessionToken, SESSION_COOKIE } from "../../lib/session";
 
 // F11-T02 — the T2 key-removal end-to-end test (the P1 gate).
 //
-// This is PR3's real test: delete ANTHROPIC_API_KEY from the environment and
+// This is PR3's real test: delete GEMINI_API_KEY from the environment and
 // drive a genuine respondent through the whole product — claim an invite,
 // enter a name, accept the ground rules, answer all fifteen questions in the
 // browser, review, submit through the actual UI button, view the OPSP, export
@@ -21,7 +21,7 @@ import { createSessionToken, SESSION_COOKIE } from "../../lib/session";
 // other DB-gated e2e specs, it SKIPS unless DATABASE_URL and SESSION_SECRET
 // are present. Run it with the key removed:
 //
-//   env -u ANTHROPIC_API_KEY npx playwright test --reporter=line
+//   env -u GEMINI_API_KEY npx playwright test --reporter=line
 
 const enabled =
   process.env.DATABASE_URL !== undefined && process.env.SESSION_SECRET !== undefined;

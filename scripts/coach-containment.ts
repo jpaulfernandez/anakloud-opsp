@@ -11,7 +11,7 @@
 //
 //   npm run test:coach-containment
 //
-// It requires ANTHROPIC_API_KEY and AI_MODEL to be set and drives L0 directly
+// It requires GEMINI_API_KEY and AI_MODEL to be set and drives L0 directly
 // (it ignores AI_LEVEL_PIN — the whole point is that the healthy-level output
 // is what must stay contained). It uses the spec'd §5.2 system prompt and §5.3
 // structured output, and applies the same containment module the offline unit
@@ -85,10 +85,10 @@ async function callCoach(
 }
 
 async function main(): Promise<void> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   const model = process.env.AI_MODEL;
   if (!apiKey) {
-    console.error("ANTHROPIC_API_KEY is not set. T1 live run refuses to start.");
+    console.error("GEMINI_API_KEY is not set. T1 live run refuses to start.");
     process.exit(2);
   }
   if (!model) {

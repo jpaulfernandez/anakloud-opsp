@@ -9,7 +9,7 @@ import { isQuestionId } from "@/lib/answer-shape";
 // This is the product's always-on core: it is pure local computation with no
 // database and no AI of any kind. Its only imports are the pure validator
 // modules, so it works identically at every degradation level including L3 and
-// with ANTHROPIC_API_KEY absent entirely — there is no code path from here to
+// with GEMINI_API_KEY absent entirely — there is no code path from here to
 // any provider call, by construction.
 //
 // Unlike the other API routes, no session is required. The endpoint touches no

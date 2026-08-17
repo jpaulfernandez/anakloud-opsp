@@ -6,7 +6,7 @@ import { bootDebug } from "./log";
 
 export const CONFIG_ENV_NAMES = [
   "DATABASE_URL",
-  "ANTHROPIC_API_KEY",
+  "GEMINI_API_KEY",
   "AI_MODEL",
   "AI_LEVEL_PIN",
   "SESSION_SECRET",
@@ -16,10 +16,12 @@ export const CONFIG_ENV_NAMES = [
 export type ConfigEnvName = (typeof CONFIG_ENV_NAMES)[number];
 
 /**
- * The AI-key environment variables in use during the migration.
- * `GEMINI_API_KEY` is the incoming credential; `ANTHROPIC_API_KEY` is the
- * legacy one that stays scanned until the rename (F16-T03) completes. Every
- * name here must also be a client-bundle scan target: a green guard that scans
+ * The AI-key environment variables the application is aware of during the
+ * migration (F16-T02/T03). `GEMINI_API_KEY` is the active credential and the
+ * only one ever consulted for a provider lookup; `ANTHROPIC_API_KEY` is the
+ * legacy name, kept here only so the client-bundle leak scan still catches a
+ * stale reference while a provider is wired to the old variable. Every name
+ * here must also be a client-bundle scan target: a green guard that scans
  * fewer names than the server reads proves nothing (F16-T02, spec.md §8).
  */
 export const AI_KEY_ENV_NAMES = [
@@ -32,7 +34,7 @@ export const AI_KEY_ENV_NAMES = [
  * are always present; the others are optional.
  */
 export const OPTIONAL_CONFIG_ENV: ReadonlySet<ConfigEnvName> = new Set([
-  "ANTHROPIC_API_KEY",
+  "GEMINI_API_KEY",
   "AI_LEVEL_PIN",
   "RESEND_API_KEY",
 ]);
@@ -165,21 +167,34 @@ export interface BootConfig {
   aiLevel: ResolvedLevel;
 }
 
+/**
+ * The active AI provider credential (F16-T03). Only `GEMINI_API_KEY` is ever
+ * consulted for a provider lookup: when both it and the legacy
+ * `ANTHROPIC_API_KEY` are set during the migration the Gemini value wins, and
+ * when `GEMINI_API_KEY` is absent the system runs deterministic-only rather
+ * than silently preferring the stale variable (F16-T03 "SHALL NOT silently
+ * prefer the old credential"). Returning the empty string is what the provider
+ * boundary already treats as "no key", so the gateway degrades normally.
+ */
+export function aiApiKey(): string {
+  return process.env.GEMINI_API_KEY ?? "";
+}
+
 export function loadConfig(): BootConfig {
   const values = {
     DATABASE_URL: process.env.DATABASE_URL,
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     AI_MODEL: process.env.AI_MODEL,
     AI_LEVEL_PIN: process.env.AI_LEVEL_PIN,
     SESSION_SECRET: process.env.SESSION_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
   } as const;
 
-  if (values.ANTHROPIC_API_KEY === undefined) {
+  if (values.GEMINI_API_KEY === undefined) {
     // An unset key is the normal degraded state (PR3), not an error: the whole
     // product must run deterministic-only. Nothing above debug may surface it;
     // every log sink is behind lib/log.ts (F11-T06).
-    bootDebug("[config] ANTHROPIC_API_KEY is not set; running deterministic-only.");
+    bootDebug("[config] GEMINI_API_KEY is not set; running deterministic-only.");
   }
 
   const env = resolveAppEnvironment(

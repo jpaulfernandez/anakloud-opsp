@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 96
+**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 97
 
 ---
 
@@ -57,7 +57,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F13 | AI coach | P2 | Done | 2026-08-17 | 2026-08-17 | |
 | F14 | Facilitator analysis | P3 | Done | 2026-08-17 | 2026-08-17 | |
 | F15 | Official OPSP canvas | P4 | Done | 2026-08-17 | 2026-08-17 | |
-| F16 | Gemini configuration guardrails | M | In progress | 2026-08-17 | | M09–M11; do before the provider migration |
+| F16 | Gemini configuration guardrails | M | Done | 2026-08-17 | 2026-08-17 | M09–M11; do before the provider migration |
 | F17 | Neon runtime | M | Not started | | | M01–M03 |
 | F18 | Gemini provider | M | Not started | | | M06–M08; may proceed alongside F17 after F16 |
 | F19 | Neon environments | M | Not started | | | M04–M05; follows F17 |
@@ -242,7 +242,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 |---|---|---|---|
 | F16-T01 | Reject moving Gemini model aliases | Done | M09 |
 | F16-T02 | Retarget the client-bundle key guard | Done | M10 | Scans GEMINI + legacy ANTHROPIC names and values |
-| F16-T03 | Rename the provider credential | Not started | M11; retargets the T2 gate |
+| F16-T03 | Rename the provider credential | Done | M11; retargets the T2 gate |
 
 ## F17 — Neon runtime
 

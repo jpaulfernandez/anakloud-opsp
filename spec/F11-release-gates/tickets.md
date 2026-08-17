@@ -16,7 +16,7 @@
 ### Acceptance
 
 - [ ] `./verify.sh` exits non-zero if any step fails, and stops at the first failure
-- [ ] The script passes with `ANTHROPIC_API_KEY` unset
+- [ ] The script passes with `GEMINI_API_KEY` unset
 - [ ] File mode is executable in version control
 
 ---
@@ -27,7 +27,7 @@
 
 ### Requirements
 
-- The system SHALL provide an E2E run executed with `ANTHROPIC_API_KEY` entirely absent from the environment.
+- The system SHALL provide an E2E run executed with the active AI credential (`GEMINI_API_KEY`, renamed from `ANTHROPIC_API_KEY` by F16-T03) entirely absent from the environment.
 - That run SHALL cover: claim an invite, answer all fifteen questions, submit, view the OPSP, export a PDF, open the admin comparison, and download the CSV.
 - Every one of those steps SHALL pass.
 - IF any step depends on the AI provider, THEN the test SHALL fail, and the dependency SHALL be treated as a defect rather than an accepted limitation.

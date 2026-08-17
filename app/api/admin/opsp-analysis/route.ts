@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createDbClient } from "@/lib/db";
 import { requireAdminSession } from "@/lib/auth";
+import { aiApiKey } from "@/lib/config";
 import { anthropicProvider } from "@/lib/ai-gateway";
 import { buildAnalysisGatewayContext } from "@/lib/analyse-endpoint";
 import {
@@ -79,7 +80,7 @@ export async function POST(request: Request): Promise<Response> {
       null,
     );
     const model = process.env.AI_MODEL ?? "";
-    const provider = anthropicProvider(process.env.ANTHROPIC_API_KEY ?? "");
+    const provider = anthropicProvider(aiApiKey());
     const ownerLabel = "A";
 
     // F14-T02's L1 contract: a transient degradation queues the read and it
@@ -101,7 +102,7 @@ export async function POST(request: Request): Promise<Response> {
         const attempt = await runOpspAnalysisAttempt(
           ctx,
           workerGateway,
-          anthropicProvider(process.env.ANTHROPIC_API_KEY ?? ""),
+          anthropicProvider(aiApiKey()),
           model,
         );
         if (attempt.served === "L0" && attempt.analysis !== null) {

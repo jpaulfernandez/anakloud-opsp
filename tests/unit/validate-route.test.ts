@@ -6,7 +6,7 @@ import { STATIC_HINTS } from "../../lib/static-hints";
 
 // The validation endpoint (F05-T03). The acceptances that matter here:
 //   - no code path from /api/validate reaches the AI gateway module;
-//   - it responds correctly with ANTHROPIC_API_KEY removed from the
+//   - it responds correctly with GEMINI_API_KEY removed from the
 //     environment;
 //   - it is available without a session, a database or any config — the
 //     request path is local computation only, so there is no setup to skip on.
@@ -78,9 +78,9 @@ describe("POST /api/validate — verdict for one answer", () => {
     expect(status).toBe(400);
   });
 
-  it("works with ANTHROPIC_API_KEY removed from the environment", async () => {
-    const saved = process.env.ANTHROPIC_API_KEY;
-    process.env.ANTHROPIC_API_KEY = undefined;
+  it("works with GEMINI_API_KEY removed from the environment", async () => {
+    const saved = process.env.GEMINI_API_KEY;
+    process.env.GEMINI_API_KEY = undefined;
     try {
       const okRes = await result({ question_id: "q3", value: { metric: "x", value: 1, unit: "y", why: "" } });
       expect(okRes.status).toBe(200);
@@ -90,8 +90,8 @@ describe("POST /api/validate — verdict for one answer", () => {
       expect(failRes.status).toBe(200);
       expect(failRes.json.ok).toBe(false);
     } finally {
-      if (saved === undefined) delete process.env.ANTHROPIC_API_KEY;
-      else process.env.ANTHROPIC_API_KEY = saved;
+      if (saved === undefined) delete process.env.GEMINI_API_KEY;
+      else process.env.GEMINI_API_KEY = saved;
     }
   });
 

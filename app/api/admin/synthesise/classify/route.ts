@@ -3,6 +3,7 @@ import { createDbClient } from "@/lib/db";
 import { requireAdminSession } from "@/lib/auth";
 import { rejectIfCohortReadOnly } from "@/lib/lock";
 import { withRespondentContext } from "@/lib/access";
+import { aiApiKey } from "@/lib/config";
 import { anthropicProvider } from "@/lib/ai-gateway";
 import { buildAnalysisGatewayContext } from "@/lib/analyse-endpoint";
 import {
@@ -109,7 +110,7 @@ export async function POST(request: Request): Promise<Response> {
       "synthesis",
     );
     const model = process.env.AI_MODEL ?? "";
-    const provider = anthropicProvider(process.env.ANTHROPIC_API_KEY ?? "");
+    const provider = anthropicProvider(aiApiKey());
 
     // Classification is a distinct, separate call from synthesis (F15-T03): it
     // goes through the gateway once and records one ai_interactions row; the

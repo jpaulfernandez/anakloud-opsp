@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 // construction (tech_infrastructure.md §4). Unlike the DB-backed specs it does
 // not skip, precisely because "always available" is the point: this must work
 // in the barest environment, including the default verify run with no
-// DATABASE_URL and no ANTHROPIC_API_KEY.
+// DATABASE_URL and no GEMINI_API_KEY.
 
 test("returns an ok verdict for a passing answer", async ({ request }) => {
   const res = await request.post("/api/validate", {

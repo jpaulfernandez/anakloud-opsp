@@ -41,7 +41,7 @@
 
 ### Acceptance
 
-- [ ] Generation succeeds with `ANTHROPIC_API_KEY` absent
+- [ ] Generation succeeds with `ANTHROPIC_API_KEY` (historical; renamed to `GEMINI_API_KEY` by F16-T03) absent
 - [ ] Golden-file test over the seeded six produces stable output across runs
 - [ ] A test asserts all sixteen cells exist and no seventeenth
 - [ ] BHAG, Brand Promise, Profit per X and 1-Year Critical Number default to pencil even at high confidence

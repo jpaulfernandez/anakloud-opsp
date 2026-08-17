@@ -65,7 +65,7 @@
 - The system SHALL expose `POST /api/validate` returning a `Verdict` for one answer.
 - `/api/validate` SHALL NOT call any AI provider under any configuration.
 - `/api/validate` SHALL remain available at every degradation level including L3.
-- The system SHALL respond without any dependency on `ANTHROPIC_API_KEY` being set.
+- The system SHALL respond without any dependency on `ANTHROPIC_API_KEY` (historical; renamed to `GEMINI_API_KEY` by F16-T03) being set.
 
 ### Acceptance
 

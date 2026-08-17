@@ -6,7 +6,7 @@
 
 **The coach's full behaviour, minus the model.** This is the most important sequencing decision in the plan and it comes straight from `tech_infrastructure.md` §12: build the fallback first, so the model is genuinely optional rather than nominally optional.
 
-If this feature is built well, removing `ANTHROPIC_API_KEY` costs the product a small amount of hint quality and nothing else. If it is skipped or stubbed, PR3 ("no AI on the critical path") will not survive contact with the deadline, because by the time anyone notices, the AI will be load-bearing.
+If this feature is built well, removing `ANTHROPIC_API_KEY` (historical; renamed to `GEMINI_API_KEY` by F16-T03) costs the product a small amount of hint quality and nothing else. If it is skipped or stubbed, PR3 ("no AI on the critical path") will not survive contact with the deadline, because by the time anyone notices, the AI will be load-bearing.
 
 The nudge state machine, the three actions, the attempt ceiling, the interaction log — all of it lives here, at L2, with no network calls. F13 later swaps the hint *source*, not the flow.
 

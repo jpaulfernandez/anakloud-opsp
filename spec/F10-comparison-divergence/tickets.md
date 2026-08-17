@@ -18,7 +18,7 @@
 
 ### Acceptance
 
-- [ ] All closed questions classify with `ANTHROPIC_API_KEY` removed
+- [ ] All closed questions classify with `ANTHROPIC_API_KEY` (historical; renamed to `GEMINI_API_KEY` by F16-T03) removed
 - [ ] Seeded conflicting data yields at least one of each classification
 - [ ] Changing a threshold in config changes the classification without a code change
 - [ ] Unit tests cover the boundary between soft and hard split

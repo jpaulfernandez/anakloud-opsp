@@ -150,9 +150,9 @@ describe("F11-T06: structured AI log entries", () => {
 
 describe("F11-T06: captured logs across the main flows", () => {
   it("a seeded answer string and every credential value stay out of the logs", () => {
-    const restoreKey = rememberEnv("ANTHROPIC_API_KEY");
+    const restoreKey = rememberEnv("GEMINI_API_KEY");
     const restoreSecret = rememberEnv("SESSION_SECRET");
-    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.GEMINI_API_KEY;
     process.env.SESSION_SECRET = "log-redaction-test-secret";
 
     const lines: string[] = [];

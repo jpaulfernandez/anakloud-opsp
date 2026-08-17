@@ -9,7 +9,7 @@ Three tests that are specific to this product's actual risks, plus the harness t
 | | Test | Gates |
 |---|---|---|
 | **T1** | Coach containment — 30 fixture answers, zero banned terms, zero digits, ≤25 words | P2 release |
-| **T2** | Key removal — full E2E with `ANTHROPIC_API_KEY` deleted from the environment | **P1 release** |
+| **T2** | Key removal — full E2E with the active key (`GEMINI_API_KEY`, renamed from `ANTHROPIC_API_KEY` by F16-T03) deleted from the environment | **P1 release** |
 | **T3** | Lock integrity — property test, every mutation path returns 409 after submit | P1 release |
 
 T2 is the gate that matters most and is the cheapest to run: it is a one-line environment change. It is the real test of PR3, because a system where the AI is "optional" in principle and load-bearing in practice will pass every other test in the suite.

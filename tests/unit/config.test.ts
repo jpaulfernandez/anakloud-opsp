@@ -3,6 +3,7 @@ import {
   AI_MODEL_ALIAS_PATTERN,
   APP_ENV_VAR,
   CONFIG_ENV_NAMES,
+  aiApiKey,
   effectiveAiLevel,
   isModelAlias,
   loadConfig,
@@ -11,7 +12,8 @@ import {
 } from "../../lib/config";
 import type { AppEnvironment, ResolvedLevel } from "../../lib/config";
 
-const KEY = "ANTHROPIC_API_KEY";
+const KEY = "GEMINI_API_KEY";
+const LEGACY_KEY = "ANTHROPIC_API_KEY";
 
 function remember(key: string): () => void {
   const had = Object.prototype.hasOwnProperty.call(process.env, key);
@@ -56,7 +58,7 @@ describe("loadConfig", () => {
   });
 });
 
-describe("boot with ANTHROPIC_API_KEY unset", () => {
+describe("boot with GEMINI_API_KEY unset", () => {
   it("logs nothing at error, warn or info level, and only reports at debug", () => {
     const restoreKey = remember(KEY);
     delete process.env[KEY];
@@ -86,11 +88,52 @@ describe("boot with ANTHROPIC_API_KEY unset", () => {
 
     try {
       const config = loadConfig();
-      expect(config.values.ANTHROPIC_API_KEY).toBe("dummy-key");
+      expect(config.values.GEMINI_API_KEY).toBe("dummy-key");
       expect(error).not.toHaveBeenCalled();
       expect(warn).not.toHaveBeenCalled();
     } finally {
       restoreKey();
+    }
+  });
+});
+
+describe("AI credential selection (F16-T03)", () => {
+  it("selects GEMINI_API_KEY when both it and the legacy key are set", () => {
+    const restoreGem = remember(KEY);
+    const restoreLegacy = remember(LEGACY_KEY);
+    process.env[KEY] = "sk-gemini-active-secret";
+    process.env[LEGACY_KEY] = "sk-anthropic-stale-secret";
+    try {
+      expect(aiApiKey()).toBe("sk-gemini-active-secret");
+    } finally {
+      restoreGem();
+      restoreLegacy();
+    }
+  });
+
+  it("does not silently fall back to the legacy key when only it is set", () => {
+    const restoreGem = remember(KEY);
+    const restoreLegacy = remember(LEGACY_KEY);
+    delete process.env[KEY];
+    process.env[LEGACY_KEY] = "sk-anthropic-stale-secret";
+    try {
+      expect(aiApiKey()).toBe("");
+    } finally {
+      restoreGem();
+      restoreLegacy();
+    }
+  });
+
+  it("returns the empty string when no AI key is set", () => {
+    const restoreGem = remember(KEY);
+    const restoreLegacy = remember(LEGACY_KEY);
+    delete process.env[KEY];
+    delete process.env[LEGACY_KEY];
+    try {
+      expect(aiApiKey()).toBe("");
+    } finally {
+      restoreGem();
+      restoreLegacy();
     }
   });
 });

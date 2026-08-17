@@ -369,7 +369,9 @@ Beyond ordinary unit and E2E coverage, three tests specific to this product's ri
 30 fixture answers spanning all coachable questions, including deliberately vague ones. Run each through the live coach at L0. Assert: zero banned terms in any hint or example, zero digits in any hint, no hint over 25 words. Run this on every prompt change. This is acceptance criterion #8 in `spec.md` §10.
 
 **T2 — Key-removal test (blocks P1 release).**
-Remove `ANTHROPIC_API_KEY` from the environment entirely. Run the full E2E suite: invite → answer all 15 → submit → OPSP → PDF → admin comparison → CSV. Everything must pass. This is the real test of principle PR3, and it is a one-line change to run.
+Remove `GEMINI_API_KEY` from the environment entirely. Run the full E2E suite: invite → answer all 15 → submit → OPSP → PDF → admin comparison → CSV. Everything must pass. This is the real test of principle PR3, and it is a one-line change to run.
+
+_Migration note (2026-08-17, F16-T03):_ the active credential is `GEMINI_API_KEY`. The former `ANTHROPIC_API_KEY` is historical; the T2 gate unsets the Gemini name.
 
 **T3 — Lock integrity.**
 After submit, every mutation path against `answers` returns 409. Property-test it rather than checking the happy path — this is what protects the baseline.
@@ -407,12 +409,14 @@ Required env vars:
 
 ```
 DATABASE_URL
-ANTHROPIC_API_KEY        # optional — absence must be non-fatal (T2)
+GEMINI_API_KEY           # optional — absence must be non-fatal (T2)
 AI_MODEL                 # pinned model id, not an alias
 AI_LEVEL_PIN             # optional: L0..L3
 SESSION_SECRET
 RESEND_API_KEY           # optional
 ```
+
+_Migration note (2026-08-17, F16-T03):_ `GEMINI_API_KEY` is the active optional AI credential. The former `ANTHROPIC_API_KEY` is historical and is no longer read for a provider lookup; it is retained only as a client-bundle leak-scan target during the migration.
 
 Pin the model id explicitly. A silent model change alters coach behaviour mid-cohort and invalidates the contamination audit.
 

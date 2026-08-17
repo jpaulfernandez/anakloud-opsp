@@ -65,7 +65,7 @@ Anything that leaks one person's thinking into another person's answer destroys 
 It may say an answer isn't measurable. It may never suggest what to measure. The system prompt states this; the output guard enforces it. Treat the guard as the mechanism and the prompt as the request.
 
 **3. No AI on the critical path.**
-Every AI feature has a deterministic sibling that produces a usable result. Removing `ANTHROPIC_API_KEY` must leave every user-facing function working. This is tested (F11-T02) and it gates P1.
+Every AI feature has a deterministic sibling that produces a usable result. Removing `GEMINI_API_KEY` must leave every user-facing function working. This is tested (F11-T02) and it gates P1.
 
 **4. Never block a submission.**
 The coach nudges; it cannot gate. If a code path makes Continue unavailable because of a coach verdict, that is a defect. "Keep it as is" is present on nudge 1 and every nudge after.
@@ -110,7 +110,7 @@ Write plainly. This is a small application for six users; it does not need archi
 - Unit-test the pure functions exhaustively: validators, OPSP mapping, divergence scoring, the output guard.
 - Property-test the lock (F11-T03). Enumerate mutation routes programmatically so a route added next month is covered automatically. Checking the happy path proves nothing — the risk is the route someone adds later.
 - E2E covers the whole journey: claim → 15 answers → submit → OPSP → PDF → admin comparison → CSV.
-- The key-removal run (`ANTHROPIC_API_KEY` absent) is the gate on P1. It is a one-line change to run and it is the only real test of "the AI is optional".
+- The key-removal run (`GEMINI_API_KEY` absent) is the gate on P1. It is a one-line change to run and it is the only real test of "the AI is optional".
 - The live-model containment test (30 fixtures, zero banned terms, zero digits, ≤25 words) is a separate command, not part of `./verify.sh`, because it costs money and can flake on latency. Run it on every prompt change.
 
 ---
@@ -156,7 +156,7 @@ Run the autonomous build loop — see [`LOOP.md`](LOOP.md) first:
 The P1 gate — full E2E with the key removed:
 
 ```bash
-env -u ANTHROPIC_API_KEY npx playwright test --reporter=line
+env -u GEMINI_API_KEY npx playwright test --reporter=line
 ```
 
 The P2 gate — T1 coach containment at L0 (30 fixtures, live model). Separate command by design, so it needs a key and costs money — run it on every prompt or static-hint change:
@@ -173,7 +173,7 @@ Its offline half (the same §5.4 assertions over `lib/static-hints.ts`, plus the
 
 ```
 DATABASE_URL
-ANTHROPIC_API_KEY        # optional - absence must be non-fatal
+GEMINI_API_KEY           # optional - absence must be non-fatal
 AI_MODEL                 # pinned model id, never an alias
 AI_LEVEL_PIN             # optional: L0..L3
 SESSION_SECRET
