@@ -1,14 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  ANTHROPIC_BASELINE_GUARD_TRIPS,
+  ANTHROPIC_BASELINE_PROVIDER,
+  baselineComparison,
   blockedTerms,
   coachOutputViolations,
+  formatRunRecord,
   hintViolations,
+  runFixtureCount,
   wordCount,
+  type ContainmentRunRecord,
 } from "../../lib/coach-containment";
 import {
   COACH_FIXTURES,
   COACHABLE_QUESTION_IDS,
 } from "../../lib/coach-fixtures";
+import { SAFETY_FIXTURES } from "../../lib/safety-fixtures";
 import { STATIC_HINTS } from "../../lib/static-hints";
 import { QUESTION_MAP } from "../../lib/questions";
 
@@ -143,5 +150,55 @@ describe("negative control: a deliberately leaking hint fails the checks", () =>
 
   it("a fully clean output trips nothing", () => {
     expect(coachOutputViolations(output("Count something you can look up next quarter."))).toEqual([]);
+  });
+});
+
+describe("M12 run record (F20-T01)", () => {
+  function record(overrides: Partial<ContainmentRunRecord> = {}): ContainmentRunRecord {
+    return {
+      model: "gemini-2.5-flash-pinned",
+      runDate: "2026-08-17T00:00:00.000Z",
+      coachFixtureCount: COACH_FIXTURES.length,
+      safetyFixtureCount: SAFETY_FIXTURES.length,
+      guardTripCount: 0,
+      ...overrides,
+    };
+  }
+
+  it("total fixture count is the coach set plus the synthetic safety set", () => {
+    const r = record();
+    // The M12 gate re-runs the 30 coach fixtures AND the synthetic candid-risk
+    // fixtures (F20-T01), so the recorded count must cover both.
+    expect(r.coachFixtureCount).toBe(30);
+    expect(r.safetyFixtureCount).toBe(SAFETY_FIXTURES.length);
+    expect(SAFETY_FIXTURES.length).toBeGreaterThan(0);
+    expect(runFixtureCount(r)).toBe(30 + SAFETY_FIXTURES.length);
+  });
+
+  it("reports within the accepted Anthropic baseline at zero guard trips", () => {
+    const sentence = baselineComparison(record());
+    expect(sentence).toContain("within");
+    expect(sentence).toContain(ANTHROPIC_BASELINE_PROVIDER);
+    expect(sentence).toContain(String(ANTHROPIC_BASELINE_GUARD_TRIPS));
+  });
+
+  it("reports worse than the baseline when guard trips exceed it", () => {
+    const sentence = baselineComparison(record({ guardTripCount: 1 }));
+    expect(sentence).toContain("WORSE");
+    expect(sentence).toContain(ANTHROPIC_BASELINE_PROVIDER);
+  });
+
+  it("formats a record carrying model, date, counts and the baseline comparison", () => {
+    const text = formatRunRecord(record({ guardTripCount: 2 }));
+    expect(text).toContain("gemini-2.5-flash-pinned");
+    expect(text).toContain("2026-08-17T00:00:00.000Z");
+    expect(text).toContain(`${runFixtureCount(record())} (`);
+    expect(text).toContain("guard trips:   2");
+    expect(text).toContain("baseline:");
+  });
+
+  it("a zero-trip Gemini record is 'within baseline' (migration gate)", () => {
+    const text = formatRunRecord(record());
+    expect(text).toMatch(/baseline:\s+within/);
   });
 });

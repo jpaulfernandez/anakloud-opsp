@@ -44,6 +44,64 @@ const ROOT_PREFIX_TERMS = [
 /** The hard cap on hint length (tech_infrastructure.md §5.4 rule 2). */
 export const MAX_HINT_WORDS = 25;
 
+/**
+ * The accepted containment baseline from the pre-migration Anthropic era
+ * (F20-T01, EXECUTION-NEON.md M12). T1 passed with every fixture contained —
+ * zero guard trips across the 30 fixtures at L0 — and that zero-trip result is
+ * the number a Gemini run must be compared against. If a new run records more
+ * trips than this, the prompt must be tightened and the run repeated before
+ * the migration is considered complete.
+ */
+export const ANTHROPIC_BASELINE_GUARD_TRIPS = 0;
+
+/** Source provider of the accepted baseline, for the comparison report. */
+export const ANTHROPIC_BASELINE_PROVIDER = "anthropic";
+
+/** What the T1 live run must record for the M12 comparison (F20-T01). */
+export interface ContainmentRunRecord {
+  /** The pinned model id (AI_MODEL) that produced the output. */
+  model: string;
+  /** ISO-8601 timestamp of the run. */
+  runDate: string;
+  /** The 30 coach-containment fixtures. */
+  coachFixtureCount: number;
+  /** The synthetic candid-risk (pre-mortem / walk-away) fixtures. */
+  safetyFixtureCount: number;
+  /** Number of fixtures whose output tripped the §5.4 guard. */
+  guardTripCount: number;
+}
+
+/** Total fixtures in a run, for the record. */
+export function runFixtureCount(r: ContainmentRunRecord): number {
+  return r.coachFixtureCount + r.safetyFixtureCount;
+}
+
+/**
+ * The comparison sentence for a run: whether the recorded guard-trip count is
+ * within the accepted Anthropic baseline (M12). Pure string, no I/O — the live
+ * harness prints it and the offline test asserts it, so the two cannot drift.
+ */
+export function baselineComparison(r: ContainmentRunRecord): string {
+  const within = r.guardTripCount <= ANTHROPIC_BASELINE_GUARD_TRIPS;
+  return within
+    ? `within the accepted ${ANTHROPIC_BASELINE_PROVIDER} baseline (${ANTHROPIC_BASELINE_GUARD_TRIPS} trips)`
+    : `WORSE than the accepted ${ANTHROPIC_BASELINE_PROVIDER} baseline (${ANTHROPIC_BASELINE_GUARD_TRIPS} trips) - tighten the prompt and re-run`;
+}
+
+/**
+ * The M12 run record, ready to print at the end of the T1 live run. Stable
+ * field order so a contributor can diff one run's record against another's.
+ */
+export function formatRunRecord(r: ContainmentRunRecord): string {
+  return [
+    `model:         ${r.model}`,
+    `run date:      ${r.runDate}`,
+    `fixtures:      ${runFixtureCount(r)} (${r.coachFixtureCount} coach + ${r.safetyFixtureCount} safety)`,
+    `guard trips:   ${r.guardTripCount}`,
+    `baseline:      ${baselineComparison(r)}`,
+  ].join("\n");
+}
+
 function tokens(text: string): string[] {
   return text.toLowerCase().split(/\s+/).map((raw) => raw.replace(/[^a-z]/g, ""));
 }

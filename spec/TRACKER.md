@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 105
+**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 106
 
 ---
 
@@ -61,7 +61,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F17 | Neon runtime | M | Done | 2026-08-17 | 2026-08-17 | M01–M03 |
 | F18 | Gemini provider | M | Done | 2026-08-17 | 2026-08-17 | M06–M08; may proceed alongside F17 after F16 |
 | F19 | Neon environments | M | Done | 2026-08-17 | 2026-08-17 | M04–M05; follows F17 |
-| F20 | Migration release gate | M | Not started | | | M12; final migration gate |
+| F20 | Migration release gate | M | Done | 2026-08-17 | 2026-08-17 | M12; final migration gate |
 
 ---
 
@@ -271,7 +271,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F20-T01 | Re-run the coach containment gate on Gemini | Not started | M12; **migration gate** |
+| F20-T01 | Re-run the coach containment gate on Gemini | Done | M12; **migration gate** |
 
 ## Open blockers
 
