@@ -145,6 +145,25 @@ describe("AI_MODEL alias rejection", () => {
     expect(isModelAlias("gpt-5-20251001")).toBe(false);
   });
 
+  it("rejects a Gemini id ending in a moving suffix (F16-T01)", () => {
+    expect(isModelAlias("gemini-flash-latest")).toBe(true);
+    expect(isModelAlias("gemini-2.5-flash-latest")).toBe(true);
+    expect(isModelAlias("gemini-2.5-pro-preview")).toBe(true);
+    expect(isModelAlias("gemini-2.5-flash-stable")).toBe(true);
+    expect(isModelAlias("gemini-2.5-pro-daily")).toBe(true);
+  });
+
+  it("rejects a bare Gemini family name that carries no version (F16-T01)", () => {
+    expect(isModelAlias("gemini-flash")).toBe(true);
+    expect(isModelAlias("gemini-2.5-flash")).toBe(true);
+    expect(isModelAlias("gemini-2.5-pro")).toBe(true);
+  });
+
+  it("accepts a pinned dated or numbered Gemini identifier (F16-T01)", () => {
+    expect(isModelAlias("gemini-2.5-flash-001")).toBe(false);
+    expect(isModelAlias("gemini-1.5-flash-8b-20250827")).toBe(false);
+  });
+
   it("loadConfig throws when AI_MODEL matches a known alias pattern", () => {
     const restore = remember("AI_MODEL");
     process.env.AI_MODEL = "latest";
@@ -162,6 +181,36 @@ describe("AI_MODEL alias rejection", () => {
       expect(loadConfig().values.AI_MODEL).toBe(
         "claude-4-5-sonnet-20250912",
       );
+    } finally {
+      restore();
+    }
+  });
+
+  it("loadConfig throws for a moving Gemini suffix at boot (F16-T01)", () => {
+    const restore = remember("AI_MODEL");
+    process.env.AI_MODEL = "gemini-2.5-flash-latest";
+    try {
+      expect(() => loadConfig()).toThrow(/AI_MODEL/);
+    } finally {
+      restore();
+    }
+  });
+
+  it("loadConfig throws for a bare Gemini family at boot (F16-T01)", () => {
+    const restore = remember("AI_MODEL");
+    process.env.AI_MODEL = "gemini-2.5-flash";
+    try {
+      expect(() => loadConfig()).toThrow(/AI_MODEL/);
+    } finally {
+      restore();
+    }
+  });
+
+  it("loadConfig accepts a pinned Gemini identifier at boot (F16-T01)", () => {
+    const restore = remember("AI_MODEL");
+    process.env.AI_MODEL = "gemini-2.5-flash-001";
+    try {
+      expect(loadConfig().values.AI_MODEL).toBe("gemini-2.5-flash-001");
     } finally {
       restore();
     }

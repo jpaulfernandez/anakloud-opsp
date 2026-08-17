@@ -48,7 +48,7 @@ AGENT_CMD="opencode run -m anthropic/claude-sonnet-5" ./loop.sh
 The loop hands the agent one ticket ID and nothing else. The agent then:
 
 1. Reads [`AGENTS.md`](AGENTS.md) — the working agreement, the non-negotiables, the code style.
-2. Reads the ticket in `spec/F0n-*/tickets.md` and its feature `README.md`.
+2. Reads the ticket in `spec/Fnn-*/tickets.md` and its feature `README.md`.
 3. Reads whatever source documents the ticket's **Traces** line points at, in `docs/`.
 4. Sets the ticket to `In progress` in `spec/TRACKER.md`.
 5. Implements it, following the EARS requirements literally. Every `SHALL NOT` is a hard constraint.

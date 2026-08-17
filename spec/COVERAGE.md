@@ -92,6 +92,23 @@ All sixteen cells and their default marks are specified in F07-T01. Part B's del
 | T2 — key removal | F11-T02 | **P1** |
 | T3 — lock integrity | F11-T03 | P1 |
 
+## Neon + Gemini migration (`EXECUTION-NEON.md`)
+
+| Source item | Requirement | Ticket |
+|---|---|---|
+| M01 | Pooled request URL and direct migration URL | F17-T01 |
+| M02 | Neon driver behind `lib/db.ts` | F17-T02 |
+| M03 | Connection lifecycle and leak verification | F17-T03 |
+| M04 | Neon branches for preview and E2E | F19-T01 |
+| M05 | Hosted-default and offline-fallback environment docs | F19-T02 |
+| M06 | Gemini provider transport | F18-T01 |
+| M07 | Gemini structured-output schema fidelity | F18-T02 |
+| M08 | Gemini safety-block degradation | F18-T03 |
+| M09 | Gemini model-alias rejection | F16-T01 |
+| M10 | Gemini client-bundle key guard | F16-T02 |
+| M11 | Gemini credential rename and no-key gate | F16-T03 |
+| M12 | Gemini containment rerun | F20-T01 |
+
 ## Acceptance criteria (`spec.md` §10)
 
 | # | Criterion | Tickets |
@@ -148,6 +165,7 @@ Where the docs disagreed, these tickets record the resolution. Do not "fix" them
 | The baseline doc bolds six functions in Q14 as the ones teams never volunteer for | That is facilitator commentary; the respondent UI shows all sixteen with no emphasis | F03-T09 |
 | Baseline doc header says "13 questions" and cites Q11–Q13 as cuttable; body numbers Q1–Q15 and Part D cuts Q15/Q4/Q2/Q9 | Q1–Q15 is authoritative — it matches `spec.md` and `tech_infrastructure.md` | F01-T07 |
 | Baseline doc's opening notes cite "Q5" for app ranking, "Q8/Q9" for rocks and theme | Stale numbering from an earlier draft; ranking is Q8, rocks Q11, theme Q12 | F01-T07 |
+| `EXECUTION-NEON.md` M08 and M12 request Q14(d) safety fixtures, while the privacy contract forbids sending Q14(d) to any AI provider | Use synthetic walk-away-language fixtures that contain no database-derived answer, `q14d` label, identity, respondent ID, or private metadata | F18-T03, F20-T01 |
 
 ## Known gaps in the source docs
 

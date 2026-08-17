@@ -102,8 +102,28 @@ export function resolveAiLevelPin(
 export const AI_MODEL_ALIAS_PATTERN =
   /^(latest|newest|best|fastest|cheapest|big|small|fast|cheap|smartest|default)$/i;
 
+/**
+ * Moving model-id suffixes that are never a pin. Providers publish `-latest`,
+ * `-preview`, `-stable` and `-daily` aliases that silently change behaviour;
+ * a pinned id ends in an explicit version instead.
+ */
+const MOVING_MODEL_SUFFIX_PATTERN = /(latest|preview|stable|daily)$/i;
+
+/**
+ * A Gemini family id carries no version, so `gemini-2.5-flash` is an unpinned
+ * alias even though it is not a whole-string token. A Gemini id is only pinned
+ * when it ends in a numbered (`-001`) or dated (`-20250827`) version.
+ */
+const GEMINI_FAMILY_PATTERN = /^gemini-/i;
+const GEMINI_VERSION_PATTERN = /(-\d{3}|\d{8})$/;
+
 export function isModelAlias(model: string): boolean {
-  return AI_MODEL_ALIAS_PATTERN.test(model);
+  if (AI_MODEL_ALIAS_PATTERN.test(model)) return true;
+  if (MOVING_MODEL_SUFFIX_PATTERN.test(model)) return true;
+  if (GEMINI_FAMILY_PATTERN.test(model) && !GEMINI_VERSION_PATTERN.test(model)) {
+    return true;
+  }
+  return false;
 }
 
 /**

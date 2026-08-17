@@ -4,7 +4,7 @@ Derived from [`spec.md`](../docs/spec.md), [`ui_ux.md`](../docs/ui_ux.md), [`tec
 
 ## How this plan is organised
 
-One folder per feature. Fifteen features, numbered in **build order** — the order is not decorative, it comes from `tech_infrastructure.md` §12 and the phasing in `spec.md` §9. F01→F11 is the whole of P1. Nothing in F12+ may be started before F11 is green.
+One folder per feature. Twenty features, numbered in **build order** — the order is not decorative. F01–F15 come from `tech_infrastructure.md` §12 and the phasing in `spec.md` §9. F16–F20 are the post-P4 Neon and Gemini migration defined in [`EXECUTION-NEON.md`](EXECUTION-NEON.md). F01→F11 is the whole of P1. Nothing in F12+ may be started before F11 is green.
 
 Each folder contains:
 
@@ -34,6 +34,11 @@ Status for every ticket lives in one place: [`TRACKER.md`](TRACKER.md). Do not r
 | [F13](F13-ai-coach/) | AI coach | P2 | F12, F05 |
 | [F14](F14-facilitator-analysis/) | Facilitator analysis & projection | P3 | F12, F10 |
 | [F15](F15-official-opsp-canvas/) | Official OPSP canvas | P4 | F12, F07 |
+| [F16](F16-gemini-configuration-guardrails/) | Gemini configuration guardrails | M | F11, F12 |
+| [F17](F17-neon-runtime/) | Neon runtime | M | F01 |
+| [F18](F18-gemini-provider/) | Gemini provider | M | F16, F12, F13 |
+| [F19](F19-neon-environments/) | Neon environments | M | F17 |
+| [F20](F20-migration-release-gate/) | Migration release gate | M | F16, F18, F19 |
 
 ## EARS conventions used here
 
@@ -51,11 +56,11 @@ Every requirement uses one of these five templates. If a requirement doesn't fit
 
 ## Ticket ID scheme
 
-`F0n-Tnn` — e.g. `F05-T02`. IDs are permanent. If a ticket is dropped, mark it `Dropped` in the tracker; never reuse the number.
+`Fnn-Tnn` — e.g. `F05-T02` or `F18-T03`. IDs are permanent. If a ticket is dropped, mark it `Dropped` in the tracker; never reuse the number.
 
 ## Traceability
 
-Every ticket carries a **Traces** line pointing at the source requirement (`FR-n`, `PR-n`, `T1`–`T3`, or a doc section). Anything in the three source docs that no ticket traces to is either out of scope or a gap — see [`COVERAGE.md`](COVERAGE.md).
+Every ticket carries a **Traces** line pointing at the source requirement (`FR-n`, `PR-n`, `T1`–`T3`, a migration item, or a doc section). Anything in the source documents that no ticket traces to is either out of scope or a gap — see [`COVERAGE.md`](COVERAGE.md).
 
 ## Source document precedence
 

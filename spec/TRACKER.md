@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P4 · **Tickets:** 94 · **Done:** 94
+**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 95
 
 ---
 
@@ -34,6 +34,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | **P2 — Coach** | F12, F13 | F11-T04 (coach containment) green, plus criteria 7–10 |
 | **P3 — Analysis** | F14 | Criteria 11–12 |
 | **P4 — Official OPSP** | F15 | FR-39 conflict guard verified with no override path |
+| **M — Neon + Gemini migration** | F16 – F20 | F20-T01 containment and key-removal gates green |
 
 ---
 
@@ -56,6 +57,11 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F13 | AI coach | P2 | Done | 2026-08-17 | 2026-08-17 | |
 | F14 | Facilitator analysis | P3 | Done | 2026-08-17 | 2026-08-17 | |
 | F15 | Official OPSP canvas | P4 | Done | 2026-08-17 | 2026-08-17 | |
+| F16 | Gemini configuration guardrails | M | In progress | 2026-08-17 | | M09–M11; do before the provider migration |
+| F17 | Neon runtime | M | Not started | | | M01–M03 |
+| F18 | Gemini provider | M | Not started | | | M06–M08; may proceed alongside F17 after F16 |
+| F19 | Neon environments | M | Not started | | | M04–M05; follows F17 |
+| F20 | Migration release gate | M | Not started | | | M12; final migration gate |
 
 ---
 
@@ -229,6 +235,43 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F15-T07 | Versioning and export | Done | |
 
 ---
+
+## F16 — Gemini configuration guardrails
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F16-T01 | Reject moving Gemini model aliases | Done | M09 |
+| F16-T02 | Retarget the client-bundle key guard | Not started | M10 |
+| F16-T03 | Rename the provider credential | Not started | M11; retargets the T2 gate |
+
+## F17 — Neon runtime
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F17-T01 | Separate pooled and direct connections | Not started | M01; migrations require the direct endpoint |
+| F17-T02 | Use the Neon serverless driver behind the database boundary | Not started | M02 |
+| F17-T03 | Guarantee connection release | Not started | M03 |
+
+## F18 — Gemini provider
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F18-T01 | Implement the Gemini provider | Not started | M06 |
+| F18-T02 | Preserve structured-output schema fidelity | Not started | M07 |
+| F18-T03 | Handle Gemini safety blocks | Not started | M08; synthetic private-risk fixtures only |
+
+## F19 — Neon environments
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F19-T01 | Use Neon branches for preview and hosted E2E | Not started | M04 |
+| F19-T02 | Document the migration environment | Not started | M05 |
+
+## F20 — Migration release gate
+
+| ID | Ticket | Status | Notes |
+|---|---|---|---|
+| F20-T01 | Re-run the coach containment gate on Gemini | Not started | M12; **migration gate** |
 
 ## Open blockers
 

@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest",
-    "test:coach-containment": "tsx scripts/coach-containment.ts",
-    "db:seed": "tsx scripts/seed.ts"
+    "test:coach-containment": "tsx --env-file-if-exists=.env.local scripts/coach-containment.ts",
+    "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts"
   },
   "dependencies": {
     "next": "^15.3.4",
