@@ -158,9 +158,14 @@ describe.skipIf(!enabled)("official conflict result state (F15-T05)", () => {
   const CENTRE = "They pay, and if they churn there is no data for the parent to look at anyway.";
   const PARENT = "The parent is the human we are actually here for; everything else is infrastructure.";
 
+  // Chosen by the decision test: the parent position's respondent identity is
+  // held so the recorded decision's provenance can be pinned.
+  const CENTRE_RESPONDENT = randomUUID();
+  const PARENT_RESPONDENT = randomUUID();
+
   const POSITIONS: OfficialSourceCard[] = [
-    { id: "p-centre", respondentId: randomUUID(), respondentName: "Centre Camp", questionId: "q6", text: CENTRE },
-    { id: "p-parent", respondentId: randomUUID(), respondentName: "Parent Camp", questionId: "q6", text: PARENT },
+    { id: "p-centre", respondentId: CENTRE_RESPONDENT, respondentName: "Centre Camp", questionId: "q6", text: CENTRE },
+    { id: "p-parent", respondentId: PARENT_RESPONDENT, respondentName: "Parent Camp", questionId: "q6", text: PARENT },
   ];
 
   beforeAll(async () => {
@@ -238,6 +243,15 @@ describe.skipIf(!enabled)("official conflict result state (F15-T05)", () => {
     expect(cell.value).toBe(PARENT);
     expect(cell.marking).toEqual({ type: "single", mark: "ink" });
     expect(cell.sources).toEqual(["q6"]);
+    // F15-T06 — a decision-resolved cell carries provenance too: the chosen
+    // position's respondent and question are recorded, not left blank.
+    expect(cell.provenance).toEqual([
+      {
+        respondentId: PARENT_RESPONDENT,
+        respondentName: "Parent Camp",
+        questionId: "q6",
+      },
+    ]);
     expect(cell.conflict?.decision).toMatchObject({
       positionId: "p-parent",
       chosenText: PARENT,
@@ -259,6 +273,14 @@ describe.skipIf(!enabled)("official conflict result state (F15-T05)", () => {
     expect(read?.cells.bhag.value).toBe(PARENT);
     expect(read?.cells.bhag.conflict?.decision?.positionId).toBe("p-parent");
     expect(read?.cells.bhag.conflict?.decision?.recorderName).toBe("Facilitator");
+    // F15-T06 — the provenance survives the reload with the cell.
+    expect(read?.cells.bhag.provenance).toEqual([
+      {
+        respondentId: PARENT_RESPONDENT,
+        respondentName: "Parent Camp",
+        questionId: "q6",
+      },
+    ]);
   });
 
   it("refuses to record a second decision once one is already recorded", async () => {

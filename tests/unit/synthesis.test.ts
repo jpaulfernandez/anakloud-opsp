@@ -58,6 +58,7 @@ function cell(cards: OfficialSourceCard[]): OfficialCell {
     sources: [],
     lowConfidence: false,
     sourceCards: cards,
+    provenance: [],
   };
 }
 

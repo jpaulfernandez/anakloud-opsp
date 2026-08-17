@@ -5,6 +5,7 @@ import { OPSP_CELL_IDS } from "../../lib/opsp";
 import {
   buildOfficialCellConflict,
   buildOfficialCellDraft,
+  buildSourceCardProvenance,
   emptyOfficialCells,
   type OfficialSourceCard,
 } from "../../lib/official-opsp";
@@ -97,5 +98,34 @@ describe("F15-T05 conflict result state", () => {
     expect(conflict.positions[0]).not.toBe(cards[0]);
     // No decision until one is recorded.
     expect(conflict.decision).toBeUndefined();
+  });
+});
+
+describe("F15-T06 cell provenance", () => {
+  it("buildSourceCardProvenance records each (respondent, question) once, in attachment order", () => {
+    const cards: OfficialSourceCard[] = [
+      { id: "c1", respondentId: "r-ern", respondentName: "Ern", questionId: "q7", text: "x" },
+      { id: "c2", respondentId: "r-paul", respondentName: "Paul", questionId: "q7", text: "y" },
+      // A second card from the same respondent on the same question dedupes.
+      { id: "c3", respondentId: "r-ern", respondentName: "Ern", questionId: "q7", text: "z" },
+      // The same respondent on a different question is a distinct entry.
+      { id: "c4", respondentId: "r-ern", respondentName: "Ern", questionId: "q10", text: "w" },
+    ];
+    expect(buildSourceCardProvenance(cards)).toEqual([
+      { respondentId: "r-ern", respondentName: "Ern", questionId: "q7" },
+      { respondentId: "r-paul", respondentName: "Paul", questionId: "q7" },
+      { respondentId: "r-ern", respondentName: "Ern", questionId: "q10" },
+    ]);
+  });
+
+  it("builds no provenance from a cell with no source cards", () => {
+    expect(buildSourceCardProvenance([])).toEqual([]);
+  });
+
+  it("a blank official cell carries an empty provenance array", () => {
+    const cells = emptyOfficialCells();
+    for (const id of OPSP_CELL_IDS) {
+      expect(cells[id].provenance).toEqual([]);
+    }
   });
 });

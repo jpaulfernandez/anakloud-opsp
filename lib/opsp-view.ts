@@ -13,6 +13,7 @@
 // the provenance line the ticket requires, with cell content as readable text.
 
 import type { OpspCell, OpspCellId } from "./opsp";
+import type { OfficialCellProvenance } from "./official-opsp";
 import type { DisplayNameResolver } from "./review";
 import { APP_LABELS } from "./ranking";
 import { Q5_COLUMNS, Q5_COLUMN_LABELS, Q5_ROLE_LABELS } from "./matrix-grid";
@@ -56,6 +57,26 @@ function display(labels: Record<string, string>, id: string): string {
 /** The provenance line for a cell, e.g. "from Q3, Q4". */
 export function formatOpspProvenance(sources: readonly string[]): string {
   const joined = sources.map((q) => q.toUpperCase()).join(", ");
+  return `from ${joined}`;
+}
+
+/** The short "Q<number>" label for a question id (e.g. "q7" → "Q7"). */
+function shortQuestionLabel(id: string): string {
+  return id.length > 0 && id[0] === "q" ? `Q${id.slice(1)}` : id.toUpperCase();
+}
+
+/**
+ * The provenance line for an accepted official cell (F15-T06, ui_ux.md §4.20,
+ * e.g. "from Ern (Q7), Paul (Q7)"). Unlike the individual plan's question-only
+ * provenance, the official canvas names the respondent whose answer fed each
+ * cell and the question it came from. Pure: no I/O.
+ */
+export function formatOfficialCellProvenance(
+  provenance: readonly OfficialCellProvenance[],
+): string {
+  const joined = provenance
+    .map((entry) => `${entry.respondentName} (${shortQuestionLabel(entry.questionId)})`)
+    .join(", ");
   return `from ${joined}`;
 }
 

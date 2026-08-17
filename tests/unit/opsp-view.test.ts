@@ -3,6 +3,7 @@ import { buildOpspCells, OPSP_CELL_IDS, type OpspSourceAnswers } from "../../lib
 import { SEED_RESPONDENTS, type SeedAnswer } from "../../lib/seed";
 import {
   OPSP_CELL_LABELS,
+  formatOfficialCellProvenance,
   formatOpspCellValue,
   formatOpspProvenance,
   isOpspCellEmpty,
@@ -37,6 +38,26 @@ describe("F07-T02 OPSP view helpers", () => {
     expect(formatOpspProvenance(["q3"])).toBe("from Q3");
     expect(formatOpspProvenance(["q1", "q2"])).toBe("from Q1, Q2");
     expect(formatOpspProvenance(["q10", "q3"])).toBe("from Q10, Q3");
+  });
+
+  it("formats an accepted official cell's provenance from respondents' answers (F15-T06)", () => {
+    // The official canvas provenance names respondents, not just questions:
+    // "from Ern (Q7), Paul (Q7)" — the answer that fed the cell and its source
+    // question, the shape FR-41 and ui_ux.md §4.20 want.
+    expect(
+      formatOfficialCellProvenance([
+        { respondentId: "r-ern", respondentName: "Ern", questionId: "q7" },
+        { respondentId: "r-paul", respondentName: "Paul", questionId: "q7" },
+      ]),
+    ).toBe("from Ern (Q7), Paul (Q7)");
+    // A single respondent, and a one-digit vs two-digit question id, both label.
+    expect(
+      formatOfficialCellProvenance([
+        { respondentId: "r-ana", respondentName: "Ana", questionId: "q10" },
+      ]),
+    ).toBe("from Ana (Q10)");
+    // An empty provenance renders no line.
+    expect(formatOfficialCellProvenance([])).toBe("from ");
   });
 
   it("treats a null or undefined value as an empty cell", () => {

@@ -165,6 +165,48 @@ export interface OfficialSourceCard {
 }
 
 /**
+ * One cell-level provenance entry (F15-T06, FR-41): a record of which
+ * respondent's answer fed an accepted official cell, and from which question.
+ * Unlike the individual plan's question-only `sources`, an official cell's
+ * provenance names the respondent too, so an accepted cell can read "from Ern
+ * (Q7), Paul (Q7)". It is written once when a cell is accepted — either via a
+ * household synthesis or a recorded decision — and lives on the cell, so it
+ * survives version snapshots and reloads.
+ */
+export interface OfficialCellProvenance {
+  /** The respondent whose answer fed the cell. */
+  respondentId: string;
+  /** Attribution label shown in the provenance line. */
+  respondentName: string;
+  /** The question that answer came from ('q1'..'q15'); never 'q14d'. */
+  questionId: string;
+}
+
+/**
+ * Build a cell's provenance from its attached source cards (F15-T06, FR-41),
+ * deduplicating to one entry per (respondent, question) in attachment order.
+ * Used when a draft is accepted, so the accepted cell records exactly which
+ * respondents' answers fed it and from which questions. Pure: no I/O.
+ */
+export function buildSourceCardProvenance(
+  cards: readonly OfficialSourceCard[],
+): OfficialCellProvenance[] {
+  const seen = new Set<string>();
+  const out: OfficialCellProvenance[] = [];
+  for (const card of cards) {
+    const key = `${card.respondentId}\u0000${card.questionId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      respondentId: card.respondentId,
+      respondentName: card.respondentName,
+      questionId: card.questionId,
+    });
+  }
+  return out;
+}
+
+/**
  * An official OPSP cell: the same OpspCell shape as the individual plan plus
  * the source cards attached to it. The official canvas starts without any
  * published cell content but can carry cards under each cell as the
@@ -176,6 +218,12 @@ export interface OfficialCell extends OpspCell {
   draft?: OfficialCellDraft;
   /** The conflict result state, when the guard refused to synthesise. */
   conflict?: OfficialCellConflict;
+  /**
+   * Cell-level provenance (F15-T06, FR-41): which respondents' answers fed
+   * this accepted cell and from which questions. Set when a draft is accepted
+   * or a decision is recorded; survives version snapshots with the cell.
+   */
+  provenance: OfficialCellProvenance[];
 }
 
 /** Ensure an OpspCell (possibly a pre-F15-T02 row) carries a sourceCards array. */
@@ -185,11 +233,18 @@ function toOfficialCell(cell: OpspCell): OfficialCell {
     : [];
   const draft = (cell as Partial<OfficialCell>).draft;
   const conflict = (cell as Partial<OfficialCell>).conflict;
+  // Provenance (F15-T06) read leniently: a legacy/pre-provenance cell falls
+  // back to an empty list rather than a malformed one, so the renderer never
+  // sees a provenance line it cannot trust.
+  const rawProvenance = (cell as Partial<OfficialCell>).provenance;
+  const provenance = Array.isArray(rawProvenance)
+    ? rawProvenance.filter(isOfficialCellProvenance)
+    : [];
   // Normalise a legacy/foreign draft or conflict shape so a malformed cell
   // never surfaces a pending statement or a decision state that cannot act.
   const cleanDraft = isOfficialCellDraft(draft) ? draft : undefined;
   const cleanConflict = isOfficialCellConflict(conflict) ? conflict : undefined;
-  return { ...cell, sourceCards, draft: cleanDraft, conflict: cleanConflict };
+  return { ...cell, sourceCards, provenance, draft: cleanDraft, conflict: cleanConflict };
 }
 
 /** True for a well-formed pending AI draft. Anything else is dropped on read. */
@@ -241,6 +296,17 @@ function isOfficialSourceCard(value: unknown): value is OfficialSourceCard {
   );
 }
 
+/** True for a well-formed cell-level provenance entry (F15-T06). */
+function isOfficialCellProvenance(value: unknown): value is OfficialCellProvenance {
+  if (typeof value !== "object" || value === null) return false;
+  const p = value as Partial<OfficialCellProvenance>;
+  return (
+    typeof p.respondentId === "string" &&
+    typeof p.respondentName === "string" &&
+    typeof p.questionId === "string"
+  );
+}
+
 function toOfficialCells(
   cells: Record<OpspCellId, OpspCell>,
 ): Record<OpspCellId, OfficialCell> {
@@ -271,6 +337,7 @@ export function emptyOfficialCells(): Record<OpspCellId, OfficialCell> {
       sources: [],
       lowConfidence: false,
       sourceCards: [],
+      provenance: [],
     };
   }
   return cells;
@@ -403,6 +470,7 @@ export async function createOfficialDraftVersion(
     const edited: OfficialCell = {
       ...applyCellEdit(target, edit),
       sourceCards: target.sourceCards,
+      provenance: target.provenance,
     };
 
     const updated: Record<OpspCellId, OfficialCell> = {
@@ -449,8 +517,10 @@ export async function storeOfficialCellDraft(
 /**
  * Explicit human acceptance of a pending draft (F15-T04, FR-40): promote the
  * drafted statement into the cell's published `value` as ink, drop the draft,
- * and record the source questions that fed it as the cell's provenance. Writes
- * a NEW draft version — acceptance is a deliberate single action, never
+ * and record the source questions that fed it as the cell's provenance —
+ * including which respondents' answers those were (F15-T06, FR-41): question
+ * ids go in `sources` and the (respondent, question) pairs go in `provenance`.
+ * Writes a NEW draft version — acceptance is a deliberate single action, never
  * automatic. Throws `NoOfficialDraftPendingError` when the cell has nothing to
  * accept.
  */
@@ -475,6 +545,7 @@ export async function acceptOfficialCellDraft(
       sources: pending.sourceQuestionIds as QuestionId[],
       lowConfidence: false,
       draft: undefined,
+      provenance: buildSourceCardProvenance(target.sourceCards),
     };
 
     const updated: Record<OpspCellId, OfficialCell> = {
@@ -561,11 +632,12 @@ async function respondentDisplayName(
 /**
  * Record the human decision on a conflict cell (F15-T05, FR-39): promote the
  * chosen position into the cell's published `value` as ink, seed the cell's
- * provenance from the chosen position's question, and attach the decision note
- * — which position was chosen and by whom — to the conflict state. Both
- * positions stay on the cell, so they remain visible after the decision. Writes
- * a NEW draft version (a decision is a deliberate single action, never
- * automatic). Throws `NoOfficialConflictError` when the cell has no conflict,
+ * provenance from the chosen position's answer — which respondent fed the cell
+ * and from which question (F15-T06, FR-41: "decision-resolved cells carry
+ * provenance too") — and attach the decision note. Both positions stay on the
+ * cell, so they remain visible after the decision. Writes a NEW draft version
+ * (a decision is a deliberate single action, never automatic). Throws
+ * `NoOfficialConflictError` when the cell has no conflict,
  * `UnknownConflictPositionError` when the choice is not one of the positions,
  * and refuses a second decision once one is already recorded.
  */
@@ -605,6 +677,13 @@ export async function recordOfficialCellDecision(
       sources: [chosen.questionId] as QuestionId[],
       lowConfidence: false,
       conflict: { ...conflict, decision },
+      provenance: [
+        {
+          respondentId: chosen.respondentId,
+          respondentName: chosen.respondentName,
+          questionId: chosen.questionId,
+        },
+      ],
     };
 
     const updated: Record<OpspCellId, OfficialCell> = {

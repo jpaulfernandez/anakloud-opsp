@@ -8,8 +8,8 @@ import {
 } from "@/lib/opsp";
 import {
   OPSP_CELL_LABELS,
+  formatOfficialCellProvenance,
   formatOpspCellValue,
-  formatOpspProvenance,
 } from "@/lib/opsp-view";
 import {
   currentCellMark,
@@ -349,9 +349,9 @@ export function OfficialOPSPView({
           const content =
             state.kind === "empty" ? "" : formatOpspCellValue(cell.value);
           const provenance =
-            state.kind === "empty" || cell.sources.length === 0
+            state.kind === "empty" || cell.provenance.length === 0
               ? null
-              : formatOpspProvenance(cell.sources);
+              : formatOfficialCellProvenance(cell.provenance);
           // F15-T05 — the conflict result state, and the chosen position once a
           // decision is recorded (which position and by whom is the note).
           const conflict = cell.conflict;
