@@ -153,12 +153,36 @@ function AdminDashboard({
         Admin
       </h1>
       <LevelStrip data={strip} />
+      <CanvasNav />
       <ExportNav />
       <ComparisonNav />
       <RosterTable roster={roster} />
       <ContaminationSection audit={audit} />
       {cohort !== null ? <CohortLifecycle initial={cohort} /> : null}
     </main>
+  );
+}
+
+/**
+ * The one surface required by F15-T01: the official OPSP canvas the team
+ * fills in during or after the alignment session (FR-36). Added as a plain
+ * facilitator link alongside the other admin tools; its route and API are
+ * gated by the same submitted-facilitator admission as this dashboard.
+ */
+function CanvasNav() {
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-3">
+      <span className="text-xs uppercase tracking-wide text-neutral-500">
+        Build
+      </span>
+      <Link
+        href="/admin/official-opsp"
+        data-testid="official-opsp-link"
+        className="rounded-md border border-neutral-900 px-2.5 py-1 text-sm font-medium text-white hover:bg-neutral-700"
+      >
+        Official OPSP canvas
+      </Link>
+    </div>
   );
 }
 

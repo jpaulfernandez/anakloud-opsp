@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P3 · **Tickets:** 94 · **Done:** 87
+**Last updated:** 2026-08-17 · **Current phase:** P3 · **Tickets:** 94 · **Done:** 88
 
 ---
 
@@ -55,7 +55,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F12 | AI gateway & degradation | P2 | Done | 2026-08-17 | 2026-08-17 | Do not start before F11 green |
 | F13 | AI coach | P2 | Done | 2026-08-17 | 2026-08-17 | |
 | F14 | Facilitator analysis | P3 | Done | 2026-08-17 | 2026-08-17 | |
-| F15 | Official OPSP canvas | P4 | Not started | — | — | |
+| F15 | Official OPSP canvas | P4 | In progress | 2026-08-17 | — | |
 
 ---
 
@@ -220,7 +220,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F15-T01 | Official OPSP canvas | Not started | |
+| F15-T01 | Official OPSP canvas | Done | |
 | F15-T02 | Source cards | Not started | |
 | F15-T03 | Compatibility classification | Not started | |
 | F15-T04 | Synthesis with the conflict guard | Not started | |

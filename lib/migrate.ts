@@ -163,11 +163,11 @@ export const MIGRATIONS: Migration[] = [
            on analysis_outputs (cohort_id, question_id);
          alter table analysis_outputs enable row level security;
          alter table analysis_outputs force row level security;
-         create policy if not exists analysis_outputs_facilitator_insert
+         create policy analysis_outputs_facilitator_insert
            on analysis_outputs
            for insert
            with check (app_is_facilitator_of_cohort(cohort_id));
-         create policy if not exists analysis_outputs_facilitator_read
+         create policy analysis_outputs_facilitator_read
            on analysis_outputs
            for select
            using (app_is_facilitator_of_cohort(cohort_id));`,
@@ -176,6 +176,52 @@ export const MIGRATIONS: Migration[] = [
            alter table analysis_outputs no force row level security;
            alter table analysis_outputs disable row level security;
            drop table if exists analysis_outputs;`,
+  },
+  {
+    version: "0011_official_opsp_drafts",
+    // F15-T01 — the official OPSP canvas's persistence and authoring gate.
+    //
+    // The official draft is an `opsp_drafts` row with `owner_type = 'official'`
+    // and a null owner_id (the team's plan is not any one respondent's), scoped
+    // to the cohort. Holds the facilitator-only authoring policies plus a
+    // lineage constraint:
+    //
+    //   * RLS — the baseline 0002 policies only admit drafts_own_* rows where
+    //     owner_type = 'individual' and owner_id = the acting respondent, so a
+    //     respondent already cannot write an official row (its owner_type fails
+    //     every own_* check). RLS policies are permissive (OR'd), so the
+    //     facilitator additionally needs their own insert/update/delete to
+    //     author official rows for their cohort. The read side is already
+    //     covered by 0002's drafts_facilitator_read (it does not filter on
+    //     owner_type), so no new select policy is required.
+    //
+    //   * One lineage per cohort — each edit writes a NEW opsp_drafts version,
+    //     so a cohort's official plan is a chain of rows. Version 1 is the root
+    //     of that chain, so a partial unique index on (cohort_id) where
+    //     owner_type = 'official' and version = 1 admits at most one lineage
+    //     per cohort. A later F15 write path cannot create a second official
+    //     chain for the same cohort without tripping it.
+    up: `create policy drafts_official_insert on opsp_drafts
+           for insert
+           with check (owner_type = 'official' and owner_id is null
+                       and app_is_facilitator_of_cohort(cohort_id));
+         create policy drafts_official_update on opsp_drafts
+           for update
+           using (owner_type = 'official' and owner_id is null
+                  and app_is_facilitator_of_cohort(cohort_id))
+           with check (owner_type = 'official' and owner_id is null
+                       and app_is_facilitator_of_cohort(cohort_id));
+         create policy drafts_official_delete on opsp_drafts
+           for delete
+           using (owner_type = 'official' and owner_id is null
+                  and app_is_facilitator_of_cohort(cohort_id));
+         create unique index if not exists opsp_drafts_one_official_lineage_idx
+           on opsp_drafts (cohort_id)
+           where owner_type = 'official' and version = 1;`,
+    down: `drop index if exists opsp_drafts_one_official_lineage_idx;
+           drop policy if exists drafts_official_delete on opsp_drafts;
+           drop policy if exists drafts_official_update on opsp_drafts;
+           drop policy if exists drafts_official_insert on opsp_drafts;`,
   },
 ];
 
