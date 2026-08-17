@@ -1,4 +1,5 @@
 import type { ClientBase } from "./db";
+import { assertNotProductionNeon } from "./db";
 import { ACCESS_DOWN_SQL, ACCESS_UP_SQL } from "./access-policy";
 import {
   OWN_ANSWER_READ_FUNCTION_DROP_SQL,
@@ -254,6 +255,22 @@ async function withTransaction<T>(
 }
 
 /**
+ * F19-T01 (M04): refuse to prepare the schema against Neon's production branch.
+ *
+ * Every path that applies migrations before writing test data — `npm run
+ * db:seed` and each DB-gated e2e spec's `migrate(db)` — funnels through
+ * `migrate()`, so the single check below stops a mis-pointed E2E or preview run
+ * before any migration or test row lands. Local Docker resolves to a non-Neon
+ * host and is never flagged, so the offline fallback needs no code change.
+ */
+function assertMigrationsNotOnProductionNeon(): void {
+  // The migration path reads either URL; guard whichever is in play. Both
+  // throw (when they resolve to production) before any SQL runs.
+  assertNotProductionNeon(process.env.DATABASE_URL_UNPOOLED);
+  assertNotProductionNeon(process.env.DATABASE_URL);
+}
+
+/**
  * Apply every migration whose version is not yet recorded in
  * `schema_migrations`. Idempotent: a second run is a no-op.
  *
@@ -265,6 +282,7 @@ async function withTransaction<T>(
  * transaction.
  */
 export async function migrate(db: ClientBase): Promise<void> {
+  assertMigrationsNotOnProductionNeon();
   await db.query("select pg_advisory_lock(hashtext('align_migrations'))");
   try {
     await db.query(`

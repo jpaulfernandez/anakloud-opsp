@@ -420,6 +420,59 @@ _Migration note (2026-08-17, F16-T03):_ `GEMINI_API_KEY` is the active optional 
 
 Pin the model id explicitly. A silent model change alters coach behaviour mid-cohort and invalidates the contamination audit.
 
+### Neon branches, the production guard, and the Docker fallback (F19-T01)
+
+**The one rule.** The E2E suite, `npm run db:seed`, and every preview/hosted-E2E database must target either local Docker or an **ephemeral, non-production Neon branch**. They must never touch the production (Neon `main`) branch. `lib/migrate.ts` enforces this mechanically: `migrate()` refuses to run before any SQL when either `DATABASE_URL` or `DATABASE_URL_UNPOOLED` resolves to the production branch, so a mis-pointed run stops before migrations or test data land (see `lib/db.ts` `assertNotProductionNeon`).
+
+**How Neon encodes the branch.** Neon gives each branch its own compute endpoint, so the branch lives in the *hostname*, not a query parameter:
+
+```
+ep-deadbeef1234.us-east-2.aws.neon.tech                production (main) branch
+preview-3--ep-deadbeef1234.us-east-2.aws.neon.tech     a branch named "preview-3"
+preview-3--ep-deadbeef1234-pooler.us-east-2...         same branch, pooled endpoint
+```
+
+A plain `ep-…` hostname is the production branch and is always rejected; only a `--<branch>--ep-` hostname passes the guard. A branch literally named `main` is treated as production, fail-safe.
+
+**Create an ephemeral branch for a hosted E2E run.** Using the Neon CLI (`npx neonctl` works when you have a Neon API key):
+
+```bash
+neon branches create --name "e2e-<change-or-pr>"     # returns a new branch id
+neon connection-string e2e-<change-or-pr> --database-name dbname --pooled
+# → postgres://user:pass@{branch}--ep-…-pooler…neon.tech/dbname?sslmode=require
+neon connection-string e2e-<change-or-pr> --database-name dbname
+# → postgres://user:pass@{branch}--ep-…neon.tech/dbname?sslmode=require (direct)
+```
+
+Point the suite at the branch by environment values only — **no application-code change**:
+
+```bash
+export DATABASE_URL="postgres://…@{branch}--ep-…-pooler…neon.tech/dbname?sslmode=require"
+export DATABASE_URL_UNPOOLED="postgres://…@{branch}--ep-…neon.tech/dbname?sslmode=require"
+export SESSION_SECRET=…
+npx playwright test --reporter=line          # or ./verify.sh
+```
+
+The suite's DB-gated specs each run `migrate()` before seeding their own rows, so pointing `DATABASE_URL` at the branch migrates and seeds that branch and nowhere else. **`preview` deployments must set `DATABASE_URL`/`DATABASE_URL_UNPOOLED` to such a branch** — never to the main branch, which the guard rejects.
+
+**Local Docker — the offline fallback.** A developer without network access still runs `./verify.sh` against the existing Docker container (`anakloud-e2e-pg`, port 5435). Because the guard skips non-Neon hosts, switching fallback is a pure environment change, no code change:
+
+```bash
+export DATABASE_URL="postgres://align:align@localhost:5435/alignedb"
+npm run db:seed
+./verify.sh
+```
+
+**Tear down and stale-branch cleanup.** Delete a branch as soon as its PR/test run is done, and sweep leftovers weekly:
+
+```bash
+neon branches delete --name e2e-<change-or-pr>
+neon branches list                                          # find stale branches
+neon branches delete --name <stale-branch>                  # delete each stale one
+```
+
+The Neon Console's **Branches** page is the equivalent UI for create, inspect, and delete. The Console also sets a configurable branch-creation retention policy that clears old test branches automatically.
+
 ---
 
 ## 11. Observability

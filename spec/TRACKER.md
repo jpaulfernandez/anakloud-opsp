@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 103
+**Last updated:** 2026-08-17 · **Current phase:** M · **Tickets:** 106 · **Done:** 104
 
 ---
 
@@ -264,7 +264,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
-| F19-T01 | Use Neon branches for preview and hosted E2E | Not started | M04 |
+| F19-T01 | Use Neon branches for preview and hosted E2E | Done | M04 |
 | F19-T02 | Document the migration environment | Not started | M05 |
 
 ## F20 — Migration release gate
