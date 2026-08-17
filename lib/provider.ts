@@ -144,3 +144,102 @@ export function anthropicProvider(apiKey: string): AIProvider {
     },
   };
 }
+
+/**
+ * The Gemini client behind the `AIProvider` boundary (F18-T01, source item
+ * M06) — a `generateContent` call made with `fetch`, so no SDK dependency is
+ * added (tech_infrastructure.md §1 names dependencies deliberately). Request
+ * mapping per M06: the system prompt and user turn go into
+ * `systemInstruction`/`contents`, the output cap into `generationConfig`, and
+ * forced structure uses `tools[].functionDeclarations` with
+ * `toolConfig.functionCallingConfig.mode = "ANY"`. The structured result is
+ * the matched `functionCall.args`, serialised to `ProviderResponse.text` as
+ * JSON exactly like the Anthropic path, so the output guard sees it unchanged.
+ *
+ * The credential travels only in the `x-goog-api-key` header and never in the
+ * URL, because URLs reach logs and proxies (spec.md §8). A non-2xx rejects
+ * with a typed `ProviderHttpError`, so the gateway's 429/503 retry policy
+ * (F12-T05) keeps working; a network failure or unparseable body rejects too,
+ * and the gateway turns every rejection into a valid lower-level response.
+ */
+export function geminiProvider(apiKey: string): AIProvider {
+  return {
+    async request(req) {
+      const body: Record<string, unknown> = {
+        contents: [{ role: "user", parts: [{ text: req.prompt }] }],
+        generationConfig: { maxOutputTokens: req.maxTokens },
+      };
+      if (req.structuredOutput !== undefined) {
+        // Tool-use / function-calling mode: system prompt via
+        // systemInstruction, the single user turn, and the one function the
+        // model is forced to call (mode "ANY"). Gemini's function declarations
+        // take an OpenAPI-3.0-subset schema, which is the `parameters` field —
+        // the coach's `input_schema` is carried over unchanged (F18-T02 keeps
+        // the dialect in the subset Gemini accepts).
+        body.systemInstruction = {
+          parts: [{ text: req.structuredOutput.system }],
+        };
+        body.contents = [
+          { role: "user", parts: [{ text: req.structuredOutput.userMessage }] },
+        ];
+        body.tools = [
+          {
+            functionDeclarations: [
+              {
+                name: req.structuredOutput.tool.name,
+                description: req.structuredOutput.tool.description,
+                parameters: req.structuredOutput.tool.input_schema,
+              },
+            ],
+          },
+        ];
+        body.toolConfig = { functionCallingConfig: { mode: "ANY" } };
+      }
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${req.model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: JSON.stringify(body),
+        },
+      );
+      if (!res.ok) {
+        throw new ProviderHttpError(res.status);
+      }
+      const parsed = (await res.json()) as {
+        candidates?: Array<{
+          content?: {
+            parts?: Array<{
+              text?: string;
+              functionCall?: { name?: string; args?: unknown };
+            }>;
+          };
+        }>;
+        usageMetadata?: {
+          promptTokenCount?: number;
+          candidatesTokenCount?: number;
+        };
+      };
+      const parts = parsed.candidates?.[0]?.content?.parts ?? [];
+      const textParts = parts.map((p) => p.text ?? "").join("");
+      // The serialised structured output travels back as `text` so the output
+      // guard (which scans `ProviderResponse.text`) sees it, and so a calling
+      // F13 endpoint can run it back through the coach parser.
+      const structured = parts.find(
+        (p) =>
+          p.functionCall !== undefined &&
+          p.functionCall.name === req.structuredOutput?.tool.name,
+      )?.functionCall?.args;
+      return {
+        text: structured !== undefined ? JSON.stringify(structured) : textParts,
+        inputTokens: parsed.usageMetadata?.promptTokenCount ?? 0,
+        outputTokens: parsed.usageMetadata?.candidatesTokenCount ?? 0,
+        model: req.model,
+      };
+    },
+  };
+}

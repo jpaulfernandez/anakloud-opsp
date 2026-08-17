@@ -622,4 +622,21 @@ describe("no provider SDK import outside the gateway (F12-T01)", () => {
     }
     expect(offenders).toEqual([]);
   });
+
+  // F18-T01 — the active provider is Gemini. Every AI route reaches it through
+  // the gateway (`geminiProvider` via the re-export), and no route constructs
+  // the retired Anthropic client. The definition (lib/provider.ts) and the
+  // gateway re-export (lib/ai-gateway.ts) are the only allowed mentions of the
+  // symbol; the Anthropic unit tests reference it directly, but they are not a
+  // route.
+  it("no AI route constructs the Anthropic provider (F18-T01)", () => {
+    const offenders: string[] = [];
+    for (const file of sourceFiles([], resolve(ROOT, "app"))) {
+      const source = readFileSync(file, "utf8");
+      if (/\banthropicProvider\b/.test(source)) {
+        offenders.push(relative(ROOT, file));
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
 });

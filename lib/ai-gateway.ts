@@ -43,11 +43,14 @@ export type {
 export {
   PROVIDER_TIMEOUT_MS,
   ProviderHttpError,
-  // The concrete provider is re-exported here so no other module has to import
-  // lib/provider.ts directly — the gateway stays the single sanctioned door to
-  // the provider boundary (the F12-T01 import-scan enforces that). The /api/coach
-  // route constructs the real Anthropic client through this re-export.
+  // The concrete providers are re-exported here so no other module has to
+  // import lib/provider.ts directly — the gateway stays the single sanctioned
+  // door to the provider boundary (the F12-T01 import-scan enforces that). The
+  // /api routes construct the active Gemini client (F18-T01) through this
+  // re-export; the Anthropic implementation is retained behind the boundary as
+  // the pre-migration reference, not constructed anywhere in the product.
   anthropicProvider,
+  geminiProvider,
 } from "./provider";
 
 // Timeout and retry policy (tech_infrastructure.md §6.2, F12-T05): a 6s bound

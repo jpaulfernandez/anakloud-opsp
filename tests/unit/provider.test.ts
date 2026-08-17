@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   anthropicProvider,
+  geminiProvider,
   ProviderHttpError,
   type ProviderRequest,
 } from "../../lib/provider";
@@ -156,5 +157,234 @@ describe("structured-output (tool-use) mode", () => {
     await expect(provider.request(structReq())).rejects.toBeInstanceOf(
       ProviderHttpError,
     );
+  });
+});
+
+// F18-T01 — the Gemini implementation behind the same `AIProvider` boundary.
+// Same contract, different transport: `POST …:generateContent`, auth only in
+// the `x-goog-api-key` header, mapping per M06 (systemInstruction/contents,
+// generationConfig.maxOutputTokens, tools[].functionDeclarations with
+// toolConfig mode ANY). These tests fake `global.fetch` and assert both the
+// outbound body and the inbound extraction, mirroring the Anthropic suite.
+
+const GEMINI_ENDPOINT =
+  "https://generativelanguage.googleapis.com/v1beta/models/pinned-model:generateContent";
+
+/** A plausible Gemini `generateContent` body for the faked transport. */
+function geminiResponseFor(options: {
+  args?: unknown;
+  text?: string;
+  toolName?: string;
+  promptTokens?: number;
+  candidatesTokens?: number;
+} = {}): Response {
+  const {
+    args,
+    text = "Here is some plain text.",
+    toolName,
+    promptTokens = 100,
+    candidatesTokens = 25,
+  } = options;
+  const parts =
+    args === undefined
+      ? [{ text }]
+      : [
+          { text: "Let me call the function." },
+          { functionCall: { name: toolName, args } },
+        ];
+  return okJson({
+    candidates: [{ content: { parts, role: "model" } }],
+    usageMetadata: {
+      promptTokenCount: promptTokens,
+      candidatesTokenCount: candidatesTokens,
+    },
+  });
+}
+
+// The Gemini request carries the credential in the `x-goog-api-key` header and
+// never in the URL — a fail in either direction breaks §8's "URLs reach logs
+// and proxies". Checked on every faked call via this shared assertion.
+function expectAuthInHeaderOnly(init: RequestInit): void {
+  const headers = init.headers as Record<string, string>;
+  expect(headers["x-goog-api-key"]).toBe("test-key");
+  expect(headers["content-type"]).toBe("application/json");
+}
+
+describe("geminiProvider", () => {
+  it("maps a plain call to contents/generationConfig and reads the text back", async () => {
+    let sentBody: Record<string, unknown> | undefined;
+    let sentUrl: string | undefined;
+    let sentInit: RequestInit | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: unknown, init: RequestInit) => {
+        sentUrl = String(url);
+        sentInit = init;
+        sentBody = JSON.parse(String(init.body)) as Record<string, unknown>;
+        return geminiResponseFor();
+      }),
+    );
+
+    const provider = geminiProvider("test-key");
+    const res = await provider.request({
+      prompt: "Review this.",
+      model: "pinned-model",
+      maxTokens: 200,
+    });
+
+    expect(sentUrl).toBe(GEMINI_ENDPOINT);
+    expect(sentUrl).not.toContain("test-key");
+    expectAuthInHeaderOnly(sentInit!);
+    expect(sentBody!.contents).toEqual([
+      { role: "user", parts: [{ text: "Review this." }] },
+    ]);
+    expect(sentBody!.generationConfig).toEqual({ maxOutputTokens: 200 });
+    expect(sentBody!.systemInstruction).toBeUndefined();
+    expect(sentBody!.tools).toBeUndefined();
+    expect(sentBody!.toolConfig).toBeUndefined();
+    expect(res.text).toBe("Here is some plain text.");
+    expect(res.model).toBe("pinned-model");
+  });
+
+  it("maps a structured call to systemInstruction, a function declaration, and mode ANY", async () => {
+    let sentBody: Record<string, unknown> | undefined;
+    let sentUrl: string | undefined;
+    let sentInit: RequestInit | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: unknown, init: RequestInit) => {
+        sentUrl = String(url);
+        sentInit = init;
+        sentBody = JSON.parse(String(init.body)) as Record<string, unknown>;
+        return geminiResponseFor({
+          args: { verdict: "needs_work" },
+          toolName: "coach_result",
+        });
+      }),
+    );
+
+    const provider = geminiProvider("test-key");
+    const res = await provider.request(structReq());
+
+    expect(sentUrl).toBe(GEMINI_ENDPOINT);
+    expect(sentUrl).not.toContain("test-key");
+    expectAuthInHeaderOnly(sentInit!);
+    expect(sentBody!.systemInstruction).toEqual({
+      parts: [{ text: "You review form, not content." }],
+    });
+    expect(sentBody!.contents).toEqual([
+      {
+        role: "user",
+        parts: [{ text: "Question: The metric\n\nAnswer:\nReach goes up." }],
+      },
+    ]);
+    expect(sentBody!.tools).toEqual([
+      {
+        functionDeclarations: [
+          {
+            name: "coach_result",
+            description: "the structured verdict",
+            parameters: { type: "object", properties: {}, required: [] },
+          },
+        ],
+      },
+    ]);
+    expect(sentBody!.toolConfig).toEqual({
+      functionCallingConfig: { mode: "ANY" },
+    });
+    // The function args come back as `text` (the guard scans `ProviderResponse.text`).
+    expect(res.text).toBe(JSON.stringify({ verdict: "needs_work" }));
+  });
+
+  it("returns the function args even when the model also wrote free text", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        geminiResponseFor({
+          args: { verdict: "ok", dimension: null, hint: "", example: "" },
+          toolName: "coach_result",
+        }),
+      ),
+    );
+    const provider = geminiProvider("test-key");
+    const res = await provider.request(structReq());
+    expect(res.text).toBe(
+      JSON.stringify({ verdict: "ok", dimension: null, hint: "", example: "" }),
+    );
+  });
+
+  it("a structured call with no function call falls back to the text parts", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => geminiResponseFor()));
+    const provider = geminiProvider("test-key");
+    const res = await provider.request(structReq());
+    expect(res.text).toBe("Here is some plain text.");
+  });
+
+  it("records the token counts from usageMetadata", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        geminiResponseFor({ args: { verdict: "ok" }, toolName: "coach_result" }),
+      ),
+    );
+    const provider = geminiProvider("test-key");
+    const res = await provider.request(structReq());
+    expect(res.inputTokens).toBe(100);
+    expect(res.outputTokens).toBe(25);
+  });
+
+  it.each([429, 503, 500])(
+    "a %d response rejects with a typed ProviderHttpError carrying the status",
+    async (status) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("not ok", { status })),
+      );
+      const provider = geminiProvider("test-key");
+      await expect(provider.request(structReq())).rejects.toBeInstanceOf(
+        ProviderHttpError,
+      );
+      await expect(provider.request(structReq())).rejects.toMatchObject({
+        status,
+      });
+    },
+  );
+
+  it("a network failure rejects so the gateway degrades", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("fetch failed");
+      }),
+    );
+    const provider = geminiProvider("test-key");
+    await expect(provider.request(structReq())).rejects.toThrow();
+  });
+
+  it("a 200 with an empty body is handled gracefully as empty text and zero tokens", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({}), { status: 200 })),
+    );
+    const provider = geminiProvider("test-key");
+    const res = await provider.request({
+      prompt: "Review this.",
+      model: "pinned-model",
+      maxTokens: 200,
+    });
+    expect(res.text).toBe("");
+    expect(res.inputTokens).toBe(0);
+    expect(res.outputTokens).toBe(0);
+  });
+
+  it("a 200 with an unparseable body rejects so the gateway degrades", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("not json", { status: 200 })),
+    );
+    const provider = geminiProvider("test-key");
+    await expect(
+      provider.request({ prompt: "x", model: "pinned-model", maxTokens: 200 }),
+    ).rejects.toThrow();
   });
 });

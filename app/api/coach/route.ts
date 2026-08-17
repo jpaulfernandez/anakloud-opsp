@@ -6,7 +6,7 @@ import { isQuestionId } from "@/lib/answer-shape";
 import type { QuestionId } from "@/lib/questions";
 import { loadCoachRequest } from "@/lib/coach-request";
 import { aiApiKey } from "@/lib/config";
-import { anthropicProvider } from "@/lib/ai-gateway";
+import { geminiProvider } from "@/lib/ai-gateway";
 import {
   buildCoachGatewayContext,
   degradedCoachBody,
@@ -79,7 +79,7 @@ export async function POST(request: Request): Promise<Response> {
       );
 
       const model = process.env.AI_MODEL ?? "";
-      const provider = anthropicProvider(aiApiKey());
+      const provider = geminiProvider(aiApiKey());
       return NextResponse.json(await serveCoach(req, ctx, provider, model));
     } finally {
       await db.end();

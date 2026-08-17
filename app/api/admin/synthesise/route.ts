@@ -4,7 +4,7 @@ import { requireAdminSession } from "@/lib/auth";
 import { rejectIfCohortReadOnly } from "@/lib/lock";
 import { withRespondentContext } from "@/lib/access";
 import { aiApiKey } from "@/lib/config";
-import { anthropicProvider } from "@/lib/ai-gateway";
+import { geminiProvider } from "@/lib/ai-gateway";
 import { buildAnalysisGatewayContext } from "@/lib/analyse-endpoint";
 import { OPSP_CELL_IDS, type OpspCellId } from "@/lib/opsp";
 import {
@@ -110,7 +110,7 @@ export async function POST(request: Request): Promise<Response> {
       "synthesis",
     );
     const model = process.env.AI_MODEL ?? "";
-    const provider = anthropicProvider(aiApiKey());
+    const provider = geminiProvider(aiApiKey());
 
     // The guarded synthesis: re-classifies as its own call, drafts only when
     // compatible. `servedLevel` is unused here — the guard outcome, not the

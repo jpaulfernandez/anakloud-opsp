@@ -4,7 +4,7 @@ import { requireAdminSession } from "@/lib/auth";
 import { isQuestionId } from "@/lib/answer-shape";
 import { withRespondentContext } from "@/lib/access";
 import { aiApiKey } from "@/lib/config";
-import { anthropicProvider } from "@/lib/ai-gateway";
+import { geminiProvider } from "@/lib/ai-gateway";
 import {
   buildAnalysisGatewayContext,
   loadAnalysisForCohort,
@@ -98,7 +98,7 @@ export async function POST(request: Request): Promise<Response> {
     );
     const ctx = await buildAnalysisContext(db, respondentId, cohortId, questionId);
     const model = process.env.AI_MODEL ?? "";
-    const provider = anthropicProvider(aiApiKey());
+    const provider = geminiProvider(aiApiKey());
 
     // F14-T02: at L1 the analysis is queued and retried in the background. The
     // retry runs after this request's connection is closed, so it opens its own
@@ -123,7 +123,7 @@ export async function POST(request: Request): Promise<Response> {
         const attempt = await runAnalysisAttempt(
           workerCtx,
           workerGateway,
-          anthropicProvider(aiApiKey()),
+          geminiProvider(aiApiKey()),
           model,
         );
         if (attempt.served === "L0" && attempt.analysis !== null) {
