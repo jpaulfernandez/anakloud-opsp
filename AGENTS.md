@@ -172,7 +172,8 @@ Its offline half (the same §5.4 assertions over `lib/static-hints.ts`, plus the
 ## Environment
 
 ```
-DATABASE_URL
+DATABASE_URL             # Neon pooled endpoint — request paths
+DATABASE_URL_UNPOOLED    # Neon direct endpoint — migrations only (advisory lock)
 GEMINI_API_KEY           # optional - absence must be non-fatal
 AI_MODEL                 # pinned model id, never an alias
 AI_LEVEL_PIN             # optional: L0..L3

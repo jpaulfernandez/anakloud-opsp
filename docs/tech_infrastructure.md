@@ -408,7 +408,8 @@ Pinning local and preview to L2 is a deliberate choice: it means the fallback pa
 Required env vars:
 
 ```
-DATABASE_URL
+DATABASE_URL             # Neon pooled endpoint — request paths
+DATABASE_URL_UNPOOLED    # Neon direct endpoint — migrations only; falls back to DATABASE_URL with a warning
 GEMINI_API_KEY           # optional — absence must be non-fatal (T2)
 AI_MODEL                 # pinned model id, not an alias
 AI_LEVEL_PIN             # optional: L0..L3
