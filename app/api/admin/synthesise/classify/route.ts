@@ -5,7 +5,11 @@ import { rejectIfCohortReadOnly } from "@/lib/lock";
 import { withRespondentContext } from "@/lib/access";
 import { anthropicProvider } from "@/lib/ai-gateway";
 import { buildAnalysisGatewayContext } from "@/lib/analyse-endpoint";
-import { latestOfficialDraft } from "@/lib/official-opsp";
+import {
+  buildOfficialCellConflict,
+  latestOfficialDraft,
+  storeOfficialCellConflict,
+} from "@/lib/official-opsp";
 import { OPSP_CELL_IDS, type OpspCellId } from "@/lib/opsp";
 import {
   buildClassificationContext,
@@ -118,6 +122,37 @@ export async function POST(request: Request): Promise<Response> {
       model,
       servedLevel,
     );
+
+    // F15-T05 — when the verdict is a genuine conflict (the model actually ran
+    // at L0 and said incompatible), the refusal enters the conflict result
+    // state: both positions are stored on the cell so the facilitator can
+    // record a human decision. A degraded serve (no verdict produced) is only a
+    // hold — the cell is untouched and there is nothing to choose between.
+    if (served.level === "L0" && !served.classification.compatible) {
+      const conflict = buildOfficialCellConflict(
+        cell.sourceCards,
+        served.classification.reason,
+      );
+      const stored = await storeOfficialCellConflict(
+        db,
+        respondentId,
+        cohortId,
+        cellId,
+        conflict,
+      );
+      return NextResponse.json({
+        ok: true,
+        status: "conflict",
+        level: "L0",
+        cellId,
+        reason: served.classification.reason,
+        classification: served.classification,
+        version: stored.version,
+        cells: stored.cells,
+        label: served.label,
+      });
+    }
+
     return NextResponse.json(served);
   } finally {
     await db.end();

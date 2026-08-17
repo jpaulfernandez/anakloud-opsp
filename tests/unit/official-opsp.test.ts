@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { OPSP_CELL_IDS } from "../../lib/opsp";
 import {
+  buildOfficialCellConflict,
   buildOfficialCellDraft,
   emptyOfficialCells,
   type OfficialSourceCard,
@@ -64,15 +65,37 @@ describe("F15-T04 draft state", () => {
     expect(draft.sourceQuestionIds).toEqual(["q7", "q4"]);
   });
 
-  it("the synthesis/accept/discard routes never write to the answers table (PR5)", () => {
+  it("the synthesis/accept/discard/record-decision routes never write to the answers table (PR5)", () => {
     for (const file of [
       "app/api/admin/synthesise/route.ts",
       "app/api/admin/synthesise/accept/route.ts",
       "app/api/admin/synthesise/discard/route.ts",
+      "app/api/admin/synthesise/record-decision/route.ts",
     ]) {
       const src = readFileSync(resolve(file), "utf8");
       expect(src).not.toMatch(/upsertAnswer/);
       expect(src).not.toMatch(/insert into answers/);
     }
+  });
+});
+
+describe("F15-T05 conflict result state", () => {
+  it("buildOfficialCellConflict snapshots the positions so they survive card removal", () => {
+    const cards: OfficialSourceCard[] = [
+      { id: "c1", respondentId: "r1", respondentName: "Centre Camp", questionId: "q6", text: "Winning the centres first." },
+      { id: "c2", respondentId: "r2", respondentName: "Parent Camp", questionId: "q6", text: "The parent is the human we are here for." },
+    ];
+    const conflict = buildOfficialCellConflict(
+      cards,
+      "These say opposite things about who the core customer is.",
+    );
+    expect(conflict.id.length).toBeGreaterThan(0);
+    expect(conflict.reason).toContain("opposite");
+    expect(conflict.positions).toEqual(cards);
+    // The conflict holds a snapshot, not a live reference: removing the card
+    // later must not unpick the two positions shown side by side.
+    expect(conflict.positions[0]).not.toBe(cards[0]);
+    // No decision until one is recorded.
+    expect(conflict.decision).toBeUndefined();
   });
 });

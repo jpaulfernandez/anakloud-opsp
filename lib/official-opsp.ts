@@ -45,6 +45,74 @@ export class NoOfficialDraftPendingError extends Error {
   }
 }
 
+/** Thrown when a record-decision targets a cell that has no conflict. */
+export class NoOfficialConflictError extends Error {
+  constructor() {
+    super("this cell has no conflict to record a decision for");
+    this.name = "NoOfficialConflictError";
+  }
+}
+
+/** Thrown when a recorded decision picks a position that is not in the conflict. */
+export class UnknownConflictPositionError extends Error {
+  constructor() {
+    super("the chosen position is not one of the conflict's positions");
+    this.name = "UnknownConflictPositionError";
+  }
+}
+
+/**
+ * A recorded decision on a conflict cell (F15-T05, FR-39, ui_ux.md §4.20):
+ * the note of which position was chosen and by whom. The chosen position's
+ * text is stored as the cell's published content at the same time; this record
+ * keeps both the choice and the decider after the fact, so the note survives a
+ * reload and a snapshot.
+ */
+export interface OfficialCellDecision {
+  /** The id of the chosen position card. */
+  positionId: string;
+  /** The chosen position's text, now the cell's published content. */
+  chosenText: string;
+  /** The id of the respondent (the facilitator) who recorded the decision. */
+  recorderId: string;
+  /** The display name of whoever recorded the decision, for the note. */
+  recorderName: string;
+  /** ISO timestamp of the recording. */
+  recordedAt: string;
+}
+
+/**
+ * A conflict result state on an official cell (F15-T05, FR-39, ui_ux.md §4.20):
+ * the guard refused to synthesise two or more positions, so the cell holds both
+ * positions side by side for the room to choose. `positions` is a self-contained
+ * snapshot of the attached source cards at the moment the conflict was struck —
+ * it survives later card removals and version snapshots — and `decision`
+ * records the human choice once made. There is deliberately no merged text
+ * anywhere on this state: the absence of a merge affordance is the feature.
+ */
+export interface OfficialCellConflict {
+  /** Stable id for the conflict state. */
+  id: string;
+  /** Why the guard refused — states both positions in their own words. */
+  reason: string;
+  /** The positions side by side, snapshot so they survive card removal. */
+  positions: OfficialSourceCard[];
+  /** The recorded human decision, present exactly once a position is chosen. */
+  decision?: OfficialCellDecision;
+}
+
+/** Build the conflict result state for a cell from its source cards (pure). */
+export function buildOfficialCellConflict(
+  sourceCards: OfficialSourceCard[],
+  reason: string,
+): OfficialCellConflict {
+  return {
+    id: randomUUID(),
+    reason,
+    positions: sourceCards.map((card) => ({ ...card })),
+  };
+}
+
 /**
  * A statement the planner drafted for one cell that has NOT yet been accepted
  * into the team's plan (F15-T04, FR-40). It lives on the cell separately from
@@ -106,6 +174,8 @@ export interface OfficialCell extends OpspCell {
   sourceCards: OfficialSourceCard[];
   /** The pending AI-drafted statement, if one awaits explicit acceptance. */
   draft?: OfficialCellDraft;
+  /** The conflict result state, when the guard refused to synthesise. */
+  conflict?: OfficialCellConflict;
 }
 
 /** Ensure an OpspCell (possibly a pre-F15-T02 row) carries a sourceCards array. */
@@ -114,11 +184,12 @@ function toOfficialCell(cell: OpspCell): OfficialCell {
     ? (cell as OfficialCell).sourceCards
     : [];
   const draft = (cell as Partial<OfficialCell>).draft;
-  // Normalise a legacy/foreign draft shape so a malformed cell never surfaces
-  // a pending statement that cannot be accepted.
-  return isOfficialCellDraft(draft)
-    ? { ...cell, sourceCards, draft }
-    : { ...cell, sourceCards };
+  const conflict = (cell as Partial<OfficialCell>).conflict;
+  // Normalise a legacy/foreign draft or conflict shape so a malformed cell
+  // never surfaces a pending statement or a decision state that cannot act.
+  const cleanDraft = isOfficialCellDraft(draft) ? draft : undefined;
+  const cleanConflict = isOfficialCellConflict(conflict) ? conflict : undefined;
+  return { ...cell, sourceCards, draft: cleanDraft, conflict: cleanConflict };
 }
 
 /** True for a well-formed pending AI draft. Anything else is dropped on read. */
@@ -131,6 +202,42 @@ function isOfficialCellDraft(value: unknown): value is OfficialCellDraft {
     typeof v.statement === "string" &&
     Array.isArray(v.sourceQuestionIds) &&
     v.sourceQuestionIds.every((q) => typeof q === "string")
+  );
+}
+
+/** True for a well-formed conflict state. Anything else is dropped on read. */
+function isOfficialCellConflict(value: unknown): value is OfficialCellConflict {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Partial<OfficialCellConflict>;
+  if (typeof v.id !== "string" || v.id.length === 0) return false;
+  if (typeof v.reason !== "string") return false;
+  if (!Array.isArray(v.positions)) return false;
+  if (v.positions.some((p) => !isOfficialSourceCard(p))) return false;
+  if (v.decision !== undefined) {
+    const d = v.decision as Partial<OfficialCellDecision>;
+    if (
+      typeof d.positionId !== "string" ||
+      typeof d.chosenText !== "string" ||
+      typeof d.recorderId !== "string" ||
+      typeof d.recorderName !== "string" ||
+      typeof d.recordedAt !== "string"
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** True for a well-formed source card snapshot. */
+function isOfficialSourceCard(value: unknown): value is OfficialSourceCard {
+  if (typeof value !== "object" || value === null) return false;
+  const c = value as Partial<OfficialSourceCard>;
+  return (
+    typeof c.id === "string" &&
+    typeof c.respondentId === "string" &&
+    typeof c.respondentName === "string" &&
+    typeof c.questionId === "string" &&
+    typeof c.text === "string"
   );
 }
 
@@ -402,6 +509,107 @@ export async function discardOfficialCellDraft(
     const updated: Record<OpspCellId, OfficialCell> = {
       ...current.cells,
       [cellId]: { ...target, draft: undefined },
+    };
+
+    const version = await writeOfficialCellsVersion(tx, cohortId, updated);
+    return { version, cells: updated };
+  });
+}
+
+/**
+ * Store the conflict result state on one official cell (F15-T05, FR-39,
+ * ui_ux.md §4.20), writing a NEW draft version. The guard refused to
+ * synthesise, so the cell now holds both positions and offers a human
+ * decision; the published `value` is untouched until a decision is recorded.
+ * Runs inside the facilitator's RLS context, exactly like the draft path.
+ */
+export async function storeOfficialCellConflict(
+  db: ClientBase,
+  facilitatorId: string,
+  cohortId: string,
+  cellId: OpspCellId,
+  conflict: OfficialCellConflict,
+): Promise<{ version: number; cells: Record<OpspCellId, OfficialCell> }> {
+  return withRespondentContext(db, facilitatorId, async (tx) => {
+    const current = await latestOfficialDraft(tx, cohortId);
+    if (!current) throw new OfficialDraftNotFoundError();
+    const target = current.cells[cellId];
+    if (!target) throw new OfficialDraftNotFoundError();
+
+    const updated: Record<OpspCellId, OfficialCell> = {
+      ...current.cells,
+      [cellId]: { ...target, conflict },
+    };
+
+    const version = await writeOfficialCellsVersion(tx, cohortId, updated);
+    return { version, cells: updated };
+  });
+}
+
+/** The display name of a respondent, for the "by whom" part of a decision. */
+async function respondentDisplayName(
+  tx: ClientBase,
+  respondentId: string,
+): Promise<string> {
+  const { rows } = await tx.query<{ display_name: string | null }>(
+    `select display_name from respondents where id = $1`,
+    [respondentId],
+  );
+  return rows[0]?.display_name ?? "Facilitator";
+}
+
+/**
+ * Record the human decision on a conflict cell (F15-T05, FR-39): promote the
+ * chosen position into the cell's published `value` as ink, seed the cell's
+ * provenance from the chosen position's question, and attach the decision note
+ * — which position was chosen and by whom — to the conflict state. Both
+ * positions stay on the cell, so they remain visible after the decision. Writes
+ * a NEW draft version (a decision is a deliberate single action, never
+ * automatic). Throws `NoOfficialConflictError` when the cell has no conflict,
+ * `UnknownConflictPositionError` when the choice is not one of the positions,
+ * and refuses a second decision once one is already recorded.
+ */
+export async function recordOfficialCellDecision(
+  db: ClientBase,
+  facilitatorId: string,
+  cohortId: string,
+  cellId: OpspCellId,
+  positionId: string,
+): Promise<{ version: number; cells: Record<OpspCellId, OfficialCell> }> {
+  return withRespondentContext(db, facilitatorId, async (tx) => {
+    const current = await latestOfficialDraft(tx, cohortId);
+    if (!current) throw new OfficialDraftNotFoundError();
+    const target = current.cells[cellId];
+    if (!target) throw new OfficialDraftNotFoundError();
+    const conflict = target.conflict;
+    if (!conflict) throw new NoOfficialConflictError();
+    if (conflict.decision) {
+      // A decision is already recorded — there is nothing left to choose.
+      throw new NoOfficialConflictError();
+    }
+    const chosen = conflict.positions.find((position) => position.id === positionId);
+    if (!chosen) throw new UnknownConflictPositionError();
+
+    const decision: OfficialCellDecision = {
+      positionId: chosen.id,
+      chosenText: chosen.text,
+      recorderId: facilitatorId,
+      recorderName: await respondentDisplayName(tx, facilitatorId),
+      recordedAt: new Date().toISOString(),
+    };
+
+    const resolved: OfficialCell = {
+      ...target,
+      value: chosen.text,
+      marking: { type: "single", mark: "ink" },
+      sources: [chosen.questionId] as QuestionId[],
+      lowConfidence: false,
+      conflict: { ...conflict, decision },
+    };
+
+    const updated: Record<OpspCellId, OfficialCell> = {
+      ...current.cells,
+      [cellId]: resolved,
     };
 
     const version = await writeOfficialCellsVersion(tx, cohortId, updated);

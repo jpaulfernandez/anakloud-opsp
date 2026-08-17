@@ -226,6 +226,9 @@ describe("serveSynthesis — the conflict guard", () => {
     const refusedBody = refused(body);
     expect(refusedBody.reason).toContain("Respondent A");
     expect(refusedBody.reason).toContain("Respondent B");
+    // This is a genuine conflict (the model actually returned incompatible),
+    // so it is the case the decision state is built for (F15-T05).
+    expect(refusedBody.genuineConflict).toBe(true);
     expect(refusedBody.label.model).toBe("pinned-model");
     expect(isNaN(Date.parse(refusedBody.label.generatedAt))).toBe(false);
   });
@@ -242,6 +245,8 @@ describe("serveSynthesis — the conflict guard", () => {
     expect("statement" in body).toBe(false);
     expect(refused(body).reason.length).toBeGreaterThan(0);
     expect(refused(body).reason).toContain("couldn't be assessed");
+    // No verdict was produced, so this is a hold, not a decisionable conflict.
+    expect(refused(body).genuineConflict).toBe(false);
   });
 
   it("drafts one statement when classification cleared as compatible", async () => {
@@ -276,6 +281,8 @@ describe("serveSynthesis — the conflict guard", () => {
     expect(body.status).toBe("refused");
     expect("statement" in body).toBe(false);
     expect(refused(body).reason).toContain("compatible");
+    // Sources cleared but no draft — a transient hold, not a conflict to decide.
+    expect(refused(body).genuineConflict).toBe(false);
   });
 
   it("offers no override parameter: drafting depends only on the guard outcome", async () => {

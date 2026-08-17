@@ -7,8 +7,10 @@ import { anthropicProvider } from "@/lib/ai-gateway";
 import { buildAnalysisGatewayContext } from "@/lib/analyse-endpoint";
 import { OPSP_CELL_IDS, type OpspCellId } from "@/lib/opsp";
 import {
+  buildOfficialCellConflict,
   buildOfficialCellDraft,
   latestOfficialDraft,
+  storeOfficialCellConflict,
   storeOfficialCellDraft,
 } from "@/lib/official-opsp";
 import {
@@ -120,8 +122,32 @@ export async function POST(request: Request): Promise<Response> {
     );
 
     if (served.status === "refused") {
-      // The cell is left untouched. The reason (both positions when genuine
-      // conflict) rides out so the facilitator can read it.
+      // The guard refused to synthesise. A genuine conflict (the model produced
+      // an incompatible verdict) enters the F15-T05 conflict result state: it is
+      // stored on the cell as both positions, so the facilitator can record a
+      // human decision. A non-genuine refusal (no verdict was produced) is a
+      // transient hold — the reason rides out and the cell is untouched.
+      if (served.genuineConflict) {
+        const conflict = buildOfficialCellConflict(cell.sourceCards, served.reason);
+        const stored = await storeOfficialCellConflict(
+          db,
+          respondentId,
+          cohortId,
+          cellId,
+          conflict,
+        );
+        return NextResponse.json({
+          ok: true,
+          status: "conflict",
+          cellId,
+          reason: served.reason,
+          version: stored.version,
+          cells: stored.cells,
+          label: served.label,
+        });
+      }
+      // The cell is left untouched. The reason rides out so the facilitator can
+      // read it (when genuine conflict, both positions are stated in it).
       return NextResponse.json(served);
     }
 

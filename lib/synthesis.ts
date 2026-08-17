@@ -128,6 +128,14 @@ export interface RefusedSynthesis {
   cellId: OpspCellId;
   /** Why it was refused. When genuine conflict, states both positions. */
   reason: string;
+  /**
+   * True exactly when the refusal comes from a real incompatible verdict — the
+   * classification model actually ran and said the sources cannot be combined.
+   * Distinguishes a genuine conflict (which enters the F15-T05 decision state)
+   * from a degraded serve with no verdict at all, where there is nothing to
+   * choose between.
+   */
+  genuineConflict: boolean;
   label: AnalysisLabel;
 }
 
@@ -158,6 +166,13 @@ export async function serveSynthesis(
   const cleared =
     classifyAttempt.served === "L0" &&
     classifyAttempt.classification?.compatible === true;
+  // A genuine conflict is a verdict the model actually produced (L0) that says
+  // incompatible. A degraded serve carries no verdict, so it is a refusal, not
+  // a conflict the room can choose between.
+  const genuineConflict =
+    classifyAttempt.served === "L0" &&
+    classifyAttempt.classification !== null &&
+    classifyAttempt.classification.compatible === false;
 
   if (!cleared) {
     // The conflict guard. Whether classification returned a genuine
@@ -167,7 +182,14 @@ export async function serveSynthesis(
     const reason =
       classifyAttempt.classification?.reason ??
       buildDeterministicClassification().reason;
-    return { ok: true, status: "refused", cellId: ctx.cellId, reason, label };
+    return {
+      ok: true,
+      status: "refused",
+      cellId: ctx.cellId,
+      reason,
+      genuineConflict,
+      label,
+    };
   }
 
   // STEP 2 — synthesise, only because STEP 1 confirmed compatible.
@@ -191,6 +213,7 @@ export async function serveSynthesis(
     reason:
       "The sources were compatible but the planner couldn't draft a statement just now. " +
       "Nothing was written to the cell — retry, or draft it by hand.",
+    genuineConflict: false,
     label,
   };
 }

@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P3 · **Tickets:** 94 · **Done:** 91
+**Last updated:** 2026-08-17 · **Current phase:** P4 · **Tickets:** 94 · **Done:** 92
 
 ---
 
@@ -224,7 +224,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | F15-T02 | Source cards | Done | |
 | F15-T03 | Compatibility classification | Done | |
 | F15-T04 | Synthesis with the conflict guard | Done | |
-| F15-T05 | Conflict result state | Not started | |
+| F15-T05 | Conflict result state | Done | |
 | F15-T06 | Cell provenance | Not started | |
 | F15-T07 | Versioning and export | Not started | |
 

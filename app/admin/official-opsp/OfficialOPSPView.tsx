@@ -76,6 +76,11 @@ export function OfficialOPSPView({
     Partial<Record<OpspCellId, string>>
   >({});
 
+  // F15-T05 — recording a decision on a conflict cell: the one affordance a
+  // refused synthesis offers. It picks one of the two positions; the server
+  // stores that position as the cell content with a note of who chose it.
+  const [recordingId, setRecordingId] = useState<OpspCellId | null>(null);
+
   async function openPicker(id: OpspCellId) {
     setPickerCellId(id);
     if (candidates === null && !pickerLoading) {
@@ -133,7 +138,9 @@ export function OfficialOPSPView({
   // F15-T03 — the first step of the two-step synthesis. Runs the separate
   // classification call for the cell and records its verdict + reason so the
   // facilitator can read why the sources were cleared or refused. Drafting the
-  // statement when compatible is F15-T04.
+  // statement when compatible is F15-T04. When the verdict is a genuine
+  // conflict (F15-T05), the route persists both positions on the cell and we
+  // adopt the returned cells so the conflict result state renders directly.
   async function classify(id: OpspCellId) {
     if (classifyingId !== null) return;
     setClassifyingId(id);
@@ -145,11 +152,25 @@ export function OfficialOPSPView({
       });
       if (!res.ok) return;
       const data = (await res.json()) as {
-        compatible: boolean;
-        reason: string;
-        level: string;
+        status?: string;
+        classification?: { compatible: boolean; reason: string };
+        level?: string;
+        cells?: Record<OpspCellId, OfficialCell>;
       };
-      setClassification((prev) => ({ ...prev, [id]: data }));
+      if (data.status === "conflict" && data.cells !== undefined) {
+        setCells(data.cells);
+        return;
+      }
+      if (data.classification) {
+        setClassification((prev) => ({
+          ...prev,
+          [id]: {
+            compatible: data.classification!.compatible,
+            reason: data.classification!.reason,
+            level: data.level ?? "L0",
+          },
+        }));
+      }
     } finally {
       setClassifyingId(null);
     }
@@ -160,7 +181,9 @@ export function OfficialOPSPView({
   // client state) and drafts a statement for the cell only when the sources
   // cleared. The drafted statement is written onto the cell as a pending draft:
   // it stays visibly a draft until the facilitator explicitly accepts it. If
-  // the guard refuses, the refusal's reason is shown and the cell is untouched.
+  // the guard finds a genuine conflict (F15-T05), the route persists both
+  // positions on the cell and we adopt those cells to render the decision
+  // state; any other refusal leaves the cell untouched and shows the reason.
   async function synthesise(id: OpspCellId) {
     if (synthesisingId !== null || draftingId !== null) return;
     setSynthesisingId(id);
@@ -173,7 +196,7 @@ export function OfficialOPSPView({
       });
       if (!res.ok) return;
       const data = (await res.json()) as {
-        status: "drafted" | "refused";
+        status: "drafted" | "refused" | "conflict";
         statement?: string;
         cells?: Record<OpspCellId, OfficialCell>;
         reason?: string;
@@ -181,13 +204,40 @@ export function OfficialOPSPView({
       if (data.status === "drafted" && data.cells !== undefined) {
         setCells(data.cells);
         setClassification((prev) => ({ ...prev, [id]: undefined }));
+      } else if (data.status === "conflict" && data.cells !== undefined) {
+        // A genuine conflict surfaced from the guard's re-check — enter the
+        // decision state. Both positions are now on the cell.
+        setCells(data.cells);
+        setClassification((prev) => ({ ...prev, [id]: undefined }));
       } else if (data.status === "refused" && data.reason) {
-        // The conflict guard refused: show the reason (both positions when
-        // genuine conflict), never a draft.
+        // A non-conflict refusal — a transient hold. Show the reason (both
+        // positions when genuine conflict), never a draft.
         setSynthError((prev) => ({ ...prev, [id]: data.reason! }));
       }
     } finally {
       setSynthesisingId(null);
+    }
+  }
+
+  // F15-T05 — [Record the decision] on a conflict cell: pick one of the two
+  // positions. The server stores it as the cell content with a note of which
+  // position was chosen and by whom; both positions stay visible afterwards.
+  async function recordDecision(id: OpspCellId, positionId: string) {
+    if (recordingId !== null) return;
+    setRecordingId(id);
+    try {
+      const res = await fetch("/api/admin/synthesise/record-decision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cellId: id, positionId }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        cells: Record<OpspCellId, OfficialCell>;
+      };
+      setCells(data.cells);
+    } finally {
+      setRecordingId(null);
     }
   }
 
@@ -302,6 +352,14 @@ export function OfficialOPSPView({
             state.kind === "empty" || cell.sources.length === 0
               ? null
               : formatOpspProvenance(cell.sources);
+          // F15-T05 — the conflict result state, and the chosen position once a
+          // decision is recorded (which position and by whom is the note).
+          const conflict = cell.conflict;
+          const chosenPosition = conflict?.decision
+            ? conflict.positions.find(
+                (position) => position.id === conflict.decision!.positionId,
+              )
+            : undefined;
           return (
             <article
               key={id}
@@ -532,6 +590,86 @@ export function OfficialOPSPView({
                           Discard
                         </button>
                       </div>
+                    </div>
+                  ) : conflict ? (
+                    /* F15-T05 — the conflict result state (FR-39, ui_ux.md
+                       §4.20): the guard refused to synthesise, so the cell
+                       shows both positions side by side with the prompt and a
+                       single "[Record the decision]" action per position. There
+                       is deliberately no merge control anywhere here — the
+                       absence of the "merge anyway" button is the feature.
+                       Recording a decision stores the chosen position as the
+                       cell content and notes who chose; both positions stay
+                       visible afterwards. */
+                    <div
+                      data-testid={`opsp-conflict-${id}`}
+                      className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2"
+                    >
+                      <p className="text-[11px] font-semibold tracking-wide text-amber-700 uppercase">
+                        These don&apos;t reconcile
+                      </p>
+                      <p className="mt-1 text-[14px] font-medium leading-relaxed text-neutral-800">
+                        These two don&apos;t reconcile. Someone has to choose.
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-neutral-600">
+                        {conflict.reason}
+                      </p>
+                      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                        {conflict.positions.map((position, positionIndex) => (
+                          <div
+                            key={position.id}
+                            data-testid={`opsp-conflict-position-${id}-${positionIndex}`}
+                            className="rounded-md border border-neutral-200 bg-white px-3 py-2"
+                          >
+                            <p
+                              data-testid={`opsp-conflict-attribution-${id}-${positionIndex}`}
+                              className="text-[11px] font-semibold tracking-wide text-neutral-500 uppercase"
+                            >
+                              {position.respondentName} ·{" "}
+                              {shortQuestion(position.questionId)}
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-neutral-700">
+                              {position.text}
+                            </p>
+                            {conflict.decision ? (
+                              conflict.decision.positionId === position.id ? (
+                                <p
+                                  data-testid={`opsp-conflict-chosen-${id}`}
+                                  className="mt-2 text-[11px] font-semibold text-neutral-600"
+                                >
+                                  Chosen
+                                </p>
+                              ) : null
+                            ) : (
+                              <button
+                                type="button"
+                                data-testid={`opsp-record-decision-${id}-${positionIndex}`}
+                                onClick={() => recordDecision(id, position.id)}
+                                disabled={recordingId !== null}
+                                className="mt-2 rounded border border-neutral-900 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
+                              >
+                                {recordingId === id
+                                  ? "Recording…"
+                                  : "Record the decision"}
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {conflict.decision ? (
+                        <p
+                          data-testid={`opsp-conflict-note-${id}`}
+                          className="mt-2 text-[11px] font-medium tracking-wide text-neutral-500 uppercase"
+                        >
+                          Decision recorded by {conflict.decision.recorderName} —{" "}
+                          chose{" "}
+                          {chosenPosition
+                            ? `${chosenPosition.respondentName} (${shortQuestion(
+                                chosenPosition.questionId,
+                              )})`
+                            : "a position"}
+                        </p>
+                      ) : null}
                     </div>
                   ) : cell.sourceCards.length >= 2 ? (
                     /* F15-T03 — Synthesise appears once 2+ sources are attached

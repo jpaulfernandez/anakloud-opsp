@@ -144,6 +144,41 @@ async function latestBhag(): Promise<{ value: unknown; draft: unknown }> {
   return { value: bhag?.value ?? null, draft: bhag?.draft ?? null };
 }
 
+/** The raw `conflict` block seeded on the latest official draft. */
+async function seedConflict(cellId: string): Promise<{ reason: string; positions: unknown[] }> {
+  await attach(cellId, CENTRE);
+  await attach(cellId, PARENT);
+  const { rows } = await db!.query<{ version: number; cells: Record<string, unknown> }>(
+    `select version, cells from opsp_drafts
+      where owner_type = 'official' and cohort_id = $1
+      order by version desc limit 1`,
+    [COHORT],
+  );
+  const cell = (rows[0].cells as Record<string, Record<string, unknown>>)[cellId];
+  const sourceCards = (cell.sourceCards as {
+    id: string;
+    respondentId: string;
+    respondentName: string;
+    questionId: string;
+    text: string;
+  }[]).map((card) => ({ ...card }));
+  const conflict = {
+    id: randomUUID(),
+    reason: "These say opposite things about who the core customer is.",
+    positions: sourceCards,
+  };
+  (rows[0].cells as Record<string, Record<string, unknown>>)[cellId] = {
+    ...cell,
+    conflict,
+  };
+  await db!.query(
+    `insert into opsp_drafts (id, cohort_id, owner_type, owner_id, version, cells)
+     values ($1, $2, 'official', null, $3, $4::jsonb)`,
+    [randomUUID(), COHORT, rows[0].version + 1, JSON.stringify(rows[0].cells)],
+  );
+  return conflict;
+}
+
 test("a respondent and an unsubmitted facilitator cannot synthesise (403)", async ({
   request,
 }) => {
@@ -265,4 +300,138 @@ test("the canvas shows the refusal, with no draft and no merge affordance (key r
   // affordance appears for a refused classification.
   await expect(page.getByTestId("opsp-draft-statement-bhag")).toHaveCount(0);
   await expect(page.getByTestId("opsp-draft-accept-bhag")).toHaveCount(0);
+});
+
+test("the record-decision route is admin-gated (403)", async ({ request }) => {
+  // Seed a conflict so the auth check is reached rather than a 400.
+  await seedConflict("bhag");
+
+  const asRespondent = await request.post("/api/admin/synthesise/record-decision", {
+    headers: { cookie: sessionCookie(RESP) },
+    data: { cellId: "bhag", positionId: "whatever" },
+  });
+  expect(asRespondent.status()).toBe(403);
+
+  const asUnsubmitted = await request.post("/api/admin/synthesise/record-decision", {
+    headers: { cookie: sessionCookie(UNSUB) },
+    data: { cellId: "bhag", positionId: "whatever" },
+  });
+  expect(asUnsubmitted.status()).toBe(403);
+});
+
+test("recording a decision is a 400 without a conflict or with an unknown position", async ({
+  request,
+}) => {
+  // No conflict: two cards attached to one cell, but no conflict state on it.
+  await attach("purpose", CENTRE);
+  await attach("purpose", PARENT);
+  const noConflict = await request.post("/api/admin/synthesise/record-decision", {
+    headers: { cookie: sessionCookie(FAC) },
+    data: { cellId: "purpose", positionId: "whatever" },
+  });
+  expect(noConflict.status()).toBe(400);
+
+  // A real conflict on bhag, but the chosen position is not one of its two.
+  const conflict = await seedConflict("bhag");
+  const unknown = await request.post("/api/admin/synthesise/record-decision", {
+    headers: { cookie: sessionCookie(FAC) },
+    data: { cellId: "bhag", positionId: "does-not-exist" },
+  });
+  expect(unknown.status()).toBe(400);
+  expect(conflict.positions).toHaveLength(2);
+});
+
+test("recording a decision stores the chosen position and the decider", async ({
+  request,
+}) => {
+  const conflict = (await seedConflict("bhag")) as unknown as {
+    positions: { id: string; text: string; respondentName: string }[];
+  };
+  const chosen = conflict.positions[1];
+
+  const res = await request.post("/api/admin/synthesise/record-decision", {
+    headers: { cookie: sessionCookie(FAC) },
+    data: { cellId: "bhag", positionId: chosen.id },
+  });
+  expect(res.status()).toBe(200);
+  const body = (await res.json()) as {
+    ok: boolean;
+    cells: {
+      bhag: {
+        value: string;
+        marking: { type: string; mark: string };
+        sources: string[];
+        conflict: {
+          decision: {
+            positionId: string;
+            chosenText: string;
+            recorderId: string;
+            recorderName: string;
+          };
+          positions: unknown[];
+        };
+      };
+    };
+  };
+  expect(body.ok).toBe(true);
+  // The chosen position becomes the cell content as ink.
+  expect(body.cells.bhag.value).toBe(chosen.text);
+  expect(body.cells.bhag.marking).toEqual({ type: "single", mark: "ink" });
+  expect(body.cells.bhag.sources).toEqual(["q6"]);
+  // The note captures which position and by whom.
+  expect(body.cells.bhag.conflict.decision.positionId).toBe(chosen.id);
+  expect(body.cells.bhag.conflict.decision.chosenText).toBe(chosen.text);
+  expect(body.cells.bhag.conflict.decision.recorderName).toBe("Facilitator Synth");
+  // Both positions remain visible after the decision.
+  expect(body.cells.bhag.conflict.positions).toHaveLength(2);
+
+  // The decision survives a reload of the same lineage.
+  const bhag = await latestBhag();
+  expect(bhag.value).toBe(chosen.text);
+});
+
+test("the canvas renders the conflict state with no merge affordance; a decision is recorded", async ({
+  page,
+}) => {
+  const conflict = (await seedConflict("bhag")) as unknown as {
+    positions: { id: string; text: string; respondentName: string }[];
+  };
+
+  await page.context().addCookies([
+    { name: SESSION_COOKIE, value: createSessionToken({ respondentId: FAC, cohortId: COHORT }), domain: "127.0.0.1", path: "/" },
+  ]);
+  await page.goto("/admin/official-opsp");
+
+  const block = page.getByTestId("opsp-conflict-bhag");
+  await expect(block).toBeVisible();
+  await expect(block).toContainText("These two don't reconcile. Someone has to choose.");
+
+  // Both positions are shown side by side, attributed.
+  await expect(page.getByTestId("opsp-conflict-position-bhag-0")).toBeVisible();
+  await expect(page.getByTestId("opsp-conflict-position-bhag-1")).toBeVisible();
+  await expect(page.getByTestId("opsp-conflict-attribution-bhag-0")).toContainText("Centre Camp");
+  await expect(page.getByTestId("opsp-conflict-attribution-bhag-1")).toContainText("Parent Camp");
+
+  // Exactly one affordance: a "Record the decision" control per position.
+  await expect(page.getByTestId("opsp-record-decision-bhag-0")).toBeVisible();
+  await expect(page.getByTestId("opsp-record-decision-bhag-1")).toBeVisible();
+
+  // No control anywhere merges the positions (the absence of the button is
+  // the feature — FR-39). No draft or statement affordance either.
+  await expect(page.getByRole("button", { name: /merge/i })).toHaveCount(0);
+  await expect(page.getByTestId("opsp-draft-statement-bhag")).toHaveCount(0);
+  await expect(page.getByTestId("opsp-draft-accept-bhag")).toHaveCount(0);
+
+  // Record the decision on the second position.
+  await page.getByTestId("opsp-record-decision-bhag-1").click();
+
+  await expect(page.getByTestId("opsp-conflict-chosen-bhag")).toBeVisible();
+  await expect(page.getByTestId("opsp-conflict-note-bhag")).toContainText(
+    "Decision recorded by Facilitator Synth",
+  );
+  // Both positions remain visible after the decision is recorded.
+  await expect(page.getByTestId("opsp-conflict-position-bhag-0")).toBeVisible();
+  await expect(page.getByTestId("opsp-conflict-position-bhag-1")).toBeVisible();
+  // The chosen position filled the cell.
+  await expect(page.getByTestId("opsp-content-bhag")).toContainText(conflict.positions[1].text);
 });
