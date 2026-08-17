@@ -60,6 +60,7 @@ import { circuitOpenAt, loadCircuit } from "./circuit";
 import { loadConfig, type ResolvedLevel } from "./config";
 import { fetchCohortLive, resolveServedLevel } from "./cohort-lifecycle";
 import { isCurrentLatencyDegraded, type TargetLevel } from "./ai-gateway";
+import type { AICallPurpose } from "./log";
 import { QUESTIONS, type QuestionId } from "./questions";
 import type { ResolvedSession } from "./session";
 
@@ -333,18 +334,21 @@ export function analysisScoringBody(
 }
 
 /**
- * Resolve the served level and build the gateway context for one analysis
+ * Resolve the served level and build the gateway context for one facilitator AI
  * call, reading the cohort's live pin, budget, circuit and recent latency —
  * the same signals the coach endpoint uses (tech_infrastructure.md §6.1). The
  * pin is derived from `resolveServedLevel`, mapping L3 onto the gateway's L2;
  * budget exhaustion, an open circuit and a latency spike cannot push *below*
- * what the pin chose. Returns the gateway context plus the resolved served
+ * what the pin chose. `purpose` labels the audit row & tokens (F15-T03 runs the
+ * synthesis classification / synthesis calls here with purpose "synthesis"
+ * instead of "analysis"). Returns the gateway context plus the resolved served
  * level so the route can label a deterministic response accurately.
  */
 export async function buildAnalysisGatewayContext(
   db: ClientBase,
   session: Pick<ResolvedSession, "cohortId" | "respondentId">,
   questionId: QuestionId | null,
+  purpose: AICallPurpose = "analysis",
 ): Promise<{ gateway: GatewayContext; servedLevel: ResolvedLevel }> {
   const cohort = await fetchCohortLive(db, session.cohortId);
   const servedLevel = resolveServedLevel(
@@ -360,13 +364,13 @@ export async function buildAnalysisGatewayContext(
 
   return {
     gateway: {
-      purpose: "analysis",
+      purpose,
       pin,
       budgetExhausted,
       circuitOpen,
       latencyDegraded: isCurrentLatencyDegraded(),
       // F12-T06: one ai_interactions row per call, annotated identity-only and
-      // with the analysis-purpose token cap; no answer text or private row is
+      // with the purpose's output cap (§6.4); no answer text or private row is
       // written to the audit row.
       record: {
         db,

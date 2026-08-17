@@ -56,6 +56,15 @@ export function OfficialOPSPView({
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickingKey, setPickingKey] = useState<string | null>(null);
 
+  // Classification (F15-T03): the first step of the two-step synthesis. When a
+  // cell has 2+ source cards a Synthesise button appears; clicking it runs the
+  // separate classification call and shows its verdict + reason. Drafting a
+  // statement when compatible is F15-T04.
+  const [classifyingId, setClassifyingId] = useState<OpspCellId | null>(null);
+  const [classification, setClassification] = useState<
+    Partial<Record<OpspCellId, { compatible: boolean; reason: string; level: string }>>
+  >({});
+
   async function openPicker(id: OpspCellId) {
     setPickerCellId(id);
     if (candidates === null && !pickerLoading) {
@@ -108,6 +117,31 @@ export function OfficialOPSPView({
       cells: Record<OpspCellId, OfficialCell>;
     };
     setCells(data.cells);
+  }
+
+  // F15-T03 — the first step of the two-step synthesis. Runs the separate
+  // classification call for the cell and records its verdict + reason so the
+  // facilitator can read why the sources were cleared or refused. Drafting the
+  // statement when compatible is F15-T04.
+  async function classify(id: OpspCellId) {
+    if (classifyingId !== null) return;
+    setClassifyingId(id);
+    try {
+      const res = await fetch("/api/admin/synthesise/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cellId: id }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        compatible: boolean;
+        reason: string;
+        level: string;
+      };
+      setClassification((prev) => ({ ...prev, [id]: data }));
+    } finally {
+      setClassifyingId(null);
+    }
   }
 
   function beginEdit(id: OpspCellId) {
@@ -369,6 +403,39 @@ export function OfficialOPSPView({
                           </p>
                         </div>
                       ))}
+                    </div>
+                  ) : null}
+
+                  {/* F15-T03 — Synthesise appears once 2+ sources are attached
+                      (ui_ux.md §4.20). It runs the separate classification step
+                      and shows the verdict + reason; drafting the statement when
+                      compatible is F15-T04. */}
+                  {cell.sourceCards.length >= 2 ? (
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        data-testid={`opsp-synthesise-${id}`}
+                        onClick={() => classify(id)}
+                        disabled={classifyingId !== null}
+                        className="rounded border border-neutral-300 px-2 py-0.5 text-[11px] font-medium text-neutral-700 hover:border-neutral-400 hover:bg-neutral-50 disabled:opacity-50"
+                      >
+                        {classifyingId === id ? "Classifying…" : "Synthesise"}
+                      </button>
+                      {classification[id] ? (
+                        <div
+                          data-testid={`opsp-classification-${id}`}
+                          className="mt-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2"
+                        >
+                          <p className="text-[11px] font-semibold tracking-wide text-neutral-500 uppercase">
+                            {classification[id].compatible
+                              ? "Compatible"
+                              : "Not compatible"}
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-neutral-700">
+                            {classification[id].reason}
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </>
