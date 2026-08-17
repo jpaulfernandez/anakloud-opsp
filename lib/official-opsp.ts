@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { ClientBase } from "pg";
 import { withRespondentContext } from "./access";
 import { applyCellEdit } from "./opsp-edit";
+import type { QuestionId } from "./questions";
 import {
   OPSP_CELL_IDS,
   type OpspCell,
@@ -36,6 +37,42 @@ export class OfficialDraftNotFoundError extends Error {
   }
 }
 
+/** Thrown when an accept/discard targets a cell that has no pending AI draft. */
+export class NoOfficialDraftPendingError extends Error {
+  constructor() {
+    super("this cell has no AI-drafted statement to accept or discard");
+    this.name = "NoOfficialDraftPendingError";
+  }
+}
+
+/**
+ * A statement the planner drafted for one cell that has NOT yet been accepted
+ * into the team's plan (F15-T04, FR-40). It lives on the cell separately from
+ * the published `value`, so an AI-drafted cell is visibly a draft and only
+ * enters the official OPSP through an explicit human accept. `sourceQuestionIds`
+ * records which source questions fed the draft, carried forward as a cell's
+ * provenance once the draft is accepted.
+ */
+export interface OfficialCellDraft {
+  /** Stable id for the pending draft. */
+  id: string;
+  /** The AI-drafted one-line statement, pending explicit acceptance. */
+  statement: string;
+  /** The question ids of the source cards that fed the draft, deduplicated. */
+  sourceQuestionIds: string[];
+}
+
+/** Build the pending-draft state for a cell from its source cards and the
+ * statement the planner drafted. The accepted provenance comes from the order
+ * the cards were attached, so question ids are deduplicated in that order. */
+export function buildOfficialCellDraft(
+  sourceCards: OfficialSourceCard[],
+  statement: string,
+): OfficialCellDraft {
+  const sourceQuestionIds = [...new Set(sourceCards.map((card) => card.questionId))];
+  return { id: randomUUID(), statement, sourceQuestionIds };
+}
+
 /**
  * One respondent's answer attached to an official cell (F15-T02, FR-37,
  * ui_ux.md §4.20). The card is self-contained — it carries the respondent's
@@ -67,6 +104,8 @@ export interface OfficialSourceCard {
  */
 export interface OfficialCell extends OpspCell {
   sourceCards: OfficialSourceCard[];
+  /** The pending AI-drafted statement, if one awaits explicit acceptance. */
+  draft?: OfficialCellDraft;
 }
 
 /** Ensure an OpspCell (possibly a pre-F15-T02 row) carries a sourceCards array. */
@@ -74,7 +113,25 @@ function toOfficialCell(cell: OpspCell): OfficialCell {
   const sourceCards = Array.isArray((cell as Partial<OfficialCell>).sourceCards)
     ? (cell as OfficialCell).sourceCards
     : [];
-  return { ...cell, sourceCards };
+  const draft = (cell as Partial<OfficialCell>).draft;
+  // Normalise a legacy/foreign draft shape so a malformed cell never surfaces
+  // a pending statement that cannot be accepted.
+  return isOfficialCellDraft(draft)
+    ? { ...cell, sourceCards, draft }
+    : { ...cell, sourceCards };
+}
+
+/** True for a well-formed pending AI draft. Anything else is dropped on read. */
+function isOfficialCellDraft(value: unknown): value is OfficialCellDraft {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Partial<OfficialCellDraft>;
+  return (
+    typeof v.id === "string" &&
+    v.id.length > 0 &&
+    typeof v.statement === "string" &&
+    Array.isArray(v.sourceQuestionIds) &&
+    v.sourceQuestionIds.every((q) => typeof q === "string")
+  );
 }
 
 function toOfficialCells(
@@ -248,6 +305,106 @@ export async function createOfficialDraftVersion(
 
     const version = await writeOfficialCellsVersion(tx, cohortId, updated);
 
+    return { version, cells: updated };
+  });
+}
+
+/**
+ * Store a pending AI-drafted statement on one official cell (F15-T04, FR-40),
+ * writing a NEW draft version and leaving the cell's published `value` — and
+ * every answers row — untouched. The draft is visibly separate from the
+ * official plan until it is explicitly accepted, so it never silently enters
+ * the team's OPSP.
+ */
+export async function storeOfficialCellDraft(
+  db: ClientBase,
+  facilitatorId: string,
+  cohortId: string,
+  cellId: OpspCellId,
+  draft: OfficialCellDraft,
+): Promise<{ version: number; cells: Record<OpspCellId, OfficialCell> }> {
+  return withRespondentContext(db, facilitatorId, async (tx) => {
+    const current = await latestOfficialDraft(tx, cohortId);
+    if (!current) throw new OfficialDraftNotFoundError();
+    const target = current.cells[cellId];
+    if (!target) throw new OfficialDraftNotFoundError();
+
+    const updated: Record<OpspCellId, OfficialCell> = {
+      ...current.cells,
+      [cellId]: { ...target, draft },
+    };
+
+    const version = await writeOfficialCellsVersion(tx, cohortId, updated);
+    return { version, cells: updated };
+  });
+}
+
+/**
+ * Explicit human acceptance of a pending draft (F15-T04, FR-40): promote the
+ * drafted statement into the cell's published `value` as ink, drop the draft,
+ * and record the source questions that fed it as the cell's provenance. Writes
+ * a NEW draft version — acceptance is a deliberate single action, never
+ * automatic. Throws `NoOfficialDraftPendingError` when the cell has nothing to
+ * accept.
+ */
+export async function acceptOfficialCellDraft(
+  db: ClientBase,
+  facilitatorId: string,
+  cohortId: string,
+  cellId: OpspCellId,
+): Promise<{ version: number; cells: Record<OpspCellId, OfficialCell> }> {
+  return withRespondentContext(db, facilitatorId, async (tx) => {
+    const current = await latestOfficialDraft(tx, cohortId);
+    if (!current) throw new OfficialDraftNotFoundError();
+    const target = current.cells[cellId];
+    if (!target) throw new OfficialDraftNotFoundError();
+    const pending = target.draft;
+    if (!pending) throw new NoOfficialDraftPendingError();
+
+    const accepted: OfficialCell = {
+      ...target,
+      value: pending.statement,
+      marking: { type: "single", mark: "ink" },
+      sources: pending.sourceQuestionIds as QuestionId[],
+      lowConfidence: false,
+      draft: undefined,
+    };
+
+    const updated: Record<OpspCellId, OfficialCell> = {
+      ...current.cells,
+      [cellId]: accepted,
+    };
+
+    const version = await writeOfficialCellsVersion(tx, cohortId, updated);
+    return { version, cells: updated };
+  });
+}
+
+/**
+ * Decline a pending draft (F15-T04): clear it without promoting it into the
+ * official plan, leaving the cell's published `value` exactly as it was. Writes
+ * a NEW draft version. Throws `NoOfficialDraftPendingError` when the cell has
+ * nothing to decline.
+ */
+export async function discardOfficialCellDraft(
+  db: ClientBase,
+  facilitatorId: string,
+  cohortId: string,
+  cellId: OpspCellId,
+): Promise<{ version: number; cells: Record<OpspCellId, OfficialCell> }> {
+  return withRespondentContext(db, facilitatorId, async (tx) => {
+    const current = await latestOfficialDraft(tx, cohortId);
+    if (!current) throw new OfficialDraftNotFoundError();
+    const target = current.cells[cellId];
+    if (!target) throw new OfficialDraftNotFoundError();
+    if (!target.draft) throw new NoOfficialDraftPendingError();
+
+    const updated: Record<OpspCellId, OfficialCell> = {
+      ...current.cells,
+      [cellId]: { ...target, draft: undefined },
+    };
+
+    const version = await writeOfficialCellsVersion(tx, cohortId, updated);
     return { version, cells: updated };
   });
 }

@@ -65,6 +65,17 @@ export function OfficialOPSPView({
     Partial<Record<OpspCellId, { compatible: boolean; reason: string; level: string }>>
   >({});
 
+  // F15-T04 — the guarded synthesis. After a compatible classification the cell
+  // offers a "Draft statement" action (POST /api/admin/synthesise); whatever it
+  // drafts is written onto the cell as a pending draft and stays visibly a
+  // draft until the facilitator explicitly accepts it (or discards it). A
+  // refusal — the conflict guard — is shown as a reason, never a statement.
+  const [synthesisingId, setSynthesisingId] = useState<OpspCellId | null>(null);
+  const [draftingId, setDraftingId] = useState<OpspCellId | null>(null);
+  const [synthError, setSynthError] = useState<
+    Partial<Record<OpspCellId, string>>
+  >({});
+
   async function openPicker(id: OpspCellId) {
     setPickerCellId(id);
     if (candidates === null && !pickerLoading) {
@@ -141,6 +152,83 @@ export function OfficialOPSPView({
       setClassification((prev) => ({ ...prev, [id]: data }));
     } finally {
       setClassifyingId(null);
+    }
+  }
+
+  // F15-T04 — STEP 2, the guarded synthesis. POST /api/admin/synthesise
+  // re-runs the compatibility guard server-side (never trusting this button's
+  // client state) and drafts a statement for the cell only when the sources
+  // cleared. The drafted statement is written onto the cell as a pending draft:
+  // it stays visibly a draft until the facilitator explicitly accepts it. If
+  // the guard refuses, the refusal's reason is shown and the cell is untouched.
+  async function synthesise(id: OpspCellId) {
+    if (synthesisingId !== null || draftingId !== null) return;
+    setSynthesisingId(id);
+    setSynthError((prev) => ({ ...prev, [id]: "" }));
+    try {
+      const res = await fetch("/api/admin/synthesise", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cellId: id }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        status: "drafted" | "refused";
+        statement?: string;
+        cells?: Record<OpspCellId, OfficialCell>;
+        reason?: string;
+      };
+      if (data.status === "drafted" && data.cells !== undefined) {
+        setCells(data.cells);
+        setClassification((prev) => ({ ...prev, [id]: undefined }));
+      } else if (data.status === "refused" && data.reason) {
+        // The conflict guard refused: show the reason (both positions when
+        // genuine conflict), never a draft.
+        setSynthError((prev) => ({ ...prev, [id]: data.reason! }));
+      }
+    } finally {
+      setSynthesisingId(null);
+    }
+  }
+
+  // Explicit human acceptance of a pending draft (FR-40): the statement enters
+  // the official OPSP only through this deliberate action, never automatically.
+  async function acceptDraft(id: OpspCellId) {
+    if (draftingId !== null) return;
+    setDraftingId(id);
+    try {
+      const res = await fetch("/api/admin/synthesise/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cellId: id }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        cells: Record<OpspCellId, OfficialCell>;
+      };
+      setCells(data.cells);
+    } finally {
+      setDraftingId(null);
+    }
+  }
+
+  // Decline a pending draft without it entering the official plan.
+  async function discardDraft(id: OpspCellId) {
+    if (draftingId !== null) return;
+    setDraftingId(id);
+    try {
+      const res = await fetch("/api/admin/synthesise/discard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cellId: id }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        cells: Record<OpspCellId, OfficialCell>;
+      };
+      setCells(data.cells);
+    } finally {
+      setDraftingId(null);
     }
   }
 
@@ -406,11 +494,52 @@ export function OfficialOPSPView({
                     </div>
                   ) : null}
 
-                  {/* F15-T03 — Synthesise appears once 2+ sources are attached
-                      (ui_ux.md §4.20). It runs the separate classification step
-                      and shows the verdict + reason; drafting the statement when
-                      compatible is F15-T04. */}
-                  {cell.sourceCards.length >= 2 ? (
+                  {/* F15-T04 — a pending AI draft is shown as a prominent draft
+                      and stays out of the official plan until the facilitator
+                      explicitly accepts it (FR-40). Declining drops it without
+                      writing anything. */}
+                  {cell.draft ? (
+                    <div
+                      data-testid={`opsp-draft-${id}`}
+                      className="mt-3 rounded-md border border-dashed border-amber-400 bg-amber-50 px-3 py-2"
+                    >
+                      <p className="text-[11px] font-semibold tracking-wide text-amber-700 uppercase">
+                        Draft — not yet part of the plan
+                      </p>
+                      <p
+                        data-testid={`opsp-draft-statement-${id}`}
+                        className="mt-1 whitespace-pre-wrap text-[14px] leading-relaxed text-neutral-800"
+                      >
+                        {cell.draft.statement}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          data-testid={`opsp-draft-accept-${id}`}
+                          onClick={() => acceptDraft(id)}
+                          disabled={draftingId !== null}
+                          className="rounded border border-neutral-900 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
+                        >
+                          {draftingId === id ? "Accepting…" : "Accept into plan"}
+                        </button>
+                        <button
+                          type="button"
+                          data-testid={`opsp-draft-discard-${id}`}
+                          onClick={() => discardDraft(id)}
+                          disabled={draftingId !== null}
+                          className="rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-300 hover:text-neutral-700 disabled:opacity-50"
+                        >
+                          Discard
+                        </button>
+                      </div>
+                    </div>
+                  ) : cell.sourceCards.length >= 2 ? (
+                    /* F15-T03 — Synthesise appears once 2+ sources are attached
+                       (ui_ux.md §4.20). It runs the separate classification step
+                       and shows the verdict + reason. Once classified compatible,
+                       a guarded "Draft statement" (F15-T04) appears — the draft
+                       is created only after the server re-checks compatibility
+                       and lands as a pending draft, never straight into the plan. */
                     <div className="mt-3">
                       <button
                         type="button"
@@ -433,6 +562,34 @@ export function OfficialOPSPView({
                           </p>
                           <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-neutral-700">
                             {classification[id].reason}
+                          </p>
+                          {classification[id].compatible ? (
+                            <button
+                              type="button"
+                              data-testid={`opsp-draft-statement-${id}`}
+                              onClick={() => synthesise(id)}
+                              disabled={synthesisingId !== null}
+                              className="mt-2 rounded border border-neutral-300 px-2 py-0.5 text-[11px] font-medium text-neutral-700 hover:border-neutral-400 hover:bg-neutral-50 disabled:opacity-50"
+                            >
+                              {synthesisingId === id
+                                ? "Drafting…"
+                                : "Draft statement"}
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {/* A refused synthesis — the conflict guard — surfaces as a
+                          reason with both positions (never a statement). */}
+                      {synthError[id] ? (
+                        <div
+                          data-testid={`opsp-synthesise-refused-${id}`}
+                          className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2"
+                        >
+                          <p className="text-[11px] font-semibold tracking-wide text-amber-700 uppercase">
+                            Not drafted
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-neutral-700">
+                            {synthError[id]}
                           </p>
                         </div>
                       ) : null}
