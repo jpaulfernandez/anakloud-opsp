@@ -74,14 +74,19 @@ export interface OpspPdfRender {
 }
 
 /**
- * Render the authenticated print route to a PDF buffer via headless Chromium.
- * Launches a browser, seeds the respondent's session cookie, loads /opsp/print
- * (a server-rendered grid, so the sheet is in the initial HTML) and returns
+ * Render any authenticated print route to a PDF buffer via headless Chromium.
+ * Launches a browser, seeds the session cookie, loads the given print route (a
+ * server-rendered grid, so the sheet is in the initial HTML) and returns
  * Chromium's PDF bytes. A browser that cannot be obtained rejects with
  * OpspPdfUnavailableError; a rendering problem once the browser is up throws
- * normally so genuine application failures stay loud in development.
+ * normally so genuine application failures stay loud in development. Both the
+ * individual sheet (/opsp/print) and the official sheet (/admin/official-opsp/
+ * print) flow through this one function, so the same PDF pipeline serves F08
+ * and F15-T07.
  */
-export async function renderOpspPdf(input: OpspPdfRender): Promise<Buffer> {
+async function renderPrintRouteToPdf(
+  input: OpspPdfRender & { path: string },
+): Promise<Buffer> {
   let browser;
   try {
     browser = await chromium.launch({ headless: true });
@@ -101,7 +106,7 @@ export async function renderOpspPdf(input: OpspPdfRender): Promise<Buffer> {
         },
       ]);
       const page = await context.newPage();
-      await page.goto(`${input.origin}/opsp/print`, { waitUntil: "load" });
+      await page.goto(`${input.origin}${input.path}`, { waitUntil: "load" });
       // The grid is server-rendered, so waiting for it is also the guard that
       // the route did not bounce an unauthenticated visitor back to claim.
       await page.locator('[data-testid="opsp-grid"]').first().waitFor();
@@ -113,4 +118,34 @@ export async function renderOpspPdf(input: OpspPdfRender): Promise<Buffer> {
   } finally {
     await browser.close();
   }
+}
+
+/**
+ * Render the respondent's own individual print route (/opsp/print) to a PDF
+ * buffer (F08-T03). The F08 export path, unchanged — a convenience over the
+ * shared renderer for the individual sheet.
+ */
+export async function renderOpspPdf(input: OpspPdfRender): Promise<Buffer> {
+  return renderPrintRouteToPdf({ ...input, path: "/opsp/print" });
+}
+
+/**
+ * The official OPSP print route this PDF renderer drives (F15-T07, FR-42),
+ * /admin/official-opsp/print — the same read-only grid, print stylesheet and
+ * export header the facilitator's browser print produces, so the server PDF
+ * and the client print of the official plan are equivalent by construction.
+ */
+export const OFFICIAL_PRINT_ROUTE = "/admin/official-opsp/print";
+
+/**
+ * Render the official OPSP print route to a PDF buffer (F15-T07, FR-42).
+ * Reuses the F08 print pipeline: a valid session cookie is seeded and the
+ * read-only official sheet — the same markup the facilitator's browser print
+ * uses — is rendered through the shared print stylesheet. The sheet is built
+ * from the official `opsp_drafts` cells alone, so no `is_private` answer row
+ * ever reaches the export (the official draft never carried one; enforced at
+ * the query level for the answer picker in official-source-cards.ts).
+ */
+export async function renderOfficialOpspPdf(input: OpspPdfRender): Promise<Buffer> {
+  return renderPrintRouteToPdf({ ...input, path: OFFICIAL_PRINT_ROUTE });
 }

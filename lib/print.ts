@@ -9,6 +9,14 @@
 
 export const PRINT_DRAFT_LABEL = "Your draft — not the company's plan";
 
+// F15-T07 — the printed official OPSP sheet's label (FR-42, tech_infrastructure
+// §4, ui_ux §4.20). Unlike the respondent's own plan, the official canvas is
+// the company's plan, so the export header carries that identity rather than
+// the FR-23 "Your draft — not the company's plan" wording. Same deterministic
+// string, same header line, so the official print sheet and its PDF export
+// agree by construction, exactly as the individual print route does.
+export const OFFICIAL_PRINT_LABEL = "Official One-Page Strategic Plan";
+
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",

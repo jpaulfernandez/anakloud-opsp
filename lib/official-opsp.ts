@@ -374,6 +374,147 @@ export async function latestOfficialDraft(
 }
 
 /**
+ * A named, immutable version snapshot of the official OPSP (F15-T07, FR-42).
+ * Taking a snapshot records the current plan's cells under a label (e.g. "Q4
+ * 2026 v1") as a NEW `opsp_drafts` row. Because every official write — edits,
+ * drafts, decisions, snapshots alike — is an insert that never updates a prior
+ * row, a snapshot can never be changed after it is taken: the immutability is
+ * the versioning contract itself, not an extra rule the edit path must
+ * remember. The snapshot row carries the same cells the plan had at the moment
+ * it was taken, so "Q4 2026 v1" stays exactly the plan that was current then,
+ * no matter how many edits land afterwards.
+ */
+export interface OfficialSnapshot {
+  id: string;
+  version: number;
+  label: string;
+  cells: Record<OpspCellId, OfficialCell>;
+}
+
+/** The longest a snapshot label may be; a label is a short human name. */
+export const OFFICIAL_SNAPSHOT_MAX_LABEL = 80;
+
+/**
+ * Validate and normalise a snapshot label (F15-T07). Pure: no I/O. A label
+ * must be a non-empty, trimmed string no longer than the cap; anything else
+ * (missing, not a string, whitespace-only, over-length) returns null so the
+ * route can answer a single 400.
+ */
+export function parseOfficialSnapshotLabel(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const label = value.trim();
+  if (label.length === 0 || label.length > OFFICIAL_SNAPSHOT_MAX_LABEL) return null;
+  return label;
+}
+
+/**
+ * Record a named snapshot of the cohort's official plan (F15-T07, FR-42),
+ * writing the current cells under `label` as a NEW draft version. The snapshot
+ * row is immutable by the versioning contract — every later edit writes another
+ * version and never touches this one. Runs inside the facilitator's RLS context
+ * (so only the cohort's facilitator can snapshot), and the single write is
+ * `insert into opsp_drafts` — the answers table is never touched (PR5). Throws
+ * `OfficialDraftNotFoundError` when the cohort has no official draft yet.
+ */
+export async function takeOfficialSnapshot(
+  db: ClientBase,
+  facilitatorId: string,
+  cohortId: string,
+  label: string,
+): Promise<OfficialSnapshot> {
+  return withRespondentContext(db, facilitatorId, async (tx) => {
+    const current = await latestOfficialDraft(tx, cohortId);
+    if (!current) throw new OfficialDraftNotFoundError();
+
+    const { rows } = await tx.query<{ next: number }>(
+      `select coalesce(max(version), 0) + 1 as next
+         from opsp_drafts
+        where owner_type = 'official' and cohort_id = $1`,
+      [cohortId],
+    );
+
+    const snapshotId = randomUUID();
+    const next = rows[0].next;
+
+    await tx.query(
+      `insert into opsp_drafts
+         (id, cohort_id, owner_type, owner_id, version, cells, label)
+       values ($1, $2, 'official', null, $3, $4::jsonb, $5)`,
+      [snapshotId, cohortId, next, JSON.stringify(current.cells), label],
+    );
+
+    return { id: snapshotId, version: next, label, cells: current.cells };
+  });
+}
+
+/**
+ * The cohort's named snapshots, newest first (F15-T07, FR-42). Only rows with a
+ * non-blank label count as snapshots; plain working versions the edit path
+ * writes (label null) are not history entries. Runs inside the facilitator's
+ * RLS context so only the cohort's facilitator can list its version history.
+ */
+export async function listOfficialSnapshots(
+  db: ClientBase,
+  facilitatorId: string,
+  cohortId: string,
+): Promise<OfficialSnapshot[]> {
+  return withRespondentContext(db, facilitatorId, async (tx) => {
+    const { rows } = await tx.query<
+      { id: string; version: number; label: string | null; cells: unknown }
+    >(
+      `select id, version, label, cells
+         from opsp_drafts
+        where owner_type = 'official' and cohort_id = $1
+          and label is not null and length(trim(label)) > 0
+        order by version desc`,
+      [cohortId],
+    );
+    return rows
+      .filter((row) => row.label !== null)
+      .map((row) => ({
+        id: row.id,
+        version: row.version,
+        label: row.label as string,
+        cells: toOfficialCells(row.cells as Record<OpspCellId, OpspCell>),
+      }));
+  });
+}
+
+/**
+ * Fetch one named snapshot by its version number (F15-T07, FR-42), for a
+ * read-only view of what the official plan was at that snapshot. Returns null
+ * when the version is not a snapshot. Runs inside the facilitator's RLS context
+ * like every other official-draft read.
+ */
+export async function getOfficialSnapshot(
+  db: ClientBase,
+  facilitatorId: string,
+  cohortId: string,
+  version: number,
+): Promise<OfficialSnapshot | null> {
+  return withRespondentContext(db, facilitatorId, async (tx) => {
+    const { rows } = await tx.query<
+      { id: string; version: number; label: string | null; cells: unknown }
+    >(
+      `select id, version, label, cells
+         from opsp_drafts
+        where owner_type = 'official' and cohort_id = $1
+          and version = $2 and label is not null and length(trim(label)) > 0
+        limit 1`,
+      [cohortId, version],
+    );
+    const row = rows[0];
+    if (!row || row.label === null) return null;
+    return {
+      id: row.id,
+      version: row.version,
+      label: row.label,
+      cells: toOfficialCells(row.cells as Record<OpspCellId, OpspCell>),
+    };
+  });
+}
+
+/**
  * Write a new version of the cohort's official plan from a complete next set
  * of cells, leaving every prior version untouched (FR-26 lineage semantics).
  * Runs inside an already-open respondent context; the single write is

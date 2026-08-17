@@ -129,3 +129,39 @@ describe("F15-T06 cell provenance", () => {
     }
   });
 });
+
+describe("F15-T07 official export and snapshots (FR-42, spec.md §8)", () => {
+  // The official OPSP export must exclude is_private rows from every export.
+  // That exclusion is structural: the official draft is authored content whose
+  // source cards were themselves filtered at the picker query level
+  // (official-source-cards.ts filters is_private = false in the SQL), and the
+  // print/PDF path reads only `opsp_drafts` cells — it never reads the answers
+  // table at all. These source pins keep that guarantee honest if a future
+  // export begins reading answers.
+  const sources = [
+    "app/admin/official-opsp/print/page.tsx",
+    "app/admin/official-opsp/OfficialOPSPPrintSheet.tsx",
+    "app/api/admin/official-opsp/export/route.ts",
+  ];
+
+  it("the official print and export paths never query the answers table", () => {
+    for (const file of sources) {
+      const src = readFileSync(resolve(file), "utf8");
+      expect(src).not.toMatch(/listPublicAnswers/);
+      expect(src).not.toMatch(/from answers/);
+      expect(src).not.toMatch(/upsertAnswer/);
+    }
+  });
+
+  it("the official print path reads its cells from the official draft loader", () => {
+    const printPage = readFileSync(resolve(sources[0]), "utf8");
+    expect(printPage).toMatch(/getOrCreateOfficialDraft/);
+    expect(printPage).not.toMatch(/insert into/);
+  });
+
+  it("the snapshot lib writes only a labelled opsp_drafts version (never an answers write)", () => {
+    const lib = readFileSync(resolve("lib/official-opsp.ts"), "utf8");
+    expect(lib).not.toMatch(/upsertAnswer/);
+    expect(lib).not.toMatch(/insert into answers/);
+  });
+});

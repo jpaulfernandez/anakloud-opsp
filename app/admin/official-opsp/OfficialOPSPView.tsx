@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   OPSP_CELL_IDS,
   type OpspCellId,
@@ -15,7 +15,7 @@ import {
   currentCellMark,
   resolveOpspCellState,
 } from "@/lib/opsp-state";
-import type { OfficialCell } from "@/lib/official-opsp";
+import type { OfficialCell, OfficialSnapshot } from "@/lib/official-opsp";
 import type { SourceCardCandidate } from "@/lib/official-source-cards";
 
 // F15-T01 + F15-T02 — the official OPSP canvas (FR-36, FR-37, ui_ux.md §4.20).
@@ -80,6 +80,73 @@ export function OfficialOPSPView({
   // refused synthesis offers. It picks one of the two positions; the server
   // stores that position as the cell content with a note of who chose it.
   const [recordingId, setRecordingId] = useState<OpspCellId | null>(null);
+
+  // F15-T07 — named version snapshots (FR-42). A snapshot records the plan as
+  // it is now and never changes; the list loads once on mount and a snapshot
+  // can be viewed read-only. `viewing` holds the snapshot's cells while the
+  // facilitator looks back at history; `viewCells` is whichever set the grid
+  // should render (the working cells or the viewed snapshot's).
+  const [snapshots, setSnapshots] = useState<OfficialSnapshot[] | null>(null);
+  const [snapshotName, setSnapshotName] = useState("");
+  const [snapshotSaving, setSnapshotSaving] = useState(false);
+  const [viewing, setViewing] = useState<OfficialSnapshot | null>(null);
+
+  // Load the version history once, on first open. History is read-only; a
+  // failed load leaves the list empty rather than erroring the canvas.
+  useEffect(() => {
+    fetch("/api/admin/official-opsp/snapshots")
+      .then((res) => (res.ok ? (res.json() as Promise<{ snapshots?: unknown }>) : null))
+      .then((data) => {
+        if (data && Array.isArray(data.snapshots)) {
+          setSnapshots(data.snapshots as OfficialSnapshot[]);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // F15-T07 — take a named snapshot of the working plan (POST
+  // /api/admin/official-opsp/snapshots). The server records the current cells
+  // under the name as a new immutable version; we prepend it to the history.
+  async function takeSnapshot() {
+    if (snapshotSaving) return;
+    const label = snapshotName.trim();
+    if (label === "") return;
+    setSnapshotSaving(true);
+    try {
+      const res = await fetch("/api/admin/official-opsp/snapshots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { snapshot: OfficialSnapshot };
+      setSnapshotName("");
+      setSnapshots((prev) => [data.snapshot, ...(prev ?? [])]);
+    } finally {
+      setSnapshotSaving(false);
+    }
+  }
+
+  // Load one snapshot's cells for a read-only look back at a named version.
+  async function viewSnapshot(version: number) {
+    const res = await fetch(`/api/admin/official-opsp/snapshots/${version}`);
+    if (!res.ok) return;
+    const data = (await res.json()) as { snapshot: OfficialSnapshot };
+    setViewing(data.snapshot);
+  }
+
+  // Leave a snapshot view and return to the working plan.
+  function backToWorking() {
+    setViewing(null);
+  }
+
+  // F15-T07 — PDF export (FR-42): the server renders the official print route
+  // through the shared F08 print stylesheet at /api/admin/official-opsp/export
+  // and answers application/pdf. Navigating there (this same-origin fetch
+  // carries the session cookie) hands the facilitator the rendered plan.
+  function exportPdf() {
+    window.location.href = "/api/admin/official-opsp/export";
+  }
 
   async function openPicker(id: OpspCellId) {
     setPickerCellId(id);
@@ -314,6 +381,11 @@ export function OfficialOPSPView({
     }
   }
 
+  // F15-T07 — whether the canvas is showing a snapshot (read-only) vs the
+  // working plan, and which cell set the grid renders.
+  const readOnly = viewing !== null;
+  const viewCells = viewing ? viewing.cells : cells;
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 text-base">
       <header data-testid="official-opsp-header" className="max-w-2xl">
@@ -327,13 +399,124 @@ export function OfficialOPSPView({
         </p>
       </header>
 
-      <p
-        data-testid="official-opsp-editing-note"
-        className="mt-4 max-w-2xl rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-700"
-      >
-        Edits here write the official plan, not the raw answers. Those stay as
-        they were submitted.
-      </p>
+      {/* F15-T07 — a snapshot view is read-only: the grid shows the named
+          version's cells, authoring controls are hidden, and a single Back
+          action returns to the working plan. */}
+      {readOnly && viewing ? (
+        <div
+          data-testid="official-snapshot-viewing"
+          className="mt-4 flex max-w-2xl flex-wrap items-center justify-between gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3"
+        >
+          <p className="text-sm leading-relaxed text-neutral-700">
+            Viewing snapshot{" "}
+            <span className="font-medium text-neutral-900">
+              {viewing.label}
+            </span>{" "}
+            (v{viewing.version}) — a frozen copy of the plan as it was.
+          </p>
+          <button
+            type="button"
+            data-testid="official-snapshot-back"
+            onClick={backToWorking}
+            className="rounded border border-neutral-300 px-2 py-0.5 text-[11px] font-medium text-neutral-700 hover:border-neutral-400 hover:text-neutral-900"
+          >
+            Back to the working plan
+          </button>
+        </div>
+      ) : (
+        <>
+          <p
+            data-testid="official-opsp-editing-note"
+            className="mt-4 max-w-2xl rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-700"
+          >
+            Edits here write the official plan, not the raw answers. Those stay
+            as they were submitted.
+          </p>
+
+          {/* F15-T07 — version history and PDF export (FR-42). Name the current
+              plan to record it as a snapshot; a snapshot never changes, however
+              much you edit afterwards. The list loads from the server and each
+              snapshot can be viewed read-only. Export PDF renders the official
+              plan through the shared F08 print stylesheet. */}
+          <section
+            data-testid="official-version-history"
+            className="mt-4 max-w-2xl rounded-lg border border-neutral-200 bg-white px-4 py-3"
+          >
+            <h2 className="text-sm font-semibold tracking-wide text-neutral-500 uppercase">
+              Version history and export
+            </h2>
+            <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+              Name the plan to freeze it as a snapshot. Snapshot copies never
+              change, even as you keep editing.
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <label
+                data-testid="official-snapshot-label"
+                className="text-xs font-medium text-neutral-600"
+                htmlFor="official-snapshot-name"
+              >
+                Snapshot name
+              </label>
+              <input
+                id="official-snapshot-name"
+                data-testid="official-snapshot-name"
+                value={snapshotName}
+                onChange={(e) => setSnapshotName(e.target.value)}
+                aria-labelledby="official-snapshot-label"
+                className="w-44 rounded border border-neutral-300 bg-white px-2 py-1 text-sm text-neutral-900 focus:border-neutral-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                data-testid="official-snapshot-take"
+                onClick={takeSnapshot}
+                disabled={snapshotSaving || snapshotName.trim() === ""}
+                className="rounded border border-neutral-900 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
+              >
+                {snapshotSaving ? "Saving…" : "Take snapshot"}
+              </button>
+              <span className="flex-1" />
+              <button
+                type="button"
+                data-testid="official-export-pdf"
+                onClick={exportPdf}
+                className="rounded border border-neutral-300 px-2 py-0.5 text-[11px] font-medium text-neutral-700 hover:border-neutral-400 hover:text-neutral-900"
+              >
+                Export PDF
+              </button>
+            </div>
+            <div data-testid="official-snapshot-list" className="mt-3 space-y-1">
+              {snapshots === null ? (
+                <p className="text-xs text-neutral-500">Loading…</p>
+              ) : snapshots.length === 0 ? (
+                <p className="text-xs text-neutral-500">No snapshots yet.</p>
+              ) : (
+                snapshots.map((snapshot) => (
+                  <div
+                    key={snapshot.id}
+                    data-testid={`official-snapshot-${snapshot.version}`}
+                    className="flex items-center justify-between gap-2 rounded border border-neutral-200 bg-neutral-50 px-2 py-1"
+                  >
+                    <span className="text-sm text-neutral-800">
+                      {snapshot.label}{" "}
+                      <span className="text-xs text-neutral-400">
+                        (v{snapshot.version})
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      data-testid={`official-snapshot-view-${snapshot.version}`}
+                      onClick={() => viewSnapshot(snapshot.version)}
+                      className="rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
+                    >
+                      View
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        </>
+      )}
 
       <section
         data-testid="official-opsp-grid"
@@ -341,7 +524,7 @@ export function OfficialOPSPView({
         className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2"
       >
         {OPSP_CELL_IDS.map((id) => {
-          const cell = cells[id];
+          const cell = viewCells[id];
           if (!cell) return null;
           const state = resolveOpspCellState(cell);
           const editing = editingId === id;
@@ -370,15 +553,17 @@ export function OfficialOPSPView({
                 <h2 className="text-sm font-semibold tracking-wide text-neutral-500 uppercase">
                   {OPSP_CELL_LABELS[id]}
                 </h2>
-                <button
-                  type="button"
-                  data-testid={`opsp-cell-edit-${id}`}
-                  onClick={() => (editing ? undefined : beginEdit(id))}
-                  aria-label={`Edit ${OPSP_CELL_LABELS[id]}`}
-                  className="shrink-0 rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
-                >
-                  Edit
-                </button>
+                {readOnly ? null : (
+                  <button
+                    type="button"
+                    data-testid={`opsp-cell-edit-${id}`}
+                    onClick={() => (editing ? undefined : beginEdit(id))}
+                    aria-label={`Edit ${OPSP_CELL_LABELS[id]}`}
+                    className="shrink-0 rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
 
               {editing ? (
@@ -460,6 +645,12 @@ export function OfficialOPSPView({
                     </p>
                   ) : null}
 
+                  {/* F15-T07 — every authoring control (source cards, synthesis,
+                      conflict decisions, drafts) belongs to the working plan. A
+                      snapshot is a frozen copy of the plan's cells, so none of
+                      it appears in a read-only snapshot view. */}
+                  {!readOnly ? (
+                  <>
                   <button
                     type="button"
                     data-testid={`opsp-add-source-${id}`}
@@ -732,6 +923,8 @@ export function OfficialOPSPView({
                         </div>
                       ) : null}
                     </div>
+                  ) : null}
+                  </>
                   ) : null}
                 </>
               )}
