@@ -2,7 +2,7 @@
 
 **Single source of truth for status.** Do not record status anywhere else — not in feature folders, not in commit messages, not in code comments.
 
-**Last updated:** 2026-08-17 · **Current phase:** P3 · **Tickets:** 94 · **Done:** 88
+**Last updated:** 2026-08-17 · **Current phase:** P3 · **Tickets:** 94 · **Done:** 89
 
 ---
 
@@ -221,7 +221,7 @@ A feature is not `Done` while any of its tickets is `Blocked` or `Dropped` witho
 | ID | Ticket | Status | Notes |
 |---|---|---|---|
 | F15-T01 | Official OPSP canvas | Done | |
-| F15-T02 | Source cards | Not started | |
+| F15-T02 | Source cards | Done | |
 | F15-T03 | Compatibility classification | Not started | |
 | F15-T04 | Synthesis with the conflict guard | Not started | |
 | F15-T05 | Conflict result state | Not started | |

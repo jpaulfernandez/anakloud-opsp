@@ -36,34 +36,92 @@ export class OfficialDraftNotFoundError extends Error {
   }
 }
 
+/**
+ * One respondent's answer attached to an official cell (F15-T02, FR-37,
+ * ui_ux.md §4.20). The card is self-contained — it carries the respondent's
+ * name (attribution), the question the answer came from, and a preformatted
+ * text rendering of the answer — so it renders under the cell without a join
+ * and survives version snapshots. `text` is computed once at attach time from
+ * the stored answer via the same formatter the review screen uses; it is never
+ * re-derived at render, so a card is stable even if answer formatting changes.
+ * The card stores a snapshot of the answer, never a reference whose later
+ * silence would leave a hole.
+ */
+export interface OfficialSourceCard {
+  /** Stable id; removal targets a specific card. */
+  id: string;
+  respondentId: string;
+  /** Attribution label shown on the card. */
+  respondentName: string;
+  /** The source question ('q1'..'q15'); never 'q14d'. */
+  questionId: string;
+  /** The answer rendered to readable text at attach time. */
+  text: string;
+}
+
+/**
+ * An official OPSP cell: the same OpspCell shape as the individual plan plus
+ * the source cards attached to it. The official canvas starts without any
+ * published cell content but can carry cards under each cell as the
+ * facilitator pulls answers in from the cohort.
+ */
+export interface OfficialCell extends OpspCell {
+  sourceCards: OfficialSourceCard[];
+}
+
+/** Ensure an OpspCell (possibly a pre-F15-T02 row) carries a sourceCards array. */
+function toOfficialCell(cell: OpspCell): OfficialCell {
+  const sourceCards = Array.isArray((cell as Partial<OfficialCell>).sourceCards)
+    ? (cell as OfficialCell).sourceCards
+    : [];
+  return { ...cell, sourceCards };
+}
+
+function toOfficialCells(
+  cells: Record<OpspCellId, OpspCell>,
+): Record<OpspCellId, OfficialCell> {
+  const out = {} as Record<OpspCellId, OfficialCell>;
+  for (const id of OPSP_CELL_IDS) out[id] = toOfficialCell(cells[id] as OpspCell);
+  return out;
+}
+
 /** A cohort's latest official OPSP draft row. */
 export interface OfficialDraft {
   id: string;
   version: number;
-  cells: Record<OpspCellId, OpspCell>;
+  cells: Record<OpspCellId, OfficialCell>;
 }
 
 /**
  * The blank opening canvas for the official OPSP: all sixteen cells present,
  * each an empty pencil cell so the grid matches the individual OPSP's structure
  * with nothing pre-filled (ui_ux.md §4.20 "nothing invented to fill a hole" —
- * the collaborative plan is authored, not auto-derived).
+ * the collaborative plan is authored, not auto-derived). No source cards yet.
  */
-export function emptyOfficialCells(): Record<OpspCellId, OpspCell> {
-  const cells = {} as Record<OpspCellId, OpspCell>;
+export function emptyOfficialCells(): Record<OpspCellId, OfficialCell> {
+  const cells = {} as Record<OpspCellId, OfficialCell>;
   for (const id of OPSP_CELL_IDS) {
     cells[id] = {
       value: null,
       marking: { type: "single", mark: "pencil" },
       sources: [],
       lowConfidence: false,
+      sourceCards: [],
     };
   }
   return cells;
 }
 
-/** The cohort's latest official draft, or null when no official draft exists. */
-async function latestOfficialDraft(
+/**
+ * The cohort's latest official draft, or null when no official draft exists.
+ * Cells are normalised to OfficialCell so legacy rows written before F15-T02
+ * (which had no sourceCards field) read back with an empty card list rather
+ * than an undefined one. Runs inside an already-open respondent context (the
+ * caller owns the withRespondentContext), so it can be composed with attach /
+ * remove in a single transaction. Exported for the source-card path to read
+ * the latest cells inside its own context.
+ */
+export async function latestOfficialDraft(
   db: ClientBase,
   cohortId: string,
 ): Promise<OfficialDraft | null> {
@@ -80,8 +138,39 @@ async function latestOfficialDraft(
   return {
     id: row.id,
     version: row.version,
-    cells: row.cells as Record<OpspCellId, OpspCell>,
+    cells: toOfficialCells(row.cells as Record<OpspCellId, OpspCell>),
   };
+}
+
+/**
+ * Write a new version of the cohort's official plan from a complete next set
+ * of cells, leaving every prior version untouched (FR-26 lineage semantics).
+ * Runs inside an already-open respondent context; the single write is
+ * `insert into opsp_drafts` — the answers table is never touched (PR5).
+ * Returns the new version number. Shared by the cell-edit path and the
+ * source-card attach/remove path so both go through the same versioning.
+ */
+export async function writeOfficialCellsVersion(
+  db: ClientBase,
+  cohortId: string,
+  cells: Record<OpspCellId, OpspCell>,
+): Promise<number> {
+  const { rows } = await db.query<{ next: number }>(
+    `select coalesce(max(version), 0) + 1 as next
+       from opsp_drafts
+      where owner_type = 'official' and cohort_id = $1`,
+    [cohortId],
+  );
+  const next = rows[0].next;
+
+  await db.query(
+    `insert into opsp_drafts
+       (id, cohort_id, owner_type, owner_id, version, cells)
+     values ($1, $2, 'official', null, $3, $4::jsonb)`,
+    [randomUUID(), cohortId, next, JSON.stringify(cells)],
+  );
+
+  return next;
 }
 
 /**
@@ -131,41 +220,35 @@ export async function getOrCreateOfficialDraft(
  * version untouched (FR-26 lineage semantics, same as the individual OPSP).
  * Runs inside the facilitator's RLS context, so only the cohort's facilitator
  * can author, and the single write is `insert into opsp_drafts` — the answers
- * table is never touched (PR5). Returns the new version and its cells.
+ * table is never touched (PR5). Source cards attached to the targeted cell are
+ * carried over unchanged, so editing a cell's text never detaches its cards.
+ * Returns the new version and its cells.
  */
 export async function createOfficialDraftVersion(
   db: ClientBase,
   facilitatorId: string,
   cohortId: string,
   edit: { cellId: OpspCellId; content?: string | null; mark?: "ink" | "pencil" },
-): Promise<{ version: number; cells: Record<OpspCellId, OpspCell> }> {
+): Promise<{ version: number; cells: Record<OpspCellId, OfficialCell> }> {
   return withRespondentContext(db, facilitatorId, async (tx) => {
     const current = await latestOfficialDraft(tx, cohortId);
     if (!current) throw new OfficialDraftNotFoundError();
     const target = current.cells[edit.cellId];
     if (!target) throw new OfficialDraftNotFoundError();
 
-    const { rows } = await tx.query<{ next: number }>(
-      `select coalesce(max(version), 0) + 1 as next
-         from opsp_drafts
-        where owner_type = 'official' and cohort_id = $1`,
-      [cohortId],
-    );
-    const next = rows[0].next;
-
-    const updated: Record<OpspCellId, OpspCell> = {
-      ...current.cells,
-      [edit.cellId]: applyCellEdit(target, edit),
+    const edited: OfficialCell = {
+      ...applyCellEdit(target, edit),
+      sourceCards: target.sourceCards,
     };
 
-    await tx.query(
-      `insert into opsp_drafts
-         (id, cohort_id, owner_type, owner_id, version, cells)
-       values ($1, $2, 'official', null, $3, $4::jsonb)`,
-      [randomUUID(), cohortId, next, JSON.stringify(updated)],
-    );
+    const updated: Record<OpspCellId, OfficialCell> = {
+      ...current.cells,
+      [edit.cellId]: edited,
+    };
 
-    return { version: next, cells: updated };
+    const version = await writeOfficialCellsVersion(tx, cohortId, updated);
+
+    return { version, cells: updated };
   });
 }
 

@@ -270,6 +270,63 @@ export async function listPublicAnswersForCohort(
   return rows as AnswerRow[];
 }
 
+/** One non-private answer with its respondent's name, for the source-card picker. */
+export interface SourceAnswerRow {
+  respondent_id: string;
+  respondent_name: string;
+  question_id: string;
+  value: unknown;
+}
+
+/**
+ * Cohort-wide public answers with respondent names — the pool behind the
+ * official source-card picker (F15-T02, FR-37). Private rows are filtered in
+ * the SQL exactly like every public read (F01-T03), so the cohort's Q14(d)
+ * notes are structurally absent and the picker can never offer one. Must run
+ * inside the facilitator's RLS context (withRespondentContext) for cohort-wide
+ * answers to be visible. Ordered by respondent then question for a stable picker.
+ */
+export async function listSourceAnswerRows(
+  db: ClientBase,
+  cohortId: string,
+): Promise<SourceAnswerRow[]> {
+  const { rows } = await db.query<SourceAnswerRow>(
+    `select a.respondent_id, r.display_name as respondent_name,
+            a.question_id, a.value
+       from answers a
+       join respondents r on r.id = a.respondent_id
+      where r.cohort_id = $1 and a.is_private = false
+      order by r.display_name asc, r.id asc, a.question_id asc`,
+    [cohortId],
+  );
+  return rows;
+}
+
+/**
+ * One respondent's non-private answer to a question, or null when it is
+ * absent, private, or out of cohort — the source-card attach re-verification
+ * (F15-T02). A 'q14d' request never matches here because its row carries
+ * `is_private = true`, so the private note cannot be attached even if the
+ * caller names it directly. Must run inside the facilitator's RLS context.
+ */
+export async function findPublicSourceAnswer(
+  db: ClientBase,
+  cohortId: string,
+  respondentId: string,
+  questionId: string,
+): Promise<SourceAnswerRow | null> {
+  const { rows } = await db.query<SourceAnswerRow>(
+    `select a.respondent_id, r.display_name as respondent_name,
+            a.question_id, a.value
+       from answers a
+       join respondents r on r.id = a.respondent_id
+      where a.respondent_id = $1 and a.question_id = $2
+        and r.cohort_id = $3 and a.is_private = false`,
+    [respondentId, questionId, cohortId],
+  );
+  return rows[0] ?? null;
+}
+
 /** One cohort answer row as the CSV export (F10-T05) needs it. */
 export interface CohortAnswerRow {
   respondent_id: string;
