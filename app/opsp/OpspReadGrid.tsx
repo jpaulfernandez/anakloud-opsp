@@ -47,18 +47,24 @@ export function OpspReadGrid({ cells, isPrintMode = false }: OpspReadGridProps) 
     }
 
     if (def.kind === "metrics") {
-      const obj = typeof value === "object" ? (value as Record<string, string>) : {};
-      const labels = def.rowLabels ?? Object.keys(obj);
-      const hasAny = labels.some((l) => Boolean(obj[l]));
+      let entries: Array<[string, string]> = [];
+      if (Array.isArray(value)) {
+        entries = value.map((r) => [String(r.label || ""), String(r.value || "")]);
+      } else if (typeof value === "object" && value !== null) {
+        const obj = value as Record<string, string>;
+        const keys = Object.keys(obj).length > 0 ? Object.keys(obj) : (def.rowLabels ?? []);
+        entries = keys.map((k) => [k, obj[k] ?? ""]);
+      }
+      const hasAny = entries.some(([k, v]) => Boolean(k.trim() || v.trim()));
       if (!hasAny) {
         return <span className="text-stone-300 select-none font-serif">—</span>;
       }
       return (
         <div className="space-y-0.5 text-2xs leading-tight">
-          {labels.map((lbl) => (
-            <div key={lbl} className="flex items-baseline justify-between gap-1 border-b border-stone-100 last:border-0 pb-0.5">
-              <span className="text-stone-500 font-medium truncate">{lbl}:</span>
-              <span className="font-semibold text-stone-900 truncate">{obj[lbl] || "—"}</span>
+          {entries.map(([lbl, val], idx) => (
+            <div key={idx} className="flex items-baseline justify-between gap-1 border-b border-stone-100 last:border-0 pb-0.5">
+              <span className="text-stone-500 font-medium truncate">{lbl || "Metric"}:</span>
+              <span className="font-semibold text-stone-900 truncate">{val || "—"}</span>
             </div>
           ))}
         </div>
