@@ -17,6 +17,8 @@ import {
   type ProviderRequest,
 } from "@/lib/ai-gateway";
 import { aiApiKey, loadConfig } from "@/lib/config";
+import { createDbClient } from "@/lib/db";
+import { getPlanPayload } from "@/lib/opsp-plan-db";
 
 export async function POST(request: Request) {
   let body: { cellId?: string; currentContent?: unknown };
@@ -32,7 +34,28 @@ export async function POST(request: Request) {
   }
 
   const cellDef = CELL_REGISTRY_MAP[cellId];
-  const surveyAnswers = getSurveyAnswersForCell(cellId);
+  
+  let db = null;
+  try {
+    db = createDbClient();
+    await db.connect();
+  } catch {
+    db = null;
+  }
+
+  let surveyAnswers = getSurveyAnswersForCell(cellId);
+  try {
+    const payload = await getPlanPayload(db, "room");
+    if (payload.surveyAnswers[cellId] && payload.surveyAnswers[cellId].length > 0) {
+      surveyAnswers = payload.surveyAnswers[cellId];
+    }
+  } finally {
+    if (db) {
+      try {
+        await db.end();
+      } catch {}
+    }
+  }
 
   const config = loadConfig();
   const apiKey = aiApiKey();

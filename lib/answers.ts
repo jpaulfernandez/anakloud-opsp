@@ -327,6 +327,31 @@ export async function findPublicSourceAnswer(
   return rows[0] ?? null;
 }
 
+export interface PublicAnswerWithRespondent {
+  display_name: string;
+  question_id: string;
+  value: Record<string, unknown>;
+  confidence: number | null;
+}
+
+/**
+ * Public submitted answers with respondent display names, used by the OPSP plan source panel.
+ * Private rows (Q14d) are filtered in the SQL.
+ */
+export async function listPublicSubmittedAnswersWithNames(
+  db: ClientBase,
+): Promise<PublicAnswerWithRespondent[]> {
+  const { rows } = await db.query<PublicAnswerWithRespondent>(
+    `select r.display_name, a.question_id, a.value, a.confidence
+       from answers a
+       join respondents r on a.respondent_id = r.id
+      where a.is_private = false
+        and r.submitted_at is not null
+      order by a.question_id, r.display_name`,
+  );
+  return rows;
+}
+
 /** One cohort answer row as the CSV export (F10-T05) needs it. */
 export interface CohortAnswerRow {
   respondent_id: string;
