@@ -233,8 +233,11 @@ export function geminiProvider(apiKey: string): AIProvider {
         body.toolConfig = { functionCallingConfig: { mode: "ANY" } };
       }
 
+      const modelName = req.model.startsWith("models/")
+        ? req.model.slice(7)
+        : req.model;
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${req.model}:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`,
         {
           method: "POST",
           headers: {

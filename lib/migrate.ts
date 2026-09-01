@@ -237,6 +237,22 @@ export const MIGRATIONS: Migration[] = [
     up: `alter table ai_interactions add column if not exists blocked_reason text;`,
     down: `alter table ai_interactions drop column if exists blocked_reason;`,
   },
+  {
+    version: "0013_opsp_plan_cell_values",
+    // Persistence for the 33-cell OPSP working plan values. Single-tenant by
+    // default ('default' plan_id) with support for multiple plans/versions later.
+    up: `create table if not exists opsp_plan_cell_values (
+           plan_id    text not null default 'default',
+           cell_id    text not null,
+           content    jsonb not null,
+           updated_at timestamptz not null default now(),
+           updated_by text not null default 'system',
+           primary key (plan_id, cell_id)
+         );
+         create index if not exists opsp_plan_cell_values_plan_idx
+           on opsp_plan_cell_values (plan_id);`,
+    down: `drop table if exists opsp_plan_cell_values;`,
+  },
 ];
 
 async function withTransaction<T>(

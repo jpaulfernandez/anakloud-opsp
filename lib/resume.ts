@@ -54,14 +54,21 @@ export function normalizeResumeCode(raw: string): string {
   return raw.trim().toUpperCase();
 }
 
-/** True only when the code is exactly six symbols from the unambiguous set. */
+/**
+ * True when the code is either:
+ * 1. exactly six symbols from the unambiguous set (standard generated code), or
+ * 2. a named hyphenated code (e.g. "HANNAH-4829").
+ */
 export function isValidResumeCode(raw: string): boolean {
   const normalized = normalizeResumeCode(raw);
-  if (normalized.length !== RESUME_CODE_LENGTH) return false;
-  for (const ch of normalized) {
-    if (!RESUME_ALPHABET.includes(ch)) return false;
+  if (normalized.length === RESUME_CODE_LENGTH) {
+    for (const ch of normalized) {
+      if (!RESUME_ALPHABET.includes(ch)) return false;
+    }
+    return true;
   }
-  return true;
+  // Allow hyphenated custom codes like "HANNAH-4829"
+  return /^[A-Z0-9]{2,16}-[A-Z0-9]{2,16}$/.test(normalized);
 }
 
 export interface RateLimitDecision {

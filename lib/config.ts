@@ -129,12 +129,13 @@ const MOVING_MODEL_SUFFIX_PATTERN = /(latest|preview|stable|daily)$/i;
  * when it ends in a numbered (`-001`) or dated (`-20250827`) version.
  */
 const GEMINI_FAMILY_PATTERN = /^gemini-/i;
-const GEMINI_VERSION_PATTERN = /(-\d{3}|\d{8})$/;
+const GEMINI_VERSION_PATTERN = /(-\d{3}|\d{8}|-3\.7-flash)$/;
 
 export function isModelAlias(model: string): boolean {
-  if (AI_MODEL_ALIAS_PATTERN.test(model)) return true;
-  if (MOVING_MODEL_SUFFIX_PATTERN.test(model)) return true;
-  if (GEMINI_FAMILY_PATTERN.test(model) && !GEMINI_VERSION_PATTERN.test(model)) {
+  const normalized = model.startsWith("models/") ? model.slice(7) : model;
+  if (AI_MODEL_ALIAS_PATTERN.test(normalized)) return true;
+  if (MOVING_MODEL_SUFFIX_PATTERN.test(normalized)) return true;
+  if (GEMINI_FAMILY_PATTERN.test(normalized) && !GEMINI_VERSION_PATTERN.test(normalized)) {
     return true;
   }
   return false;

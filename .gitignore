@@ -3,6 +3,7 @@ node_modules/
 .next/
 .env
 .env.local
+env
 .loop-logs/
 test-results/
 playwright-report/

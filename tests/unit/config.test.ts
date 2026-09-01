@@ -205,6 +205,8 @@ describe("AI_MODEL alias rejection", () => {
   it("accepts a pinned dated or numbered Gemini identifier (F16-T01)", () => {
     expect(isModelAlias("gemini-2.5-flash-001")).toBe(false);
     expect(isModelAlias("gemini-1.5-flash-8b-20250827")).toBe(false);
+    expect(isModelAlias("gemini-3.7-flash")).toBe(false);
+    expect(isModelAlias("models/gemini-3.7-flash")).toBe(false);
   });
 
   it("loadConfig throws when AI_MODEL matches a known alias pattern", () => {
