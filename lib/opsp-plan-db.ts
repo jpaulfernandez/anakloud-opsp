@@ -105,6 +105,27 @@ export async function savePlanCell(
 }
 
 /**
+ * Seeds all 32 plan cell values from INITIAL_PLAN_VALUES into the database.
+ * Idempotent: upserts all cells under the given plan ID.
+ */
+export async function seedPlanCells(
+  db: ClientBase,
+  planId: string = "default",
+): Promise<void> {
+  const now = new Date();
+  for (const def of CELL_REGISTRY) {
+    const content = INITIAL_PLAN_VALUES[def.id] ?? defaultContentForKind(def.kind, def);
+    await db.query(
+      `insert into opsp_plan_cell_values (plan_id, cell_id, content, updated_at, updated_by)
+       values ($1, $2, $3, $4, 'seed')
+       on conflict (plan_id, cell_id)
+       do update set content = $3, updated_at = $4, updated_by = 'seed'`,
+      [planId, def.id, JSON.stringify(content), now],
+    );
+  }
+}
+
+/**
  * Maps raw database answers from real submitted respondents to OPSP cell survey answers.
  */
 function mapDbAnswersToCells(rows: PublicAnswerWithRespondent[]): Record<string, SurveyAnswer[]> {

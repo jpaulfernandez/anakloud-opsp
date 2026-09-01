@@ -19,9 +19,9 @@ describe("AI Cell Ideation Prompt & Fallback", () => {
     const msg = formatIdeateUserMessage(cellDef, currentContent, answers);
 
     expect(msg).toContain("Cell: T35-5 — Key thrusts / capabilities");
-    expect(msg).toContain("Ana Reyes");
+    expect(msg).toContain("Ern");
     expect(msg).toContain("PedConnect");
-    expect(msg).toContain("Diego Tan");
+    expect(msg).toContain("Paul");
     expect(msg).toContain("TeachDay");
   });
 

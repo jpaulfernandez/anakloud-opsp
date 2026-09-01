@@ -1,6 +1,7 @@
 import { createMigrationClient } from "../lib/db";
 import { migrate } from "../lib/migrate";
 import { seedCohort, SEED_COHORT_ID, SEED_RESPONDENTS } from "../lib/seed";
+import { seedPlanCells } from "../lib/opsp-plan-db";
 
 // `npm run db:seed` — populate one cohort and six conflicting respondents so
 // the admin comparison and divergence scoring can be developed without real
@@ -22,13 +23,14 @@ async function main(): Promise<void> {
     // fresh local database has no tables yet, so apply them if missing.
     await migrate(db);
     await seedCohort(db);
+    await seedPlanCells(db);
 
     const respondentCount = SEED_RESPONDENTS.length;
     const facilitatorCount = SEED_RESPONDENTS.filter((r) => r.is_facilitator).length;
     console.log(
       `Seeded cohort ${SEED_COHORT_ID} (Anakloud Q4 2026) with ` +
-        `${respondentCount} respondents (${facilitatorCount} facilitator). ` +
-        "Idempotent: run again to re-upsert the same six rows.",
+        `${respondentCount} respondents (${facilitatorCount} facilitator) and 32 OPSP plan cells. ` +
+        "Idempotent: run again to re-upsert the same rows.",
     );
   } finally {
     await db.end();
